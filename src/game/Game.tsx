@@ -7,6 +7,9 @@ import { FollowCamera } from './FollowCamera'
 import { FpsTracker } from './FpsTracker'
 import { Player } from './Player'
 import { PointerLockBridge } from './PointerLockBridge'
+import { Bikes } from './hazards/Bikes'
+import { Tram } from './hazards/Tram'
+import { ScoreTimer } from './systems/ScoreTimer'
 import { Block } from './world/Block'
 
 const keyMap = [
@@ -44,8 +47,11 @@ export function Game() {
               shadow-bias={-0.0005}
             />
             <Block />
+            <Bikes />
+            <Tram />
             <Player />
             <FollowCamera />
+            <ScoreTimer />
             <FpsTracker />
             <PointerLockBridge />
           </Physics>

@@ -5,6 +5,7 @@ import {
   type IntersectionEnterPayload,
 } from '@react-three/rapier'
 
+import { useGameStore } from '../../state/useGameStore'
 import {
   BLOCK_LENGTH,
   CANAL_DEPTH,
@@ -25,10 +26,11 @@ export function Canal({ bridgeZ = 0, bridgeWidth = 4 }: CanalProps) {
 
   const handleEnter = (e: IntersectionEnterPayload) => {
     if (e.other.rigidBodyObject?.name !== 'player') return
+    if (useGameStore.getState().gameOver) return
     const now = performance.now()
     if (now - cooldown.current < 1500) return
     cooldown.current = now
-    console.log('[canal] player fell in')
+    useGameStore.getState().endGame('canal')
   }
 
   // sensor flanks the bridge so crossing the bridge does not trigger

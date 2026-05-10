@@ -9,6 +9,7 @@ import {
 } from '@react-three/rapier'
 import * as THREE from 'three'
 
+import { useGameStore } from '../state/useGameStore'
 import { cameraState } from './cameraState'
 import {
   GRAVITY,
@@ -17,6 +18,8 @@ import {
   PLAYER_RADIUS,
   PLAYER_SPEED,
 } from './constants'
+
+const SPAWN: [number, number, number] = [1, 2, 0]
 
 export function Player() {
   const body = useRef<RapierRigidBody>(null)
@@ -45,6 +48,21 @@ export function Player() {
     }
   }, [world])
 
+  // teleport back to spawn when the game resets (gameOver: true → false)
+  useEffect(() => {
+    let prev = useGameStore.getState().gameOver
+    return useGameStore.subscribe((state) => {
+      if (prev && !state.gameOver && body.current) {
+        body.current.setTranslation(
+          { x: SPAWN[0], y: SPAWN[1], z: SPAWN[2] },
+          true,
+        )
+        yVelocity.current = 0
+      }
+      prev = state.gameOver
+    })
+  }, [])
+
   useFrame((_state, delta) => {
     const rb = body.current
     const controller = controllerRef.current
@@ -52,7 +70,10 @@ export function Player() {
     const collider = rb.collider(0)
     if (!collider) return
 
-    const { forward, backward, left, right, jump } = getKeys()
+    const { gameOver } = useGameStore.getState()
+    const { forward, backward, left, right, jump } = gameOver
+      ? { forward: false, backward: false, left: false, right: false, jump: false }
+      : getKeys()
 
     // axis values: +forward = into the scene (camera-forward), +right = camera-right
     const forwardAxis = Number(forward) - Number(backward)
@@ -107,7 +128,7 @@ export function Player() {
       name="player"
       type="kinematicPosition"
       colliders={false}
-      position={[1, 2, 0]}
+      position={SPAWN}
       enabledRotations={[false, false, false]}
     >
       <CapsuleCollider args={[PLAYER_HEIGHT / 2, PLAYER_RADIUS]} />
