@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -fsSL https://fnm.vercel.app/install -o /tmp/fnm-install.sh)",
+      "Read(//tmp/**)"
+    ]
+  }
+}
