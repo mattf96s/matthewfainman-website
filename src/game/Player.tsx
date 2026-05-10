@@ -46,7 +46,7 @@ export function Player() {
       name="player"
       type="kinematicPosition"
       colliders={false}
-      position={[0, 2, 0]}
+      position={[1, 2, 0]}
       enabledRotations={[false, false, false]}
     >
       <CapsuleCollider args={[PLAYER_HEIGHT / 2, PLAYER_RADIUS]} />

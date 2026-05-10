@@ -5,8 +5,8 @@ import { Physics } from '@react-three/rapier'
 
 import { FollowCamera } from './FollowCamera'
 import { FpsTracker } from './FpsTracker'
-import { Ground } from './Ground'
 import { Player } from './Player'
+import { Block } from './world/Block'
 
 const keyMap = [
   { name: 'forward', keys: ['ArrowUp', 'KeyW'] },
@@ -19,17 +19,30 @@ const keyMap = [
 export function Game() {
   return (
     <KeyboardControls map={keyMap}>
-      <Canvas shadows camera={{ position: [0, 5, 10], fov: 60 }}>
+      <Canvas shadows camera={{ position: [0, 5, 12], fov: 60 }}>
+        <color attach="background" args={['#cdd9d5']} />
+        <fog attach="fog" args={['#cdd9d5', 60, 140]} />
         <Suspense fallback={null}>
           <Physics gravity={[0, -30, 0]}>
-            <ambientLight intensity={0.4} />
+            <hemisphereLight
+              args={['#ffe6c2', '#3a3e3a', 0.45]}
+            />
+            <ambientLight intensity={0.15} />
             <directionalLight
-              position={[10, 20, 10]}
-              intensity={1.5}
+              position={[30, 40, 20]}
+              intensity={1.7}
+              color="#fff4d6"
               castShadow
               shadow-mapSize={[2048, 2048]}
+              shadow-camera-left={-40}
+              shadow-camera-right={40}
+              shadow-camera-top={40}
+              shadow-camera-bottom={-40}
+              shadow-camera-near={1}
+              shadow-camera-far={120}
+              shadow-bias={-0.0005}
             />
-            <Ground />
+            <Block />
             <Player />
             <FollowCamera />
             <FpsTracker />

@@ -11,7 +11,16 @@ import { nitro } from 'nitro/vite'
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
   plugins: [
-    devtools(),
+    devtools({
+      // R3F intrinsics (mesh, group, etc.) treat unknown JSX attrs as
+      // property paths on the underlying three.js object, which fails when
+      // devtools tags them with data-tsd-source. Skip injection for files
+      // that render inside the Canvas.
+      injectSource: {
+        enabled: true,
+        ignore: { files: [/src\/game\//] },
+      },
+    }),
     nitro({ rollupConfig: { external: [/^@sentry\//] } }),
     tailwindcss(),
     tanstackStart(),
