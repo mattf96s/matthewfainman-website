@@ -9,4 +9,16 @@
 export const cameraState = {
   yaw: 0,
   pitch: 0.1,
+  /** performance.now() timestamp until which the camera should shake. */
+  shakeUntil: 0,
+  /** Magnitude (metres) of the shake at peak. */
+  shakeMagnitude: 0,
+}
+
+export function triggerCameraShake(durationMs: number, magnitude: number) {
+  const end = performance.now() + durationMs
+  if (end > cameraState.shakeUntil) {
+    cameraState.shakeUntil = end
+    cameraState.shakeMagnitude = magnitude
+  }
 }

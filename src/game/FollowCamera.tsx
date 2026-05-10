@@ -38,6 +38,17 @@ export function FollowCamera() {
     )
 
     camera.position.lerp(desired.current, CAMERA_LERP)
+
+    // shake offset — decays over the remaining shake window
+    const now = performance.now()
+    if (now < cameraState.shakeUntil && cameraState.shakeMagnitude > 0) {
+      const remaining = (cameraState.shakeUntil - now) / 350
+      const k = cameraState.shakeMagnitude * Math.max(0, Math.min(1, remaining))
+      camera.position.x += (Math.random() - 0.5) * k * 2
+      camera.position.y += (Math.random() - 0.5) * k * 2
+      camera.position.z += (Math.random() - 0.5) * k * 2
+    }
+
     camera.lookAt(target.current)
   })
 

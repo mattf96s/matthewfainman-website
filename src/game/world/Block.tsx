@@ -1,27 +1,24 @@
+import { BikeRacks } from './BikeRacks'
 import { Bridge } from './Bridge'
 import { Canal } from './Canal'
-import { CanalHouse } from './CanalHouse'
+import { ClockTower } from './ClockTower'
+import { HouseRow } from './HouseRow'
+import { Lamps } from './Lamps'
 import { Street } from './Street'
 import {
   BLOCK_LENGTH,
-  HOUSE_BRICKS,
+  FAR_SIDEWALK_WIDTH,
+  X_FAR_SIDEWALK,
   X_HOUSE_FRONT,
 } from './constants'
 
-const HOUSE_WIDTH = 5
-const HOUSE_DEPTH = 8
-const HOUSE_GAP = 0.4
-
 /**
- * Composes a single Amsterdam block: street strips, canal, a bridge, and
- * a row of narrow gabled houses along the east side.
+ * Composes a small Amsterdam neighbourhood: street strips, canal, a
+ * bridge, two rows of canal houses (east + west), a landmark clock
+ * tower at the north end, and decorative lamp posts + bike racks.
  */
 export function Block() {
-  const houseCount = Math.floor(
-    BLOCK_LENGTH / (HOUSE_WIDTH + HOUSE_GAP),
-  )
-  const stride = HOUSE_WIDTH + HOUSE_GAP
-  const startZ = -((houseCount - 1) * stride) / 2
+  const westFacadeX = X_FAR_SIDEWALK - FAR_SIDEWALK_WIDTH / 2
 
   return (
     <group>
@@ -29,26 +26,17 @@ export function Block() {
       <Canal bridgeZ={0} bridgeWidth={4} />
       <Bridge z={0} width={4} />
 
-      {Array.from({ length: houseCount }, (_, i) => {
-        const z = startZ + i * stride
-        const brick = HOUSE_BRICKS[i % HOUSE_BRICKS.length]!
-        const heightVariation = 1.5 * Math.sin(i * 1.7)
-        return (
-          <CanalHouse
-            key={i}
-            position={[
-              X_HOUSE_FRONT + HOUSE_DEPTH / 2,
-              0,
-              z,
-            ]}
-            width={HOUSE_WIDTH}
-            depth={HOUSE_DEPTH}
-            height={9 + heightVariation}
-            rotationY={-Math.PI / 2}
-            brick={brick}
-          />
-        )
-      })}
+      {/* east row — facade faces west (-X), toward the canal */}
+      <HouseRow frontX={X_HOUSE_FRONT} facingY={-Math.PI / 2} seed={0} />
+
+      {/* west row — facade faces east (+X), toward the canal */}
+      <HouseRow frontX={westFacadeX} facingY={Math.PI / 2} seed={3} />
+
+      {/* landmark — north end of the canal, just past the block edge */}
+      <ClockTower position={[X_HOUSE_FRONT + 4, 0, BLOCK_LENGTH / 2 + 6]} />
+
+      <Lamps />
+      <BikeRacks />
     </group>
   )
 }

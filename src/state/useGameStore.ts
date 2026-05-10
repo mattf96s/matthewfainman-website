@@ -10,6 +10,9 @@ interface GameState {
   score: number
   /** Adds whole-number seconds; floor handled by caller. */
   addScore: (amount: number) => void
+  /** Near-miss bonus — clean pass near a hazard. */
+  addNearMiss: () => void
+  nearMissCount: number
 
   lives: number
   /** Decrement and surface a reason in the console. */
@@ -23,6 +26,7 @@ interface GameState {
 }
 
 const STARTING_LIVES = 3
+const NEAR_MISS_BONUS = 5
 
 export const useGameStore = create<GameState>((set) => ({
   fps: 0,
@@ -33,6 +37,12 @@ export const useGameStore = create<GameState>((set) => ({
 
   score: 0,
   addScore: (amount) => set((s) => ({ score: s.score + amount })),
+  nearMissCount: 0,
+  addNearMiss: () =>
+    set((s) => ({
+      score: s.score + NEAR_MISS_BONUS,
+      nearMissCount: s.nearMissCount + 1,
+    })),
 
   lives: STARTING_LIVES,
   loseLife: (reason) =>
@@ -55,6 +65,7 @@ export const useGameStore = create<GameState>((set) => ({
   reset: () =>
     set({
       score: 0,
+      nearMissCount: 0,
       lives: STARTING_LIVES,
       gameOver: false,
       gameOverReason: null,

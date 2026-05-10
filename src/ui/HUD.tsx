@@ -11,6 +11,7 @@ export function HUD() {
   const fps = useGameStore((s) => s.fps)
   const score = useGameStore((s) => s.score)
   const lives = useGameStore((s) => s.lives)
+  const nearMissCount = useGameStore((s) => s.nearMissCount)
   const locked = useGameStore((s) => s.locked)
   const gameOver = useGameStore((s) => s.gameOver)
   const gameOverReason = useGameStore((s) => s.gameOverReason)
@@ -32,13 +33,18 @@ export function HUD() {
           textAlign: 'right',
         }}
       >
-        <div>{score}s</div>
+        <div>{score}</div>
         <div style={{ fontSize: 18, marginTop: 4 }}>
           {'♥'.repeat(Math.max(0, lives))}
           <span style={{ opacity: 0.25 }}>
             {'♥'.repeat(Math.max(0, 3 - lives))}
           </span>
         </div>
+        {nearMissCount > 0 && (
+          <div style={{ fontSize: 12, marginTop: 6, opacity: 0.85 }}>
+            {nearMissCount} near miss{nearMissCount === 1 ? '' : 'es'}
+          </div>
+        )}
       </div>
 
       {!locked && !gameOver && (

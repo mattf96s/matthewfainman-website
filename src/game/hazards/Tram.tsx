@@ -4,9 +4,11 @@ import {
   CuboidCollider,
   RigidBody,
   type IntersectionEnterPayload,
+  type IntersectionExitPayload,
   type RapierRigidBody,
 } from '@react-three/rapier'
 
+import { triggerCameraShake } from '../cameraState'
 import { useGameStore } from '../../state/useGameStore'
 import { BLOCK_LENGTH, X_ROAD } from '../world/constants'
 
@@ -30,7 +32,10 @@ export function Tram({
   const body = useRef<RapierRigidBody>(null)
   const z = useRef(startZ)
   const direction = useRef<1 | -1>(1)
+  const playerInside = useRef(false)
+  const wasHit = useRef(false)
   const endGame = useGameStore((s) => s.endGame)
+  const addNearMiss = useGameStore((s) => s.addNearMiss)
   const gameOver = useGameStore((s) => s.gameOver)
 
   useFrame((_, delta) => {
@@ -53,7 +58,27 @@ export function Tram({
 
   const onHit = (e: IntersectionEnterPayload) => {
     if (e.other.rigidBodyObject?.name !== 'player') return
+    wasHit.current = true
+    triggerCameraShake(800, 0.7)
     endGame('tram')
+  }
+
+  const onNearEnter = (e: IntersectionEnterPayload) => {
+    if (e.other.rigidBodyObject?.name !== 'player') return
+    playerInside.current = true
+    wasHit.current = false
+  }
+
+  const onNearExit = (e: IntersectionExitPayload) => {
+    if (e.other.rigidBodyObject?.name !== 'player') return
+    if (!playerInside.current) return
+    playerInside.current = false
+    if (!wasHit.current && !useGameStore.getState().gameOver) {
+      // tram near-miss is worth more (it would have been instant lose)
+      addNearMiss()
+      addNearMiss()
+    }
+    wasHit.current = false
   }
 
   return (
@@ -68,6 +93,14 @@ export function Tram({
         args={[TRAM_WIDTH / 2, TRAM_HEIGHT / 2, TRAM_LENGTH / 2]}
         sensor
         onIntersectionEnter={onHit}
+      />
+
+      {/* near-miss halo around the tram */}
+      <CuboidCollider
+        args={[TRAM_WIDTH / 2 + 1.5, TRAM_HEIGHT / 2, TRAM_LENGTH / 2 + 1.5]}
+        sensor
+        onIntersectionEnter={onNearEnter}
+        onIntersectionExit={onNearExit}
       />
 
       {/* body */}
