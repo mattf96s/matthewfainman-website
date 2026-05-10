@@ -2,7 +2,24 @@
   "permissions": {
     "allow": [
       "Bash(curl -fsSL https://fnm.vercel.app/install -o /tmp/fnm-install.sh)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(pnpm add *)",
+      "Read(//usr/local/bin/**)",
+      "Bash(command -v fnm volta corepack)",
+      "Read(//opt/homebrew/Cellar/**)",
+      "Read(//opt/homebrew/opt/**)",
+      "Bash(pnpm env *)",
+      "Bash(brew link *)",
+      "Bash(export PATH=\"/opt/homebrew/opt/node@24/bin:$PATH\")",
+      "Bash(pnpm --version)",
+      "Bash(npx tsc *)",
+      "Bash(pnpm build *)",
+      "Bash(pnpm dev *)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(lsof -ti:3000)",
+      "Bash(xargs kill -9)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
