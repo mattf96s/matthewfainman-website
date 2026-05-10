@@ -6,6 +6,7 @@ import { Physics } from '@react-three/rapier'
 import { FollowCamera } from './FollowCamera'
 import { FpsTracker } from './FpsTracker'
 import { Player } from './Player'
+import { PointerLockBridge } from './PointerLockBridge'
 import { Block } from './world/Block'
 
 const keyMap = [
@@ -46,6 +47,7 @@ export function Game() {
             <Player />
             <FollowCamera />
             <FpsTracker />
+            <PointerLockBridge />
           </Physics>
         </Suspense>
       </Canvas>
