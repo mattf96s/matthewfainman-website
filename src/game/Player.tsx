@@ -22,6 +22,10 @@ import {
 import { X_NEAR_SIDEWALK } from './world/constants'
 
 const SPAWN: [number, number, number] = [X_NEAR_SIDEWALK, 2, 0]
+/** If the player drops below this Y, the fall-off timer starts. */
+const FALL_THRESHOLD_Y = -8
+/** How long to keep falling before respawning at the title overlay. */
+const FALL_RESET_MS = 1400
 
 export function Player() {
   const body = useRef<RapierRigidBody>(null)
@@ -32,6 +36,8 @@ export function Player() {
   const controllerRef = useRef<ReturnType<typeof world.createCharacterController> | null>(null)
   const yVelocity = useRef(0)
   const wasJumpPressed = useRef(false)
+  /** Set when the player drops past the threshold; cleared on respawn. */
+  const fallingSince = useRef<number | null>(null)
 
   const move = useRef(new THREE.Vector3())
   const planar = useRef(new THREE.Vector3())
@@ -123,11 +129,33 @@ export function Player() {
     const m = controller.computedMovement()
 
     const pos = rb.translation()
+    const newY = pos.y + m.y
     rb.setNextKinematicTranslation({
       x: pos.x + m.x,
-      y: pos.y + m.y,
+      y: newY,
       z: pos.z + m.z,
     })
+
+    // fall-off-the-edge handling: drop below threshold → let them fall
+    // for a moment → respawn at spawn and bring back the title overlay
+    if (newY < FALL_THRESHOLD_Y) {
+      const now = performance.now()
+      if (fallingSince.current === null) {
+        fallingSince.current = now
+      } else if (now - fallingSince.current >= FALL_RESET_MS) {
+        const store = useGameStore.getState()
+        store.reset()
+        store.setStarted(false)
+        rb.setTranslation(
+          { x: SPAWN[0], y: SPAWN[1], z: SPAWN[2] },
+          true,
+        )
+        yVelocity.current = 0
+        fallingSince.current = null
+      }
+    } else if (fallingSince.current !== null) {
+      fallingSince.current = null
+    }
 
     // face the direction of horizontal motion
     if (mesh.current && (planar.current.x !== 0 || planar.current.z !== 0)) {
