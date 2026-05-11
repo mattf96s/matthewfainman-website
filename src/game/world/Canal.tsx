@@ -104,6 +104,47 @@ export function Canal({ bridges = [] }: CanalProps) {
           />
         ))}
       </RigidBody>
+
+      {/* visible stone bank walls: face the water from sidewalk top down
+        * to canal water. The top edge sits flush with the sidewalk. */}
+      {segments.flatMap((seg, i) => [
+        <BankFace
+          key={`bank-w-${i}`}
+          side="west"
+          z={seg.centre}
+          length={seg.len}
+        />,
+        <BankFace
+          key={`bank-e-${i}`}
+          side="east"
+          z={seg.centre}
+          length={seg.len}
+        />,
+      ])}
     </group>
+  )
+}
+
+interface BankFaceProps {
+  side: 'west' | 'east'
+  z: number
+  length: number
+}
+
+const BANK_FACE_THICKNESS = 0.3
+const BANK_TOP_Y = 0.05 // a hair above sidewalk top, like a stone curb
+
+function BankFace({ side, z, length }: BankFaceProps) {
+  const edgeX =
+    side === 'west' ? X_CANAL - CANAL_WIDTH / 2 : X_CANAL + CANAL_WIDTH / 2
+  const x = edgeX + (side === 'west' ? -1 : 1) * (BANK_FACE_THICKNESS / 2 - 0.05)
+  const totalH = CANAL_DEPTH + BANK_TOP_Y
+  // centre y so the box spans from -CANAL_DEPTH to +BANK_TOP_Y
+  const cy = (BANK_TOP_Y - CANAL_DEPTH) / 2
+  return (
+    <mesh receiveShadow castShadow position={[x, cy, z]}>
+      <boxGeometry args={[BANK_FACE_THICKNESS, totalH, length]} />
+      <meshStandardMaterial color="#605a52" roughness={0.95} />
+    </mesh>
   )
 }

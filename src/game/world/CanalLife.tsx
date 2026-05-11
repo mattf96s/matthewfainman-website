@@ -1,107 +1,101 @@
-import { Boat } from './Boat'
+import { Boat, type BoatVariant } from './Boat'
 import { Duck } from './Duck'
-import { X_CANAL } from './constants'
+import { CANAL_WIDTH, X_CANAL } from './constants'
+
+interface MooredBoat {
+  side: 'west' | 'east'
+  z: number
+  length?: number
+  width?: number
+  variant?: BoatVariant
+  hullColor?: string
+  trimColor?: string
+}
+
+// distance from canal centreline to the bank-side row of moored boats
+const SIDE_OFFSET = CANAL_WIDTH / 2 - 1.05
+
+const MOORED: MooredBoat[] = [
+  { side: 'west', z: -32, length: 5.5, variant: 'open' },
+  { side: 'west', z: -26, length: 5, variant: 'covered', hullColor: '#1a242b' },
+  { side: 'west', z: -20.5, length: 5.5, variant: 'covered', hullColor: '#191815' },
+  { side: 'west', z: -14, length: 4.8, variant: 'open', hullColor: '#1f1a14', trimColor: '#c2bca6' },
+  { side: 'west', z: -8, length: 6, variant: 'covered', hullColor: '#15161c' },
+  { side: 'west', z: -1.5, length: 5, variant: 'open', hullColor: '#2c241c' },
+  { side: 'west', z: 5, length: 5.5, variant: 'cabin', hullColor: '#1a2a36' },
+  { side: 'west', z: 11.5, length: 5, variant: 'covered', hullColor: '#1c1a14' },
+  { side: 'west', z: 18, length: 5.5, variant: 'open', trimColor: '#dce0d6' },
+  { side: 'west', z: 24, length: 5, variant: 'covered', hullColor: '#171513' },
+  { side: 'west', z: 30, length: 5.2, variant: 'open', hullColor: '#1a1812' },
+
+  { side: 'east', z: -30, length: 5, variant: 'covered', hullColor: '#15161c' },
+  { side: 'east', z: -24, length: 5.5, variant: 'open' },
+  { side: 'east', z: -18, length: 4.8, variant: 'covered', hullColor: '#1e1614' },
+  { side: 'east', z: -11.5, length: 5.5, variant: 'cabin', hullColor: '#23191a' },
+  { side: 'east', z: -5, length: 5, variant: 'open', trimColor: '#e6e0c8' },
+  { side: 'east', z: 1.5, length: 5.5, variant: 'covered', hullColor: '#1a242b' },
+  { side: 'east', z: 8, length: 5, variant: 'open', hullColor: '#1f1c16' },
+  { side: 'east', z: 14, length: 5.8, variant: 'covered', hullColor: '#171513' },
+  { side: 'east', z: 20.5, length: 5, variant: 'open', hullColor: '#2c241c' },
+  { side: 'east', z: 27, length: 5.5, variant: 'covered', hullColor: '#1a1812' },
+]
 
 /**
- * Moored and drifting boats on the canal, plus a handful of birds.
- * Boats with driftZ ≠ 0 move slowly along the canal.
+ * Densely-moored canal boats: a long row along each bank with a mix
+ * of open / covered / cabin variants. Plus two drifting boats down
+ * the centreline and a handful of birds.
  */
 export function CanalLife() {
   return (
     <>
-      {/* moored to the west bank, facing north */}
-      <Boat
-        position={[X_CANAL - 2.4, -32]}
-        rotationY={-Math.PI / 2}
-        length={7}
-        hasCabin
-      />
-      <Boat
-        position={[X_CANAL - 2.4, -18]}
-        rotationY={-Math.PI / 2}
-        length={6}
-        hullColor="#1f2820"
-        deckColor="#695840"
-        hasCabin={false}
-      />
-      <Boat
-        position={[X_CANAL - 2.4, 6]}
-        rotationY={-Math.PI / 2}
-        length={6.5}
-        hullColor="#3a2a1c"
-        deckColor="#7a6850"
-        hasCabin
-      />
-      <Boat
-        position={[X_CANAL - 2.4, 22]}
-        rotationY={-Math.PI / 2}
-        length={5.5}
-        hullColor="#2a3640"
-        deckColor="#6a5840"
-        hasCabin
-      />
-
-      {/* moored to the east bank, facing south */}
-      <Boat
-        position={[X_CANAL + 2.4, -24]}
-        rotationY={Math.PI / 2}
-        length={7}
-        hullColor="#2a2018"
-        deckColor="#85705a"
-        cabinColor="#2a1f15"
-        hasCabin
-      />
-      <Boat
-        position={[X_CANAL + 2.4, -4]}
-        rotationY={Math.PI / 2}
-        length={6}
-        hullColor="#1a2030"
-        deckColor="#7a6555"
-        hasCabin={false}
-      />
-      <Boat
-        position={[X_CANAL + 2.4, 18]}
-        rotationY={Math.PI / 2}
-        length={6.5}
-        hullColor="#352318"
-        deckColor="#8a7155"
-        cabinColor="#3c2818"
-        hasCabin
-      />
+      {MOORED.map((b, i) => {
+        const x =
+          b.side === 'west' ? X_CANAL - SIDE_OFFSET : X_CANAL + SIDE_OFFSET
+        const rotY = b.side === 'west' ? -Math.PI / 2 : Math.PI / 2
+        return (
+          <Boat
+            key={`boat-${i}`}
+            position={[x, b.z]}
+            rotationY={rotY}
+            length={b.length}
+            width={b.width}
+            variant={b.variant ?? 'open'}
+            hullColor={b.hullColor}
+            trimColor={b.trimColor}
+          />
+        )
+      })}
 
       {/* drifting boats down the canal centreline */}
       <Boat
-        position={[X_CANAL, -10]}
+        position={[X_CANAL, -12]}
         length={5.5}
-        hullColor="#3c2818"
-        deckColor="#90785a"
-        cabinColor="#2a1f15"
-        hasCabin
-        driftZ={0.4}
+        variant="open"
+        hullColor="#1c1a14"
+        driftZ={0.35}
       />
       <Boat
-        position={[X_CANAL, 14]}
+        position={[X_CANAL, 12]}
         rotationY={Math.PI}
         length={5}
-        hullColor="#1f2c36"
-        deckColor="#6a5840"
-        hasCabin={false}
-        driftZ={-0.3}
+        variant="covered"
+        hullColor="#1a2a36"
+        driftZ={-0.25}
       />
 
       {/* birds */}
-      <Duck position={[X_CANAL - 1.5, -15]} driftZ={0.3} />
-      <Duck position={[X_CANAL + 0.5, -5]} driftZ={0.22} />
+      <Duck position={[X_CANAL - 1.6, -15]} driftZ={0.3} />
+      <Duck position={[X_CANAL + 0.3, -3]} driftZ={0.22} />
       <Duck
-        position={[X_CANAL - 0.8, 5]}
+        position={[X_CANAL - 0.4, 7]}
         driftZ={-0.18}
         bodyColor="#1a1a1a"
         headColor="#0a0a0a"
         beakColor="#ffffff"
       />
-      <Duck position={[X_CANAL + 1.0, 20]} driftZ={0.28} />
+      <Duck position={[X_CANAL + 1.0, 22]} driftZ={0.28} />
       <Duck
-        position={[X_CANAL - 1.2, 32]}
+        position={[X_CANAL - 1.0, 32]}
         driftZ={-0.15}
         bodyColor="#f5f1ea"
         headColor="#f5f1ea"

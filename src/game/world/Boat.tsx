@@ -4,62 +4,94 @@ import * as THREE from 'three'
 
 import { CANAL_DEPTH, CANAL_LENGTH } from './constants'
 
+export type BoatVariant = 'open' | 'covered' | 'cabin'
+
 interface BoatProps {
   position: [number, number]
   rotationY?: number
   length?: number
   width?: number
   hullColor?: string
-  deckColor?: string
-  cabinColor?: string
-  hasCabin?: boolean
-  /** If non-zero, the boat slowly drifts along the canal at this speed
-   * (m/s). Wraps within ±CANAL_LENGTH/2 - 5. */
+  trimColor?: string
+  /** "open" = bare hull, "covered" = rolled tarp over the middle,
+   * "cabin" = small wheelhouse. Defaults to "open". */
+  variant?: BoatVariant
+  /** If non-zero, the boat slowly drifts along the canal at this
+   * speed (m/s). */
   driftZ?: number
 }
 
-const HULL_HEIGHT = 0.55
-const CABIN_HEIGHT = 1.1
+const HULL_HEIGHT = 0.42
+const CABIN_HEIGHT = 1.0
+const COVER_HEIGHT = 0.28
 
 /**
- * A more realistic canal boat: a tapered hull (wider at the deck,
- * narrower at the keel via the bow wedge), a roomy cabin with side
- * windows and a roof rail, plus side rails along the deck.
+ * Stylised low-poly canal sloop. Hull is an extruded shape tapered
+ * at both ends. Sits low in the water with a thin trim along the
+ * rim. Three variants for visual variety: open (bare), covered
+ * (rolled-tarp middle), cabin (small wheelhouse).
  */
 export function Boat({
   position: [x, z],
   rotationY = 0,
-  length = 7,
-  width = 1.9,
-  hullColor = '#2c241c',
-  deckColor = '#8a7155',
-  cabinColor = '#3c2e22',
-  hasCabin = true,
+  length = 5.5,
+  width = 1.7,
+  hullColor = '#1d1a16',
+  trimColor = '#d8d3c2',
+  variant = 'open',
   driftZ = 0,
 }: BoatProps) {
   const group = useRef<THREE.Group>(null)
   const zPos = useRef(z)
   const phase = useRef(Math.random() * Math.PI * 2)
 
-  const waterY = -CANAL_DEPTH + 0.22
-  const driftRange = CANAL_LENGTH / 2 - 5
+  // sit low in the water: the hull centre roughly at the waterline
+  const waterY = -CANAL_DEPTH + 0.16
+  const driftRange = CANAL_LENGTH / 2 - 4
 
-  // build a tapered hull shape (top-down trapezoid) so the bow is sharper
+  /** Pointed bow at +Z, slightly tapered stern at -Z. Hull shape lives
+   * in the XY plane and is extruded along +Z; the mesh rotates it so
+   * the extrusion becomes the hull height. */
   const hullGeometry = useMemo(() => {
     const halfW = width / 2
-    const tipW = width * 0.25
+    const bowTipW = width * 0.18
+    const sternTipW = width * 0.42
     const shape = new THREE.Shape()
-    shape.moveTo(-halfW, -length / 2 + 1.5)
-    shape.lineTo(halfW, -length / 2 + 1.5)
+    // start at the stern (port corner), trace clockwise
+    shape.moveTo(-sternTipW / 2, -length / 2)
+    shape.lineTo(sternTipW / 2, -length / 2)
+    shape.lineTo(halfW, -length / 2 + 0.9)
     shape.lineTo(halfW, length / 2 - 1.5)
-    shape.lineTo(tipW, length / 2 - 0.3)
-    shape.lineTo(-tipW, length / 2 - 0.3)
+    shape.lineTo(bowTipW / 2, length / 2 - 0.3)
+    shape.lineTo(-bowTipW / 2, length / 2 - 0.3)
     shape.lineTo(-halfW, length / 2 - 1.5)
+    shape.lineTo(-halfW, -length / 2 + 0.9)
     shape.closePath()
     return new THREE.ExtrudeGeometry(shape, {
       depth: HULL_HEIGHT,
-      bevelEnabled: false,
+      bevelEnabled: true,
+      bevelThickness: 0.04,
+      bevelSize: 0.04,
+      bevelSegments: 2,
     })
+  }, [length, width])
+
+  /** Slightly inset deck shape — same outline as hull but pulled in. */
+  const deckGeometry = useMemo(() => {
+    const halfW = width / 2 - 0.08
+    const bowTipW = width * 0.18 - 0.06
+    const sternTipW = width * 0.42 - 0.1
+    const shape = new THREE.Shape()
+    shape.moveTo(-sternTipW / 2, -length / 2 + 0.06)
+    shape.lineTo(sternTipW / 2, -length / 2 + 0.06)
+    shape.lineTo(halfW, -length / 2 + 0.94)
+    shape.lineTo(halfW, length / 2 - 1.55)
+    shape.lineTo(bowTipW / 2, length / 2 - 0.36)
+    shape.lineTo(-bowTipW / 2, length / 2 - 0.36)
+    shape.lineTo(-halfW, length / 2 - 1.55)
+    shape.lineTo(-halfW, -length / 2 + 0.94)
+    shape.closePath()
+    return new THREE.ShapeGeometry(shape)
   }, [length, width])
 
   useFrame((state, delta) => {
@@ -70,19 +102,21 @@ export function Boat({
       if (zPos.current > driftRange) zPos.current = -driftRange
       else if (zPos.current < -driftRange) zPos.current = driftRange
     }
-    group.current.position.x = x + Math.sin(t * 0.5) * 0.04
-    group.current.position.y = waterY + Math.sin(t * 0.6) * 0.04
+    group.current.position.x = x + Math.sin(t * 0.45) * 0.03
+    group.current.position.y = waterY + Math.sin(t * 0.6) * 0.03
     group.current.position.z = zPos.current
-    group.current.rotation.z = Math.sin(t * 0.4) * 0.015
+    group.current.rotation.z = Math.sin(t * 0.4) * 0.012
   })
 
+  // local-space y of the rim (top of the hull), since the extrusion
+  // along +Z becomes a downward range after the -90° X rotation, the
+  // rim sits at y = 0 in the rotated frame.
+  const rimY = 0
+  const deckY = rimY - 0.02
+
   return (
-    <group
-      ref={group}
-      position={[x, waterY, z]}
-      rotation={[0, rotationY, 0]}
-    >
-      {/* hull — extruded along Y so the shape sits flat */}
+    <group ref={group} position={[x, waterY, z]} rotation={[0, rotationY, 0]}>
+      {/* hull — extruded shape rotated so depth becomes downward y */}
       <mesh
         castShadow
         receiveShadow
@@ -92,69 +126,87 @@ export function Boat({
         <meshStandardMaterial color={hullColor} roughness={0.9} />
       </mesh>
 
-      {/* deck floor */}
-      <mesh position={[0, HULL_HEIGHT + 0.001, 0]}>
-        <boxGeometry
-          args={[width * 0.88, 0.06, length - 1.4]}
-        />
-        <meshStandardMaterial color={deckColor} roughness={0.75} />
+      {/* deck — a thin flat plate inset from the rim */}
+      <mesh
+        receiveShadow
+        geometry={deckGeometry}
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, deckY, 0]}
+      >
+        <meshStandardMaterial color="#8a6e4a" roughness={0.85} />
       </mesh>
 
-      {/* deck side rails — slim boxes running along Z */}
+      {/* gunwale trim — thin painted strip along the rim */}
       {[-1, 1].map((side) => (
         <mesh
-          key={`rail-${side}`}
+          key={`gun-${side}`}
           castShadow
-          position={[side * (width / 2 - 0.04), HULL_HEIGHT + 0.18, 0]}
+          position={[side * (width / 2 - 0.04), rimY + 0.04, 0]}
         >
-          <boxGeometry args={[0.05, 0.06, length - 1.6]} />
-          <meshStandardMaterial color="#d4d2c4" roughness={0.5} metalness={0.3} />
+          <boxGeometry args={[0.07, 0.08, length * 0.92]} />
+          <meshStandardMaterial color={trimColor} roughness={0.8} />
         </mesh>
       ))}
 
-      {hasCabin && (
+      {variant === 'covered' && (
         <>
-          {/* cabin body */}
+          {/* rolled tarp / boat cover stretched over the middle */}
           <mesh
             castShadow
-            position={[0, HULL_HEIGHT + CABIN_HEIGHT / 2, -length * 0.18]}
+            position={[0, rimY + COVER_HEIGHT / 2, 0]}
           >
             <boxGeometry
-              args={[width * 0.82, CABIN_HEIGHT, length * 0.5]}
+              args={[width * 0.78, COVER_HEIGHT, length * 0.7]}
             />
-            <meshStandardMaterial color={cabinColor} roughness={0.7} />
+            <meshStandardMaterial
+              color="#15140f"
+              roughness={0.98}
+            />
           </mesh>
-
-          {/* cabin roof — slight overhang */}
+          {/* ridge along the spine */}
           <mesh
             castShadow
-            position={[0, HULL_HEIGHT + CABIN_HEIGHT + 0.04, -length * 0.18]}
+            position={[0, rimY + COVER_HEIGHT + 0.025, 0]}
+          >
+            <boxGeometry args={[0.08, 0.05, length * 0.72]} />
+            <meshStandardMaterial color="#3a3a32" roughness={0.9} />
+          </mesh>
+        </>
+      )}
+
+      {variant === 'cabin' && (
+        <>
+          <mesh
+            castShadow
+            position={[0, rimY + CABIN_HEIGHT / 2, -length * 0.18]}
           >
             <boxGeometry
-              args={[width * 0.92, 0.08, length * 0.55]}
+              args={[width * 0.78, CABIN_HEIGHT, length * 0.45]}
             />
-            <meshStandardMaterial color="#1c1812" roughness={0.85} />
+            <meshStandardMaterial color="#2e1f15" roughness={0.7} />
           </mesh>
-
-          {/* cabin side windows */}
+          <mesh
+            castShadow
+            position={[0, rimY + CABIN_HEIGHT + 0.04, -length * 0.18]}
+          >
+            <boxGeometry
+              args={[width * 0.88, 0.08, length * 0.5]}
+            />
+            <meshStandardMaterial color="#15110d" roughness={0.85} />
+          </mesh>
           {[-1, 1].map((side) => (
             <group
-              key={`win-${side}`}
+              key={`cwin-${side}`}
               position={[
-                side * (width * 0.41 + 0.005),
-                HULL_HEIGHT + CABIN_HEIGHT * 0.62,
+                side * (width * 0.39 + 0.005),
+                rimY + CABIN_HEIGHT * 0.6,
                 -length * 0.18,
               ]}
               rotation={[0, side > 0 ? Math.PI / 2 : -Math.PI / 2, 0]}
             >
               {[-1, 0, 1].map((wi) => (
-                <mesh
-                  key={wi}
-                  position={[wi * (length * 0.13), 0, 0]}
-                >
-                  <planeGeometry
-                    args={[length * 0.1, CABIN_HEIGHT * 0.45]}
-                  />
+                <mesh key={wi} position={[wi * (length * 0.12), 0, 0]}>
+                  <planeGeometry args={[length * 0.09, CABIN_HEIGHT * 0.4]} />
                   <meshStandardMaterial
                     color="#1a2a35"
                     emissive="#2a4a5e"
@@ -165,24 +217,26 @@ export function Boat({
               ))}
             </group>
           ))}
+        </>
+      )}
 
-          {/* front cabin window (faces +Z) */}
+      {variant === 'open' && (
+        <>
+          {/* simple plank seat across the boat near the stern */}
           <mesh
-            position={[
-              0,
-              HULL_HEIGHT + CABIN_HEIGHT * 0.62,
-              -length * 0.18 + length * 0.25 + 0.001,
-            ]}
+            castShadow
+            position={[0, rimY - 0.06, -length * 0.28]}
           >
-            <planeGeometry
-              args={[width * 0.7, CABIN_HEIGHT * 0.5]}
-            />
-            <meshStandardMaterial
-              color="#1a2a35"
-              emissive="#2a4a5e"
-              emissiveIntensity={0.22}
-              roughness={0.2}
-            />
+            <boxGeometry args={[width * 0.78, 0.08, 0.28]} />
+            <meshStandardMaterial color="#7a5e3c" roughness={0.85} />
+          </mesh>
+          {/* outboard motor cowling at the stern */}
+          <mesh
+            castShadow
+            position={[0, rimY + 0.15, -length / 2 + 0.18]}
+          >
+            <boxGeometry args={[0.28, 0.42, 0.2]} />
+            <meshStandardMaterial color="#1c1c1c" roughness={0.7} />
           </mesh>
         </>
       )}
