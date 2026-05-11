@@ -5,6 +5,7 @@ import { Physics } from '@react-three/rapier'
 
 import { FollowCamera } from './FollowCamera'
 import { FpsTracker } from './FpsTracker'
+import { MobileControlsBridge } from './MobileControlsBridge'
 import { Player } from './Player'
 import { PointerLockBridge } from './PointerLockBridge'
 import { Bikes } from './hazards/Bikes'
@@ -111,6 +112,7 @@ export function Game() {
             <ScoreTimer />
             <FpsTracker />
             <PointerLockBridge />
+            <MobileControlsBridge />
           </Physics>
         </Suspense>
       </Canvas>

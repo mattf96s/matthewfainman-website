@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { FileDown, Github, Linkedin } from 'lucide-react'
 
+import { isTouchDevice } from '../game/mobileInput'
 import { profile } from '../lib/profile'
 import { useGameStore } from '../state/useGameStore'
 
@@ -66,6 +68,11 @@ export function HUD() {
 }
 
 function TitleOverlay() {
+  const [touch, setTouch] = useState(false)
+  useEffect(() => {
+    setTouch(isTouchDevice())
+  }, [])
+
   return (
     <Overlay>
       <div
@@ -81,7 +88,7 @@ function TitleOverlay() {
       </div>
       <Title>Amsterdam Explorer</Title>
       <Subtitle>
-        Press <kbd>Enter</kbd> to begin.
+        {touch ? 'Tap anywhere to begin.' : <>Press <kbd>Enter</kbd> to begin.</>}
         <div
           style={{
             marginTop: 10,
@@ -90,8 +97,14 @@ function TitleOverlay() {
             letterSpacing: '0.02em',
           }}
         >
-          <kbd>WASD</kbd> or <kbd>arrow keys</kbd> to walk ·{' '}
-          <kbd>Q</kbd>/<kbd>E</kbd> to turn
+          {touch ? (
+            <>Tilt your phone to walk · drag the screen to look around</>
+          ) : (
+            <>
+              <kbd>WASD</kbd> or <kbd>arrow keys</kbd> to walk ·{' '}
+              <kbd>Q</kbd>/<kbd>E</kbd> to turn
+            </>
+          )}
         </div>
         <SocialLinks />
       </Subtitle>

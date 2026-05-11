@@ -11,6 +11,7 @@ import * as THREE from 'three'
 
 import { useGameStore } from '../state/useGameStore'
 import { cameraState } from './cameraState'
+import { mobileInput } from './mobileInput'
 import {
   GRAVITY,
   KEYBOARD_YAW_SPEED,
@@ -100,9 +101,20 @@ export function Player() {
       cameraState.yaw += yawInput * KEYBOARD_YAW_SPEED * delta
     }
 
-    // axis values: +forward = into the scene (camera-forward), +right = camera-right
-    const forwardAxis = Number(forward) - Number(backward)
-    const rightAxis = Number(right) - Number(left)
+    // axis values: +forward = into the scene (camera-forward), +right = camera-right.
+    // Keyboard contributes ±1; gyro contributes analog [-1, 1]. They sum
+    // and then clamp to the unit disc — diagonals stay unit length and
+    // a small tilt produces a proportionally slow walk.
+    const fKey = Number(forward) - Number(backward)
+    const rKey = Number(right) - Number(left)
+    const fGyro = frozen ? 0 : mobileInput.forwardAxis
+    const rGyro = frozen ? 0 : mobileInput.rightAxis
+    const fRaw = fKey + fGyro
+    const rRaw = rKey + rGyro
+    const len = Math.hypot(fRaw, rRaw)
+    const scale = len > 1 ? 1 / len : 1
+    const forwardAxis = fRaw * scale
+    const rightAxis = rRaw * scale
 
     // camera-forward in world space is (-sin yaw, 0, -cos yaw); camera-right is (cos, 0, -sin)
     const sin = Math.sin(cameraState.yaw)
@@ -112,7 +124,6 @@ export function Player() {
       0,
       forwardAxis * -cos + rightAxis * -sin,
     )
-    if (planar.current.lengthSq() > 0) planar.current.normalize()
     planar.current.multiplyScalar(PLAYER_SPEED * delta)
 
     // vertical: gravity + jump on rising edge while grounded
