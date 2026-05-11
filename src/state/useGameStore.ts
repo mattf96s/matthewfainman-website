@@ -7,6 +7,10 @@ interface GameState {
   locked: boolean
   setLocked: (locked: boolean) => void
 
+  /** True after the player's first click — gates the title screen. */
+  started: boolean
+  setStarted: (started: boolean) => void
+
   score: number
   /** Adds whole-number seconds; floor handled by caller. */
   addScore: (amount: number) => void
@@ -34,6 +38,9 @@ export const useGameStore = create<GameState>((set) => ({
 
   locked: false,
   setLocked: (locked) => set({ locked }),
+
+  started: false,
+  setStarted: (started) => set({ started }),
 
   score: 0,
   addScore: (amount) => set((s) => ({ score: s.score + amount })),

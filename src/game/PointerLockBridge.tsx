@@ -10,8 +10,10 @@ import { useGameStore } from '../state/useGameStore'
 export function PointerLockBridge() {
   const locked = usePointerLock()
   const setLocked = useGameStore((s) => s.setLocked)
+  const setStarted = useGameStore((s) => s.setStarted)
   useEffect(() => {
     setLocked(locked)
-  }, [locked, setLocked])
+    if (locked) setStarted(true)
+  }, [locked, setLocked, setStarted])
   return null
 }

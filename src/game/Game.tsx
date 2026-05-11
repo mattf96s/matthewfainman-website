@@ -8,6 +8,7 @@ import { FpsTracker } from './FpsTracker'
 import { Player } from './Player'
 import { PointerLockBridge } from './PointerLockBridge'
 import { Bikes } from './hazards/Bikes'
+import { CrossTram } from './hazards/CrossTram'
 import { Tram } from './hazards/Tram'
 import { ScoreTimer } from './systems/ScoreTimer'
 import { Block } from './world/Block'
@@ -49,6 +50,7 @@ export function Game() {
             <Block />
             <Bikes />
             <Tram />
+            <CrossTram z={35} extent={14} />
             <Player />
             <FollowCamera />
             <ScoreTimer />

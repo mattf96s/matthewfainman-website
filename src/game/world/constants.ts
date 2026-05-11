@@ -17,6 +17,17 @@
 
 export const BLOCK_LENGTH = 60
 
+/** Canal length is independent of block length so it can extend past
+ * cross-streets and out beyond the visible block edges. */
+export const CANAL_LENGTH = 100
+
+/** Z of the perpendicular cross-street (north end of the block). */
+export const CROSS_STREET_Z = 35
+export const CROSS_STREET_WIDTH = 6
+/** X half-extent of the cross-street — spans the canal and into the
+ * houseside terrain. */
+export const CROSS_STREET_X_HALF = 20
+
 // surface thickness (Y depth of the cuboid colliders)
 export const SURFACE_THICKNESS = 0.4
 

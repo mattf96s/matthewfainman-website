@@ -7,21 +7,31 @@ import {
 
 import { useGameStore } from '../../state/useGameStore'
 import {
-  BLOCK_LENGTH,
   CANAL_DEPTH,
+  CANAL_LENGTH,
   CANAL_WIDTH,
   COLOR_CANAL,
   X_CANAL,
 } from './constants'
 
-interface CanalProps {
-  /** z-centre of the bridge (a sensor gap is left around it). */
-  bridgeZ?: number
-  /** bridge z-width — sensor gap matches. */
-  bridgeWidth?: number
+export interface BridgeZone {
+  /** Centre z of the bridge. */
+  z: number
+  /** Z-axis width of the bridge. */
+  width: number
 }
 
-export function Canal({ bridgeZ = 0, bridgeWidth = 4 }: CanalProps) {
+interface CanalProps {
+  /** Bridges to leave gaps for in the fall-in sensor. */
+  bridges?: BridgeZone[]
+}
+
+/**
+ * Renders the canal water surface and a series of fall-in sensor
+ * segments that skip the bridge zones (so crossing on a bridge doesn't
+ * trigger a fall).
+ */
+export function Canal({ bridges = [] }: CanalProps) {
   const cooldown = useRef(0)
 
   const handleEnter = (e: IntersectionEnterPayload) => {
@@ -33,13 +43,28 @@ export function Canal({ bridgeZ = 0, bridgeWidth = 4 }: CanalProps) {
     useGameStore.getState().endGame('canal')
   }
 
-  // sensor flanks the bridge so crossing the bridge does not trigger
-  const halfBlock = BLOCK_LENGTH / 2
-  const halfBridge = bridgeWidth / 2
-  const southLen = bridgeZ - halfBridge - -halfBlock
-  const northLen = halfBlock - (bridgeZ + halfBridge)
-  const southCentre = (-halfBlock + (bridgeZ - halfBridge)) / 2
-  const northCentre = (halfBlock + (bridgeZ + halfBridge)) / 2
+  // segment the sensor around the bridge zones
+  const halfLen = CANAL_LENGTH / 2
+  const sorted = [...bridges].sort((a, b) => a.z - b.z)
+  const segments: Array<{ centre: number; len: number }> = []
+  let cursor = -halfLen
+  for (const b of sorted) {
+    const bStart = b.z - b.width / 2
+    const bEnd = b.z + b.width / 2
+    if (bStart > cursor) {
+      segments.push({
+        centre: (cursor + bStart) / 2,
+        len: bStart - cursor,
+      })
+    }
+    cursor = Math.max(cursor, bEnd)
+  }
+  if (cursor < halfLen) {
+    segments.push({
+      centre: (cursor + halfLen) / 2,
+      len: halfLen - cursor,
+    })
+  }
 
   return (
     <group>
@@ -48,7 +73,7 @@ export function Canal({ bridgeZ = 0, bridgeWidth = 4 }: CanalProps) {
         position={[X_CANAL, -CANAL_DEPTH, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
       >
-        <planeGeometry args={[CANAL_WIDTH, BLOCK_LENGTH]} />
+        <planeGeometry args={[CANAL_WIDTH, CANAL_LENGTH]} />
         <meshStandardMaterial
           color={COLOR_CANAL}
           metalness={0.1}
@@ -57,20 +82,14 @@ export function Canal({ bridgeZ = 0, bridgeWidth = 4 }: CanalProps) {
       </mesh>
 
       <RigidBody type="fixed" colliders={false} sensor>
-        {southLen > 0 && (
+        {segments.map((seg, i) => (
           <CuboidCollider
-            args={[CANAL_WIDTH / 2, 1.5, southLen / 2]}
-            position={[X_CANAL, -0.5, southCentre]}
+            key={i}
+            args={[CANAL_WIDTH / 2, 1.5, seg.len / 2]}
+            position={[X_CANAL, -0.5, seg.centre]}
             onIntersectionEnter={handleEnter}
           />
-        )}
-        {northLen > 0 && (
-          <CuboidCollider
-            args={[CANAL_WIDTH / 2, 1.5, northLen / 2]}
-            position={[X_CANAL, -0.5, northCentre]}
-            onIntersectionEnter={handleEnter}
-          />
-        )}
+        ))}
       </RigidBody>
     </group>
   )
