@@ -10,8 +10,12 @@ import { PointerLockBridge } from './PointerLockBridge'
 import { Bikes } from './hazards/Bikes'
 import { CrossTram } from './hazards/CrossTram'
 import { Tram } from './hazards/Tram'
+import { Statiegeld } from './npcs/Statiegeld'
+import { Tourists } from './npcs/Tourists'
 import { ScoreTimer } from './systems/ScoreTimer'
 import { Block } from './world/Block'
+import { CanalLife } from './world/CanalLife'
+import { Rain } from './world/Rain'
 
 const keyMap = [
   { name: 'forward', keys: ['ArrowUp', 'KeyW'] },
@@ -50,9 +54,13 @@ export function Game() {
               shadow-bias={-0.0005}
             />
             <Block />
+            <CanalLife />
             <Bikes />
             <Tram />
             <CrossTram z={35} extent={14} />
+            <Tourists />
+            <Statiegeld />
+            <Rain />
             <Player />
             <FollowCamera />
             <ScoreTimer />

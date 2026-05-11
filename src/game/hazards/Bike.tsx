@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import {
   CuboidCollider,
@@ -14,54 +14,102 @@ import { useGameStore } from '../../state/useGameStore'
 interface BikeProps {
   /** X-axis position (typically the fietspad centre). */
   x: number
-  /** Initial position along Z (-Z = south end). */
-  startZ: number
-  /** Z extent — bike loops from -extent to +extent and wraps. */
+  /** Z-extent: bike travels from -extent to +extent. */
   extent: number
-  /** Metres per second. */
+  /** Cruise speed, m/s. */
   speed: number
-  /** Direction: 1 = north-bound (+Z), -1 = south-bound. */
-  direction?: 1 | -1
+  /** Initial delay before first appearance, seconds. */
+  initialDelay?: number
+  /** Min/max idle between trips, seconds. */
+  minIdle?: number
+  maxIdle?: number
+  /** Min/max speed jitter applied to each trip. */
+  speedJitter?: number
 }
 
 const BIKE_BODY_HEIGHT = 1.1
 const BIKE_BODY_LENGTH = 1.6
 
-/** Half-width of the on-track hit zone — narrower than the visible
- * bike so walking alongside on the sidewalk doesn't register. */
-const HIT_HALF_X = 0.2
+/** Half-width of the on-track hit zone — only direct frontal impact
+ * on the centreline counts. */
+const HIT_HALF_X = 0.06
 
 // near-miss zone — proximity halo where a clean pass earns bonus
 const NEAR_HALF_X = 1.2
 const NEAR_HALF_Y = 1.2
 const NEAR_HALF_Z = 1.4
 
+/** Y at which the bike is hidden when idle between trips. */
+const PARKED_Y = -50
+
+/**
+ * A single cyclist that does trips along the fietspad with random
+ * idle periods between them. Each idle picks a fresh direction and
+ * a fresh speed within `speedJitter`, so a bunch of these together
+ * produce naturally sporadic traffic with gaps and bursts.
+ */
 export function Bike({
   x,
-  startZ,
   extent,
   speed,
-  direction = 1,
+  initialDelay = 0,
+  minIdle = 4,
+  maxIdle = 14,
+  speedJitter = 1.5,
 }: BikeProps) {
   const body = useRef<RapierRigidBody>(null)
-  const z = useRef(startZ)
+  const z = useRef(0)
+  const direction = useRef<1 | -1>(1)
+  const tripSpeed = useRef(speed)
+  const idleUntil = useRef(performance.now() + initialDelay * 1000)
+  const active = useRef(false)
+
   const cooldown = useRef(0)
   const wasHitWhileNear = useRef(false)
   const playerInside = useRef(false)
   const loseLife = useGameStore((s) => s.loseLife)
   const addNearMiss = useGameStore((s) => s.addNearMiss)
 
-  useEffect(() => {
-    z.current = startZ
-  }, [startZ])
+  const startNewTrip = () => {
+    direction.current = Math.random() < 0.5 ? 1 : -1
+    z.current = direction.current === 1 ? -extent : extent
+    tripSpeed.current =
+      speed + (Math.random() * 2 - 1) * speedJitter
+    active.current = true
+  }
+
+  const parkAndIdle = () => {
+    active.current = false
+    const idleMs = (minIdle + Math.random() * (maxIdle - minIdle)) * 1000
+    idleUntil.current = performance.now() + idleMs
+  }
 
   useFrame((_, delta) => {
     if (!body.current) return
     if (useGameStore.getState().gameOver) return
-    z.current += direction * speed * delta
-    const span = extent * 2
-    if (z.current > extent) z.current -= span
-    else if (z.current < -extent) z.current += span
+
+    const now = performance.now()
+
+    if (!active.current) {
+      // park well below ground so sensors can't catch the player
+      body.current.setNextKinematicTranslation({
+        x,
+        y: PARKED_Y,
+        z: 0,
+      })
+      if (now >= idleUntil.current) startNewTrip()
+      return
+    }
+
+    z.current += direction.current * tripSpeed.current * delta
+    const done =
+      (direction.current === 1 && z.current > extent) ||
+      (direction.current === -1 && z.current < -extent)
+
+    if (done) {
+      parkAndIdle()
+      return
+    }
 
     body.current.setNextKinematicTranslation({
       x,
@@ -72,6 +120,7 @@ export function Bike({
 
   const onHit = (e: IntersectionEnterPayload) => {
     if (e.other.rigidBodyObject?.name !== 'player') return
+    if (!active.current) return
     if (useGameStore.getState().gameOver) return
     const now = performance.now()
     if (now - cooldown.current < 1500) return
@@ -83,6 +132,7 @@ export function Bike({
 
   const onNearEnter = (e: IntersectionEnterPayload) => {
     if (e.other.rigidBodyObject?.name !== 'player') return
+    if (!active.current) return
     playerInside.current = true
     wasHitWhileNear.current = false
   }
@@ -102,18 +152,15 @@ export function Bike({
       ref={body}
       type="kinematicPosition"
       colliders={false}
-      position={[x, BIKE_BODY_HEIGHT / 2, startZ]}
+      position={[x, PARKED_Y, 0]}
       enabledRotations={[false, false, false]}
     >
-      {/* hit zone — narrow along X (the perpendicular-to-motion axis)
-        * so walking alongside the bike on the sidewalk doesn't register. */}
       <CuboidCollider
         args={[HIT_HALF_X, BIKE_BODY_HEIGHT / 2, BIKE_BODY_LENGTH / 2]}
         sensor
         onIntersectionEnter={onHit}
       />
 
-      {/* near-miss halo */}
       <CuboidCollider
         args={[NEAR_HALF_X, NEAR_HALF_Y, NEAR_HALF_Z]}
         sensor
@@ -121,7 +168,6 @@ export function Bike({
         onIntersectionExit={onNearExit}
       />
 
-      {/* frame */}
       <mesh castShadow position={[0, 0, 0]}>
         <boxGeometry args={[0.1, 0.5, BIKE_BODY_LENGTH * 0.7]} />
         <meshStandardMaterial color="#2a2a2a" />
@@ -141,10 +187,7 @@ export function Bike({
         ),
       )}
 
-      <mesh
-        castShadow
-        position={[0, 0.4, BIKE_BODY_LENGTH / 2 - 0.25]}
-      >
+      <mesh castShadow position={[0, 0.4, BIKE_BODY_LENGTH / 2 - 0.25]}>
         <boxGeometry args={[0.6, 0.05, 0.05]} />
         <meshStandardMaterial color="#222" />
       </mesh>

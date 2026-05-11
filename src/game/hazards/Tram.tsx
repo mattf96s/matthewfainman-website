@@ -17,9 +17,9 @@ const TRAM_WIDTH = 2.4
 const TRAM_HEIGHT = 3.0
 const TRAM_SPEED = 8
 const TRAM_DWELL_SECONDS = 10
-/** Half-width of the on-track hit zone — only the tram's path of motion
- * counts as a hit, so walking alongside doesn't register. */
-const HIT_HALF_WIDTH = 0.55
+/** Half-width of the on-track hit zone — only direct frontal impact on
+ * the rails counts. Effectively the centreline strip. */
+const HIT_HALF_WIDTH = 0.18
 const TRAM_GVB_BLUE = '#0066b3'
 
 interface TramProps {

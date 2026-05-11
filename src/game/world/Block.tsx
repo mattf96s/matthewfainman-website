@@ -5,6 +5,7 @@ import { ClockTower } from './ClockTower'
 import { CrossStreet } from './CrossStreet'
 import { HouseRow } from './HouseRow'
 import { Lamps } from './Lamps'
+import { Shops } from './Shops'
 import { Street } from './Street'
 import { ZebraCrossing } from './ZebraCrossing'
 import {
@@ -54,6 +55,8 @@ export function Block() {
       <ZebraCrossing z={-20} />
       <ZebraCrossing z={15} />
       <ZebraCrossing z={28} />
+
+      <Shops />
 
       <Lamps />
       <BikeRacks />

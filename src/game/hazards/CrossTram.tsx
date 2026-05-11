@@ -16,7 +16,7 @@ const TRAM_WIDTH = 2.2
 const TRAM_HEIGHT = 2.8
 const TRAM_SPEED = 7
 const TRAM_DWELL_SECONDS = 12
-const HIT_HALF_DEPTH = 0.55
+const HIT_HALF_DEPTH = 0.18
 const TRAM_GVB_BLUE = '#0066b3'
 
 interface CrossTramProps {
