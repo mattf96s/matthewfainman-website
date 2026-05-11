@@ -17,6 +17,10 @@ import {
 const CENTER_BRIDGE = { z: 0, width: 4 }
 const NORTH_BRIDGE = { z: CROSS_STREET_Z, width: CROSS_STREET_WIDTH }
 
+// a short De Wallen cluster — three consecutive houses on the east row,
+// roughly south of the centre bridge so the player walks past it
+const EAST_RED_LIGHT = new Set([2, 3, 4])
+
 /**
  * Composes a small Amsterdam neighbourhood: street strips, canal, two
  * bridges, two rows of canal houses, a perpendicular cross-street at
@@ -34,7 +38,12 @@ export function Block() {
 
       <CrossStreet z={CROSS_STREET_Z} />
 
-      <HouseRow frontX={X_HOUSE_FRONT} facingY={-Math.PI / 2} seed={0} />
+      <HouseRow
+        frontX={X_HOUSE_FRONT}
+        facingY={-Math.PI / 2}
+        seed={0}
+        redLightIndices={EAST_RED_LIGHT}
+      />
       <HouseRow frontX={westFacadeX} facingY={Math.PI / 2} seed={3} />
 
       {/* landmark — sits in the open quadrant north of the cross-street */}

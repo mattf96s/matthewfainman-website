@@ -2,6 +2,8 @@ import { useMemo } from 'react'
 import { CuboidCollider, RigidBody } from '@react-three/rapier'
 import * as THREE from 'three'
 
+import { RedLightWindow } from './RedLightWindow'
+
 interface CanalHouseProps {
   position: [number, number, number]
   width?: number
@@ -9,13 +11,15 @@ interface CanalHouseProps {
   height?: number
   rotationY?: number
   brick: string
+  /** Style the ground-floor windows as red-light district windows. */
+  redLight?: boolean
 }
 
 /**
  * A narrow brick canal house with a triangular gable on top.
  * The base sits at y=0 (ground level); the gable rises above.
- * Front of the house is the -X side after rotation; pass rotationY=Math.PI
- * to flip a house to face the other direction.
+ * Front of the house is the +Z (local) face; pass rotationY=±π/2 to
+ * rotate the facade to face the world east/west.
  */
 export function CanalHouse({
   position,
@@ -24,6 +28,7 @@ export function CanalHouse({
   height = 9,
   rotationY = 0,
   brick,
+  redLight = false,
 }: CanalHouseProps) {
   const gableGeometry = useMemo(() => {
     const shape = new THREE.Shape()
@@ -64,7 +69,12 @@ export function CanalHouse({
         <meshStandardMaterial color={brick} roughness={0.9} />
       </mesh>
 
-      <Windows width={width} depth={depth} height={height} />
+      <Windows
+        width={width}
+        depth={depth}
+        height={height}
+        redLight={redLight}
+      />
     </RigidBody>
   )
 }
@@ -73,9 +83,10 @@ interface WindowsProps {
   width: number
   depth: number
   height: number
+  redLight: boolean
 }
 
-function Windows({ width, depth, height }: WindowsProps) {
+function Windows({ width, depth, height, redLight }: WindowsProps) {
   const cols = 2
   const rows = 3
   const winW = width * 0.22
@@ -90,29 +101,48 @@ function Windows({ width, depth, height }: WindowsProps) {
     (height - marginYTop - marginYBottom - winH * rows) /
     Math.max(rows - 1, 1)
 
-  const windows: Array<{ x: number; y: number }> = []
+  const zFront = depth / 2 + 0.01
+
+  // ground-floor windows for red-light houses are a bit taller so the
+  // silhouette reads cleanly
+  const redWinH = winH * 1.4
+  const redWinW = winW * 1.15
+
+  const tiles: React.ReactNode[] = []
   for (let c = 0; c < cols; c++) {
     for (let r = 0; r < rows; r++) {
-      windows.push({
-        x: -width / 2 + marginX + winW / 2 + c * (winW + colSpacing),
-        y: marginYBottom + winH / 2 + r * (winH + rowSpacing),
-      })
+      const x =
+        -width / 2 + marginX + winW / 2 + c * (winW + colSpacing)
+      const y =
+        marginYBottom + winH / 2 + r * (winH + rowSpacing)
+      const isGround = r === 0
+      const key = `${c}-${r}`
+      if (redLight && isGround) {
+        tiles.push(
+          <RedLightWindow
+            key={key}
+            x={x}
+            y={y - (redWinH - winH) / 2}
+            width={redWinW}
+            height={redWinH}
+            zFront={zFront}
+          />,
+        )
+      } else {
+        tiles.push(
+          <mesh key={key} position={[x, y, zFront]}>
+            <planeGeometry args={[winW, winH]} />
+            <meshStandardMaterial
+              color="#26343a"
+              emissive="#3a4a52"
+              emissiveIntensity={0.15}
+              roughness={0.3}
+            />
+          </mesh>,
+        )
+      }
     }
   }
 
-  return (
-    <group>
-      {windows.map((w, i) => (
-        <mesh key={i} position={[w.x, w.y, depth / 2 + 0.01]}>
-          <planeGeometry args={[winW, winH]} />
-          <meshStandardMaterial
-            color="#26343a"
-            emissive="#3a4a52"
-            emissiveIntensity={0.15}
-            roughness={0.3}
-          />
-        </mesh>
-      ))}
-    </group>
-  )
+  return <group>{tiles}</group>
 }

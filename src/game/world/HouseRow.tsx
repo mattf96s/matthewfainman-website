@@ -8,6 +8,8 @@ interface HouseRowProps {
   facingY: number
   /** Index seed so the two sides don't get identical heights. */
   seed?: number
+  /** House indices (within this row) that should render as red-light houses. */
+  redLightIndices?: ReadonlySet<number>
 }
 
 const HOUSE_WIDTH = 5
@@ -20,7 +22,12 @@ const HOUSE_GAP = 0.4
  * `facingY` chooses which direction the front faces — pass -π/2 for a
  * facade facing west (-X), +π/2 for a facade facing east (+X).
  */
-export function HouseRow({ frontX, facingY, seed = 0 }: HouseRowProps) {
+export function HouseRow({
+  frontX,
+  facingY,
+  seed = 0,
+  redLightIndices,
+}: HouseRowProps) {
   const count = Math.floor(BLOCK_LENGTH / (HOUSE_WIDTH + HOUSE_GAP))
   const stride = HOUSE_WIDTH + HOUSE_GAP
   const startZ = -((count - 1) * stride) / 2
@@ -37,6 +44,7 @@ export function HouseRow({ frontX, facingY, seed = 0 }: HouseRowProps) {
         const z = startZ + i * stride
         const brick = HOUSE_BRICKS[(i + seed) % HOUSE_BRICKS.length]!
         const heightJitter = 1.5 * Math.sin((i + seed) * 1.7)
+        const redLight = redLightIndices?.has(i) ?? false
         return (
           <CanalHouse
             key={i}
@@ -46,6 +54,7 @@ export function HouseRow({ frontX, facingY, seed = 0 }: HouseRowProps) {
             height={9 + heightJitter}
             rotationY={facingY}
             brick={brick}
+            redLight={redLight}
           />
         )
       })}
