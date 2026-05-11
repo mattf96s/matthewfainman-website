@@ -1,14 +1,11 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import {
-  CuboidCollider,
-  RigidBody,
-  type IntersectionEnterPayload,
-  type RapierRigidBody,
-} from '@react-three/rapier'
+import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
 
 import { triggerCameraShake } from '../cameraState'
+import { PLAYER_RADIUS } from '../constants'
 import { triggerKnockback } from '../playerImpulse'
+import { playerPosition } from '../playerPosition'
 import { useGameStore } from '../../state/useGameStore'
 import { BLOCK_LENGTH } from '../world/constants'
 
@@ -47,6 +44,7 @@ export function Car({
   const body = useRef<RapierRigidBody>(null)
   const z = useRef(startZ)
   const cooldown = useRef(0)
+  const hitInside = useRef(false)
   const takeDamage = useGameStore((s) => s.takeDamage)
 
   useFrame((_, delta) => {
@@ -61,19 +59,29 @@ export function Car({
       y: CAR_H / 2 + 0.05,
       z: z.current,
     })
-  })
 
-  const onHit = (e: IntersectionEnterPayload) => {
-    if (e.other.rigidBodyObject?.name !== 'player') return
-    if (useGameStore.getState().gameOver) return
-    const now = performance.now()
-    if (now - cooldown.current < 1500) return
-    cooldown.current = now
-    triggerCameraShake(500, 0.4)
-    // Throw the player forward in the car's direction of travel.
-    triggerKnockback(700, 0, 4, direction * 12)
-    takeDamage(40, 'car')
-  }
+    if (!playerPosition.ready) return
+
+    // Manual AABB hit detection — Rapier sensor events don't fire
+    // reliably for the kinematic-character-controlled player.
+    const dx = Math.abs(playerPosition.x - x)
+    const dz = Math.abs(playerPosition.z - z.current)
+    const inHit =
+      dx < HIT_HALF_X + PLAYER_RADIUS &&
+      dz < CAR_L / 2 + PLAYER_RADIUS
+    if (inHit) {
+      const now = performance.now()
+      if (!hitInside.current && now - cooldown.current >= 1500) {
+        hitInside.current = true
+        cooldown.current = now
+        triggerCameraShake(500, 0.4)
+        triggerKnockback(700, 0, 4, direction * 12)
+        takeDamage(40, 'car')
+      }
+    } else {
+      hitInside.current = false
+    }
+  })
 
   // tram nose faces +Z when direction=1; flip the body so the headlights
   // point the right way when going -Z
@@ -89,12 +97,6 @@ export function Car({
       rotation={[0, yRot, 0]}
       enabledRotations={[false, false, false]}
     >
-      <CuboidCollider
-        args={[HIT_HALF_X, CAR_H / 2, CAR_L / 2]}
-        sensor
-        onIntersectionEnter={onHit}
-      />
-
       {/* main body */}
       <mesh castShadow receiveShadow position={[0, 0, 0]}>
         <boxGeometry args={[CAR_W, CAR_H * 0.55, CAR_L]} />

@@ -1,15 +1,11 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import {
-  CuboidCollider,
-  RigidBody,
-  type IntersectionEnterPayload,
-  type IntersectionExitPayload,
-  type RapierRigidBody,
-} from '@react-three/rapier'
+import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
 
 import { triggerCameraShake } from '../cameraState'
+import { PLAYER_RADIUS } from '../constants'
 import { triggerKnockback } from '../playerImpulse'
+import { playerPosition } from '../playerPosition'
 import { useGameStore } from '../../state/useGameStore'
 import { BLOCK_LENGTH } from '../world/constants'
 import { TramBody } from './TramBody'
@@ -22,6 +18,9 @@ const TRAM_DWELL_SECONDS = 10
 /** Half-width of the on-track hit zone — only direct frontal impact on
  * the rails counts. Effectively the centreline strip. */
 const HIT_HALF_WIDTH = 0.18
+/** Half-extents of the wider near-miss halo around the tram. */
+const NEAR_HALF_WIDTH = TRAM_WIDTH / 2 + 1.5
+const NEAR_HALF_LENGTH = TRAM_LENGTH / 2 + 1.5
 
 interface TramProps {
   /** X position of the tram's centreline (lane centre). */
@@ -51,6 +50,10 @@ export function Tram({
   const addNearMiss = useGameStore((s) => s.addNearMiss)
   const gameOver = useGameStore((s) => s.gameOver)
 
+  /** True while player overlaps the on-rails hit zone — gates damage to
+   * once-per-entry instead of every frame. */
+  const hitInside = useRef(false)
+
   useFrame((_, delta) => {
     if (!body.current || gameOver) return
 
@@ -74,38 +77,45 @@ export function Tram({
       y: TRAM_HEIGHT / 2,
       z: z.current,
     })
-  })
 
-  const onHit = (e: IntersectionEnterPayload) => {
-    if (e.other.rigidBodyObject?.name !== 'player') return
-    if (useGameStore.getState().gameOver) return
+    if (!playerPosition.ready) return
+
+    const dx = Math.abs(playerPosition.x - x)
+    const dz = Math.abs(playerPosition.z - z.current)
+
+    const inHit =
+      dx < HIT_HALF_WIDTH + PLAYER_RADIUS &&
+      dz < TRAM_LENGTH / 2 + PLAYER_RADIUS
     const now = performance.now()
-    if (now - cooldown.current < 1500) return
-    cooldown.current = now
-    wasHit.current = true
-    triggerCameraShake(800, 0.7)
-    // Throw the player a long way along the tram's direction of travel.
-    triggerKnockback(1000, 0, 7, direction.current * 22)
-    takeDamage(80, 'tram')
-  }
-
-  const onNearEnter = (e: IntersectionEnterPayload) => {
-    if (e.other.rigidBodyObject?.name !== 'player') return
-    playerInside.current = true
-    wasHit.current = false
-  }
-
-  const onNearExit = (e: IntersectionExitPayload) => {
-    if (e.other.rigidBodyObject?.name !== 'player') return
-    if (!playerInside.current) return
-    playerInside.current = false
-    if (!wasHit.current && !useGameStore.getState().gameOver) {
-      // tram near-miss is worth more (it would have been instant lose)
-      addNearMiss()
-      addNearMiss()
+    if (inHit) {
+      if (!hitInside.current && now - cooldown.current >= 1500) {
+        hitInside.current = true
+        cooldown.current = now
+        wasHit.current = true
+        triggerCameraShake(800, 0.7)
+        triggerKnockback(1000, 0, 7, direction.current * 22)
+        takeDamage(80, 'tram')
+      }
+    } else {
+      hitInside.current = false
     }
-    wasHit.current = false
-  }
+
+    const inNear =
+      dx < NEAR_HALF_WIDTH + PLAYER_RADIUS &&
+      dz < NEAR_HALF_LENGTH + PLAYER_RADIUS
+    if (inNear && !playerInside.current) {
+      playerInside.current = true
+      wasHit.current = false
+    } else if (!inNear && playerInside.current) {
+      playerInside.current = false
+      if (!wasHit.current) {
+        // tram near-miss is worth more (it would have been instant lose)
+        addNearMiss()
+        addNearMiss()
+      }
+      wasHit.current = false
+    }
+  })
 
   return (
     <RigidBody
@@ -115,22 +125,6 @@ export function Tram({
       position={[x, TRAM_HEIGHT / 2, startZ]}
       enabledRotations={[false, false, false]}
     >
-      {/* hit zone — narrow strip along the tram's path of motion, so
-        * walking alongside the tram doesn't trigger a hit. */}
-      <CuboidCollider
-        args={[HIT_HALF_WIDTH, TRAM_HEIGHT / 2, TRAM_LENGTH / 2]}
-        sensor
-        onIntersectionEnter={onHit}
-      />
-
-      {/* near-miss halo around the tram */}
-      <CuboidCollider
-        args={[TRAM_WIDTH / 2 + 1.5, TRAM_HEIGHT / 2, TRAM_LENGTH / 2 + 1.5]}
-        sensor
-        onIntersectionEnter={onNearEnter}
-        onIntersectionExit={onNearExit}
-      />
-
       <TramBody
         length={TRAM_LENGTH}
         width={TRAM_WIDTH}

@@ -1,15 +1,11 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import {
-  CuboidCollider,
-  RigidBody,
-  type IntersectionEnterPayload,
-  type IntersectionExitPayload,
-  type RapierRigidBody,
-} from '@react-three/rapier'
+import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
 import * as THREE from 'three'
 
 import { triggerCameraShake } from '../cameraState'
+import { PLAYER_RADIUS } from '../constants'
+import { playerPosition } from '../playerPosition'
 import { useGameStore } from '../../state/useGameStore'
 import { TramBody } from './TramBody'
 
@@ -50,6 +46,8 @@ const TRAM_LENGTH = 14
 const TRAM_WIDTH = 2.4
 const TRAM_HEIGHT = 3.0
 const HIT_HALF_LATERAL = 0.18
+const NEAR_HALF_LATERAL = TRAM_WIDTH / 2 + 1.2
+const NEAR_HALF_LONG = TRAM_LENGTH / 2 + 1.5
 
 function segmentLength(seg: PathSegment | ArcSegment): number {
   if (seg.kind === 'straight') {
@@ -172,31 +170,46 @@ export function PathTram({
       z: pose.z,
     })
     body.current.setNextKinematicRotation(quat.current)
-  })
 
-  const onHit = (e: IntersectionEnterPayload) => {
-    if (e.other.rigidBodyObject?.name !== 'player') return
-    wasHit.current = true
-    triggerCameraShake(800, 0.7)
-    endGame('tram')
-  }
+    if (!playerPosition.ready) return
 
-  const onNearEnter = (e: IntersectionEnterPayload) => {
-    if (e.other.rigidBodyObject?.name !== 'player') return
-    playerInside.current = true
-    wasHit.current = false
-  }
+    // Player position transformed into the tram's local frame so we can
+    // do an axis-aligned overlap check against the tram's hit / near
+    // boxes (which are oriented along the tram's long axis).
+    const dx = playerPosition.x - pose.x
+    const dz = playerPosition.z - pose.z
+    const cy = Math.cos(facingYaw)
+    const sy = Math.sin(facingYaw)
+    const localX = dx * cy - dz * sy
+    const localZ = dx * sy + dz * cy
+    const absX = Math.abs(localX)
+    const absZ = Math.abs(localZ)
 
-  const onNearExit = (e: IntersectionExitPayload) => {
-    if (e.other.rigidBodyObject?.name !== 'player') return
-    if (!playerInside.current) return
-    playerInside.current = false
-    if (!wasHit.current && !useGameStore.getState().gameOver) {
-      addNearMiss()
-      addNearMiss()
+    const inHit =
+      absX < HIT_HALF_LATERAL + PLAYER_RADIUS &&
+      absZ < TRAM_LENGTH / 2 + PLAYER_RADIUS
+    if (inHit) {
+      wasHit.current = true
+      triggerCameraShake(800, 0.7)
+      endGame('tram')
+      return
     }
-    wasHit.current = false
-  }
+
+    const inNear =
+      absX < NEAR_HALF_LATERAL + PLAYER_RADIUS &&
+      absZ < NEAR_HALF_LONG + PLAYER_RADIUS
+    if (inNear && !playerInside.current) {
+      playerInside.current = true
+      wasHit.current = false
+    } else if (!inNear && playerInside.current) {
+      playerInside.current = false
+      if (!wasHit.current) {
+        addNearMiss()
+        addNearMiss()
+      }
+      wasHit.current = false
+    }
+  })
 
   const startPose = sampleAt(path, startOffset)
 
@@ -207,18 +220,6 @@ export function PathTram({
       colliders={false}
       position={[startPose.x, TRAM_HEIGHT / 2, startPose.z]}
     >
-      <CuboidCollider
-        args={[HIT_HALF_LATERAL, TRAM_HEIGHT / 2, TRAM_LENGTH / 2]}
-        sensor
-        onIntersectionEnter={onHit}
-      />
-      <CuboidCollider
-        args={[TRAM_WIDTH / 2 + 1.2, TRAM_HEIGHT / 2, TRAM_LENGTH / 2 + 1.5]}
-        sensor
-        onIntersectionEnter={onNearEnter}
-        onIntersectionExit={onNearExit}
-      />
-
       <TramBody
         length={TRAM_LENGTH}
         width={TRAM_WIDTH}

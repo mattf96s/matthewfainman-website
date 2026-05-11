@@ -13,6 +13,7 @@ import { useGameStore } from '../state/useGameStore'
 import { cameraState } from './cameraState'
 import { mobileInput } from './mobileInput'
 import { playerImpulse } from './playerImpulse'
+import { playerPosition } from './playerPosition'
 import {
   GRAVITY,
   KEYBOARD_YAW_SPEED,
@@ -169,11 +170,21 @@ export function Player() {
 
     const pos = rb.translation()
     const newY = pos.y + m.y
+    const newX = pos.x + m.x
+    const newZ = pos.z + m.z
     rb.setNextKinematicTranslation({
-      x: pos.x + m.x,
+      x: newX,
       y: newY,
-      z: pos.z + m.z,
+      z: newZ,
     })
+
+    // publish the player position for hazards to read; they do their
+    // own AABB hit detection because Rapier sensor events don't fire
+    // reliably for the kinematic-character-controlled body
+    playerPosition.x = newX
+    playerPosition.y = newY
+    playerPosition.z = newZ
+    playerPosition.ready = true
 
     // fall-off-the-edge handling: drop below threshold → let them fall
     // for a moment → respawn at spawn and bring back the title overlay

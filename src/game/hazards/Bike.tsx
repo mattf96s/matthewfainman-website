@@ -1,15 +1,11 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import {
-  CuboidCollider,
-  RigidBody,
-  type IntersectionEnterPayload,
-  type IntersectionExitPayload,
-  type RapierRigidBody,
-} from '@react-three/rapier'
+import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
 
 import { triggerCameraShake } from '../cameraState'
+import { PLAYER_RADIUS } from '../constants'
 import { triggerKnockback } from '../playerImpulse'
+import { playerPosition } from '../playerPosition'
 import { useGameStore } from '../../state/useGameStore'
 
 interface BikeProps {
@@ -35,9 +31,9 @@ const BIKE_BODY_LENGTH = 1.6
  * on the centreline counts. */
 const HIT_HALF_X = 0.06
 
-// near-miss zone — proximity halo where a clean pass earns bonus
+// near-miss zone — proximity halo on the XZ plane where a clean pass
+// earns bonus
 const NEAR_HALF_X = 1.2
-const NEAR_HALF_Y = 1.2
 const NEAR_HALF_Z = 1.4
 
 /** Y at which the bike is hidden when idle between trips. */
@@ -85,6 +81,11 @@ export function Bike({
     idleUntil.current = performance.now() + idleMs
   }
 
+  /** True while the player capsule overlaps the bike's tight hit AABB.
+   * Tracking this lets us fire `takeDamage` once per entry rather than
+   * every frame — essentially what onIntersectionEnter would have done. */
+  const hitInside = useRef(false)
+
   useFrame((_, delta) => {
     if (!body.current) return
     if (useGameStore.getState().gameOver) return
@@ -92,12 +93,17 @@ export function Bike({
     const now = performance.now()
 
     if (!active.current) {
-      // park well below ground so sensors can't catch the player
+      // park well below ground so the bike geometry isn't visible
       body.current.setNextKinematicTranslation({
         x,
         y: PARKED_Y,
         z: 0,
       })
+      hitInside.current = false
+      if (playerInside.current) {
+        // emit deferred near-miss if the player walks past while idle
+        playerInside.current = false
+      }
       if (now >= idleUntil.current) startNewTrip()
       return
     }
@@ -117,38 +123,45 @@ export function Bike({
       y: BIKE_BODY_HEIGHT / 2,
       z: z.current,
     })
-  })
 
-  const onHit = (e: IntersectionEnterPayload) => {
-    if (e.other.rigidBodyObject?.name !== 'player') return
-    if (!active.current) return
-    if (useGameStore.getState().gameOver) return
-    const now = performance.now()
-    if (now - cooldown.current < 1500) return
-    cooldown.current = now
-    wasHitWhileNear.current = true
-    triggerCameraShake(300, 0.25)
-    // Throw the player in the direction the bike was travelling.
-    triggerKnockback(500, 0, 2, direction.current * 6)
-    takeDamage(20, 'bike')
-  }
+    if (!playerPosition.ready) return
 
-  const onNearEnter = (e: IntersectionEnterPayload) => {
-    if (e.other.rigidBodyObject?.name !== 'player') return
-    if (!active.current) return
-    playerInside.current = true
-    wasHitWhileNear.current = false
-  }
+    // Manual AABB overlap on the XZ plane between the player capsule
+    // (treated as a circle of radius PLAYER_RADIUS) and the bike's hit
+    // / near-miss zones. Sensor events from Rapier don't fire reliably
+    // for the kinematic-character-controlled player, so this is the
+    // reliable path.
+    const dx = Math.abs(playerPosition.x - x)
+    const dz = Math.abs(playerPosition.z - z.current)
 
-  const onNearExit = (e: IntersectionExitPayload) => {
-    if (e.other.rigidBodyObject?.name !== 'player') return
-    if (!playerInside.current) return
-    playerInside.current = false
-    if (!wasHitWhileNear.current && !useGameStore.getState().gameOver) {
-      addNearMiss()
+    const inHit =
+      dx < HIT_HALF_X + PLAYER_RADIUS &&
+      dz < BIKE_BODY_LENGTH / 2 + PLAYER_RADIUS
+    if (inHit) {
+      if (!hitInside.current && now - cooldown.current >= 1500) {
+        hitInside.current = true
+        cooldown.current = now
+        wasHitWhileNear.current = true
+        triggerCameraShake(300, 0.25)
+        triggerKnockback(500, 0, 2, direction.current * 6)
+        takeDamage(20, 'bike')
+      }
+    } else {
+      hitInside.current = false
     }
-    wasHitWhileNear.current = false
-  }
+
+    const inNear =
+      dx < NEAR_HALF_X + PLAYER_RADIUS &&
+      dz < NEAR_HALF_Z + PLAYER_RADIUS
+    if (inNear && !playerInside.current) {
+      playerInside.current = true
+      wasHitWhileNear.current = false
+    } else if (!inNear && playerInside.current) {
+      playerInside.current = false
+      if (!wasHitWhileNear.current) addNearMiss()
+      wasHitWhileNear.current = false
+    }
+  })
 
   return (
     <RigidBody
@@ -158,19 +171,6 @@ export function Bike({
       position={[x, PARKED_Y, 0]}
       enabledRotations={[false, false, false]}
     >
-      <CuboidCollider
-        args={[HIT_HALF_X, BIKE_BODY_HEIGHT / 2, BIKE_BODY_LENGTH / 2]}
-        sensor
-        onIntersectionEnter={onHit}
-      />
-
-      <CuboidCollider
-        args={[NEAR_HALF_X, NEAR_HALF_Y, NEAR_HALF_Z]}
-        sensor
-        onIntersectionEnter={onNearEnter}
-        onIntersectionExit={onNearExit}
-      />
-
       <mesh castShadow position={[0, 0, 0]}>
         <boxGeometry args={[0.1, 0.5, BIKE_BODY_LENGTH * 0.7]} />
         <meshStandardMaterial color="#2a2a2a" />
