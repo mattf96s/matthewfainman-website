@@ -3,6 +3,7 @@ import { RigidBody } from '@react-three/rapier'
 import {
   BLOCK_LENGTH,
   CAR_LANE_WIDTH,
+  COLOR_CANAL_PAVEMENT,
   COLOR_FIETSPAD,
   COLOR_MEDIAN,
   COLOR_ROAD,
@@ -55,12 +56,12 @@ export function Street() {
       <Strip
         x={X_FAR_SIDEWALK}
         width={FAR_SIDEWALK_WIDTH}
-        color={COLOR_SIDEWALK}
+        color={COLOR_CANAL_PAVEMENT}
       />
       <Strip
         x={X_NEAR_SIDEWALK}
         width={NEAR_SIDEWALK_WIDTH}
-        color={COLOR_SIDEWALK}
+        color={COLOR_CANAL_PAVEMENT}
       />
       <Strip x={X_CAR_WEST} width={CAR_LANE_WIDTH} color={COLOR_ROAD} />
       <Strip

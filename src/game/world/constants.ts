@@ -92,6 +92,9 @@ export const CANAL_DEPTH = 1.2
 
 // colours
 export const COLOR_SIDEWALK = '#bdb9ad'
+/** Warmer brick tone for the gracht-side pavement — Amsterdam streets
+ * along the canals are paved in red-brown klinkers, not grey slabs. */
+export const COLOR_CANAL_PAVEMENT = '#9c7355'
 export const COLOR_MEDIAN = '#a8a59a'
 export const COLOR_ROAD = '#3f3f3f'
 export const COLOR_TRAM_LANE = '#363535'

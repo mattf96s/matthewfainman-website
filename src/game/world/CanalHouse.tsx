@@ -103,10 +103,10 @@ function Windows({ width, depth, height, redLight }: WindowsProps) {
 
   const zFront = depth / 2 + 0.01
 
-  // ground-floor windows for red-light houses are a bit taller so the
-  // silhouette reads cleanly
-  const redWinH = winH * 1.4
-  const redWinW = winW * 1.15
+  // ground-floor windows for red-light houses are taller and narrower
+  // so each tile reads as a doorway-style cabin
+  const redWinH = winH * 1.6
+  const redWinW = winW * 0.96
 
   const tiles: React.ReactNode[] = []
   for (let c = 0; c < cols; c++) {
@@ -126,6 +126,7 @@ function Windows({ width, depth, height, redLight }: WindowsProps) {
             width={redWinW}
             height={redWinH}
             zFront={zFront}
+            withSilhouette={c === cols - 1}
           />,
         )
       } else {

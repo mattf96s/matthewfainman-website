@@ -1,13 +1,17 @@
+import { Amsterdammertjes } from './Amsterdammertjes'
 import { BikeRacks } from './BikeRacks'
 import { Bins } from './Bins'
 import { Bridge } from './Bridge'
 import { Canal } from './Canal'
+import { CanalTrees } from './CanalTrees'
 import { ClockTower } from './ClockTower'
 import { CrossStreet } from './CrossStreet'
 import { Flags } from './Flags'
 import { HouseRow } from './HouseRow'
+import { KlinkerPavement } from './KlinkerPavement'
 import { Lamps } from './Lamps'
 import { ParkedBikes } from './ParkedBikes'
+import { ParkedCars } from './ParkedCars'
 import type { ShopBrand } from './Shop'
 import { Street } from './Street'
 import { ZebraCrossing } from './ZebraCrossing'
@@ -48,9 +52,13 @@ export function Block() {
   return (
     <group>
       <Street />
+      <KlinkerPavement />
       <Canal bridges={[CENTER_BRIDGE, NORTH_BRIDGE]} />
       <Bridge z={CENTER_BRIDGE.z} width={CENTER_BRIDGE.width} />
       <Bridge z={NORTH_BRIDGE.z} width={NORTH_BRIDGE.width} />
+      <Amsterdammertjes bridges={[CENTER_BRIDGE, NORTH_BRIDGE]} />
+      <CanalTrees bridges={[CENTER_BRIDGE, NORTH_BRIDGE]} />
+      <ParkedCars />
 
       <CrossStreet z={CROSS_STREET_Z} />
 
