@@ -23,7 +23,7 @@ export const CANAL_LENGTH = 100
 
 /** Z of the perpendicular cross-street (north end of the block). */
 export const CROSS_STREET_Z = 35
-export const CROSS_STREET_WIDTH = 6
+export const CROSS_STREET_WIDTH = 10
 /** X half-extent of the cross-street — spans the canal and into the
  * houseside terrain. */
 export const CROSS_STREET_X_HALF = 20
@@ -32,12 +32,12 @@ export const CROSS_STREET_X_HALF = 20
 export const SURFACE_THICKNESS = 0.4
 
 // lane widths, west → east
-export const FAR_SIDEWALK_WIDTH = 2
+export const FAR_SIDEWALK_WIDTH = 4
 export const CANAL_WIDTH = 8
-export const NEAR_SIDEWALK_WIDTH = 2
+export const NEAR_SIDEWALK_WIDTH = 4
 export const ROAD_WIDTH = 4
-export const FIETSPAD_WIDTH = 2
-export const HOUSE_SIDEWALK_WIDTH = 2
+export const FIETSPAD_WIDTH = 2.5
+export const HOUSE_SIDEWALK_WIDTH = 4
 
 // cross-section X coordinates of the strip *centres* (west → east)
 const lanes = [

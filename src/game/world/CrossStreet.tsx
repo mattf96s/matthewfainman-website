@@ -12,7 +12,7 @@ interface CrossStreetProps {
   z: number
 }
 
-const SIDEWALK_DEPTH = 1.5
+const SIDEWALK_DEPTH = 3
 const ROAD_DEPTH = CROSS_STREET_WIDTH - SIDEWALK_DEPTH * 2
 const TOTAL_X = CROSS_STREET_X_HALF * 2
 

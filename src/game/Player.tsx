@@ -19,8 +19,9 @@ import {
   PLAYER_RADIUS,
   PLAYER_SPEED,
 } from './constants'
+import { X_NEAR_SIDEWALK } from './world/constants'
 
-const SPAWN: [number, number, number] = [1, 2, 0]
+const SPAWN: [number, number, number] = [X_NEAR_SIDEWALK, 2, 0]
 
 export function Player() {
   const body = useRef<RapierRigidBody>(null)
