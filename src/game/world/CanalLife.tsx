@@ -10,72 +10,134 @@ interface MooredBoat {
   variant?: BoatVariant
   hullColor?: string
   trimColor?: string
+  cabinColor?: string
+  roofColor?: string
+  /** If set, rotate 180° so the bow points -Z instead of +Z. Mixes
+   * up the mooring direction along the bank. */
+  flip?: boolean
 }
 
-// distance from canal centreline to the bank-side row of moored boats
-const SIDE_OFFSET = CANAL_WIDTH / 2 - 1.05
+/** Distance from canal centreline to the bank's inside face. */
+const BANK_INNER = CANAL_WIDTH / 2
+/** Small water gap between the bank and the moored boat's broadside. */
+const BANK_GAP = 0.15
 
+/**
+ * Real Amsterdam canal boats sit moored *along* the bank — their long
+ * axis runs parallel to the canal, broadside facing the water. The
+ * mix below interleaves working sloops, covered hulls, the occasional
+ * tour-boat wheelhouse, and full-length houseboats (woonboten) in a
+ * spread of Amsterdam-ish colours: cream, dark green, terracotta,
+ * navy, slate, weathered black.
+ */
+// Bridges sit at z=0 (CENTER, ±2 wide) and z=55 (NORTH, ±7 wide).
+// Boats must stay outside z ∈ [-3, +3] and z ∈ [+47, +63] (1m margin)
+// so cabins don't clip through bridge slabs.
 const MOORED: MooredBoat[] = [
-  { side: 'west', z: -54, length: 5.5, variant: 'covered', hullColor: '#1c1a14' },
-  { side: 'west', z: -48, length: 5, variant: 'open', hullColor: '#211e16' },
-  { side: 'west', z: -42, length: 5.5, variant: 'cabin', hullColor: '#1a2638' },
-  { side: 'west', z: -36, length: 5, variant: 'open', hullColor: '#1f1a14' },
-  { side: 'west', z: -32, length: 5.5, variant: 'open' },
-  { side: 'west', z: -26, length: 5, variant: 'covered', hullColor: '#1a242b' },
-  { side: 'west', z: -20.5, length: 5.5, variant: 'covered', hullColor: '#191815' },
-  { side: 'west', z: -14, length: 4.8, variant: 'open', hullColor: '#1f1a14', trimColor: '#c2bca6' },
-  { side: 'west', z: -8, length: 6, variant: 'covered', hullColor: '#15161c' },
-  { side: 'west', z: -1.5, length: 5, variant: 'open', hullColor: '#2c241c' },
-  { side: 'west', z: 5, length: 5.5, variant: 'cabin', hullColor: '#1a2a36' },
-  { side: 'west', z: 11.5, length: 5, variant: 'covered', hullColor: '#1c1a14' },
-  { side: 'west', z: 18, length: 5.5, variant: 'open', trimColor: '#dce0d6' },
-  { side: 'west', z: 24, length: 5, variant: 'covered', hullColor: '#171513' },
-  { side: 'west', z: 30, length: 5.2, variant: 'open', hullColor: '#1a1812' },
-  { side: 'west', z: 36, length: 5, variant: 'covered', hullColor: '#1a242b' },
-  { side: 'west', z: 42, length: 5.5, variant: 'open', hullColor: '#1f1c16' },
-  { side: 'west', z: 48, length: 5, variant: 'covered', hullColor: '#15161c' },
+  // — west bank, south to north —
+  // south stretch (z < -3)
+  { side: 'west', z: -65, length: 5.4, width: 1.7, variant: 'open',
+    hullColor: '#1e2628', trimColor: '#e0d4b8' },
+  { side: 'west', z: -58, length: 5.6, width: 1.8, variant: 'covered',
+    hullColor: '#1c1a14', trimColor: '#c2bca6' },
+  { side: 'west', z: -50, length: 10, width: 2.7, variant: 'houseboat',
+    hullColor: '#15140f', cabinColor: '#d9c8a5', roofColor: '#2a221a' },
+  { side: 'west', z: -41, length: 5.4, width: 1.7, variant: 'open',
+    hullColor: '#1a1814', trimColor: '#e8e1cf' },
+  { side: 'west', z: -33, length: 5.6, width: 1.8, variant: 'covered',
+    hullColor: '#1a242b', trimColor: '#c8b896' },
+  { side: 'west', z: -25, length: 10, width: 2.7, variant: 'houseboat',
+    hullColor: '#1f2a32', cabinColor: '#3a4a2a', roofColor: '#1a1410' },
+  { side: 'west', z: -16, length: 5.4, width: 1.7, variant: 'open',
+    hullColor: '#3a2818', trimColor: '#dac9a4', flip: true },
+  { side: 'west', z: -8, length: 5.4, width: 1.8, variant: 'cabin',
+    hullColor: '#2c1d14', cabinColor: '#7a3a2c', roofColor: '#1a100a' },
+  // between bridges (3 < z < 47)
+  { side: 'west', z: 7, length: 5.4, width: 1.7, variant: 'open',
+    hullColor: '#1f1c14', trimColor: '#b8a87a' },
+  { side: 'west', z: 14, length: 5.6, width: 1.8, variant: 'covered',
+    hullColor: '#171513', trimColor: '#a89270', flip: true },
+  { side: 'west', z: 22, length: 6, width: 2.4, variant: 'houseboat',
+    hullColor: '#101010', cabinColor: '#c3a87a', roofColor: '#2a4038' },
+  { side: 'west', z: 30, length: 5.4, width: 1.8, variant: 'open',
+    hullColor: '#1a1812', trimColor: '#dad0b2' },
+  { side: 'west', z: 37, length: 5.6, width: 1.7, variant: 'covered',
+    hullColor: '#1c1a14', trimColor: '#c6c0a8' },
+  { side: 'west', z: 44, length: 5.4, width: 1.8, variant: 'cabin',
+    hullColor: '#1a2638', cabinColor: '#284038', roofColor: '#15110d' },
+  // north of NORTH_BRIDGE (z > 63)
+  { side: 'west', z: 67, length: 5.4, width: 1.7, variant: 'open',
+    hullColor: '#1c1a14', trimColor: '#dad0b2' },
 
-  { side: 'east', z: -52, length: 5, variant: 'open', hullColor: '#1f1a14' },
-  { side: 'east', z: -46, length: 5.5, variant: 'covered', hullColor: '#171513' },
-  { side: 'east', z: -40, length: 5, variant: 'open', hullColor: '#23201a' },
-  { side: 'east', z: -34, length: 5.5, variant: 'cabin', hullColor: '#1c1a14' },
-  { side: 'east', z: -30, length: 5, variant: 'covered', hullColor: '#15161c' },
-  { side: 'east', z: -24, length: 5.5, variant: 'open' },
-  { side: 'east', z: -18, length: 4.8, variant: 'covered', hullColor: '#1e1614' },
-  { side: 'east', z: -11.5, length: 5.5, variant: 'cabin', hullColor: '#23191a' },
-  { side: 'east', z: -5, length: 5, variant: 'open', trimColor: '#e6e0c8' },
-  { side: 'east', z: 1.5, length: 5.5, variant: 'covered', hullColor: '#1a242b' },
-  { side: 'east', z: 8, length: 5, variant: 'open', hullColor: '#1f1c16' },
-  { side: 'east', z: 14, length: 5.8, variant: 'covered', hullColor: '#171513' },
-  { side: 'east', z: 20.5, length: 5, variant: 'open', hullColor: '#2c241c' },
-  { side: 'east', z: 27, length: 5.5, variant: 'covered', hullColor: '#1a1812' },
-  { side: 'east', z: 33, length: 5, variant: 'open', hullColor: '#1f1c16' },
-  { side: 'east', z: 40, length: 5.5, variant: 'covered', hullColor: '#1a1812' },
-  { side: 'east', z: 46, length: 5, variant: 'cabin', hullColor: '#1a2a36' },
+  // — east bank, south to north —
+  { side: 'east', z: -65, length: 5.4, width: 1.8, variant: 'covered',
+    hullColor: '#1a1812', trimColor: '#a89270' },
+  { side: 'east', z: -58, length: 5.6, width: 1.8, variant: 'open',
+    hullColor: '#16151a', trimColor: '#d6c45a' },
+  { side: 'east', z: -50, length: 10, width: 2.7, variant: 'houseboat',
+    hullColor: '#1a1612', cabinColor: '#2f4a3a', roofColor: '#1a1a14',
+    flip: true },
+  { side: 'east', z: -41, length: 5.6, width: 1.8, variant: 'open',
+    hullColor: '#1f1c16', trimColor: '#e6d8b0', flip: true },
+  { side: 'east', z: -33, length: 5.4, width: 1.7, variant: 'covered',
+    hullColor: '#1e1816', trimColor: '#c6c0a8' },
+  { side: 'east', z: -25, length: 10, width: 2.6, variant: 'houseboat',
+    hullColor: '#0e1f24', cabinColor: '#a8826b', roofColor: '#2a1a14',
+    flip: true },
+  { side: 'east', z: -16, length: 5.6, width: 1.8, variant: 'covered',
+    hullColor: '#1f1816', trimColor: '#b6a472' },
+  { side: 'east', z: -8, length: 5, width: 1.7, variant: 'cabin',
+    hullColor: '#231918', cabinColor: '#284038', roofColor: '#1a1410' },
+  // between bridges
+  { side: 'east', z: 7, length: 5.4, width: 1.7, variant: 'open',
+    hullColor: '#2c241c', trimColor: '#e6d8b0', flip: true },
+  { side: 'east', z: 14, length: 5.6, width: 1.8, variant: 'covered',
+    hullColor: '#1f1816', trimColor: '#b6a472' },
+  { side: 'east', z: 22, length: 6, width: 2.5, variant: 'houseboat',
+    hullColor: '#15161c', cabinColor: '#f0e5cc', roofColor: '#3a1a1a' },
+  { side: 'east', z: 30, length: 5.4, width: 1.7, variant: 'open',
+    hullColor: '#2a221c', trimColor: '#d4c290' },
+  { side: 'east', z: 37, length: 5.6, width: 1.8, variant: 'covered',
+    hullColor: '#171513', trimColor: '#c2b88e' },
+  { side: 'east', z: 44, length: 5.4, width: 1.7, variant: 'open',
+    hullColor: '#2c241c', trimColor: '#e0d2a8' },
+  // north of NORTH_BRIDGE
+  { side: 'east', z: 67, length: 5.4, width: 1.7, variant: 'covered',
+    hullColor: '#1a1612', trimColor: '#b8a87a' },
 ]
 
 /**
- * Densely-moored canal boats: a long row along each bank with a mix
- * of open / covered / cabin variants. Plus two drifting boats down
- * the centreline and a handful of birds.
+ * Densely-moored canal boats: a long row along each bank with mixed
+ * sloops, covered hulls, wheelhouses, and houseboats. Plus two
+ * drifting boats down the centreline and a handful of birds.
  */
 export function CanalLife() {
   return (
     <>
       {MOORED.map((b, i) => {
+        const width = b.width ?? 1.7
+        // Sit the boat's broadside flush against the bank with a small
+        // water gap. Centre X is bank_inner_edge ± (gap + half_width).
+        const inset = BANK_GAP + width / 2
         const x =
-          b.side === 'west' ? X_CANAL - SIDE_OFFSET : X_CANAL + SIDE_OFFSET
-        const rotY = b.side === 'west' ? -Math.PI / 2 : Math.PI / 2
+          b.side === 'west'
+            ? X_CANAL - BANK_INNER + inset
+            : X_CANAL + BANK_INNER - inset
+        // Long axis along Z — boats parallel to the canal. Flip 180°
+        // for some boats to vary which way the bow points.
+        const rotY = b.flip ? Math.PI : 0
         return (
           <Boat
             key={`boat-${i}`}
             position={[x, b.z]}
             rotationY={rotY}
             length={b.length}
-            width={b.width}
+            width={width}
             variant={b.variant ?? 'open'}
             hullColor={b.hullColor}
             trimColor={b.trimColor}
+            cabinColor={b.cabinColor}
+            roofColor={b.roofColor}
           />
         )
       })}
@@ -86,6 +148,7 @@ export function CanalLife() {
         length={5.5}
         variant="open"
         hullColor="#1c1a14"
+        trimColor="#e4d8b6"
         driftZ={0.35}
       />
       <Boat
@@ -94,6 +157,7 @@ export function CanalLife() {
         length={5}
         variant="covered"
         hullColor="#1a2a36"
+        trimColor="#c8b896"
         driftZ={-0.25}
       />
 

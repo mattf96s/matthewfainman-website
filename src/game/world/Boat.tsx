@@ -4,7 +4,7 @@ import * as THREE from 'three'
 
 import { CANAL_DEPTH, CANAL_LENGTH } from './constants'
 
-export type BoatVariant = 'open' | 'covered' | 'cabin'
+export type BoatVariant = 'open' | 'covered' | 'cabin' | 'houseboat'
 
 interface BoatProps {
   position: [number, number]
@@ -13,8 +13,13 @@ interface BoatProps {
   width?: number
   hullColor?: string
   trimColor?: string
+  /** Cabin / superstructure colour (houseboat + cabin variants). */
+  cabinColor?: string
+  /** Roof colour for the houseboat variant. */
+  roofColor?: string
   /** "open" = bare hull, "covered" = rolled tarp over the middle,
-   * "cabin" = small wheelhouse. Defaults to "open". */
+   * "cabin" = small wheelhouse, "houseboat" = full-length living
+   * quarters (woonboot). Defaults to "open". */
   variant?: BoatVariant
   /** If non-zero, the boat slowly drifts along the canal at this
    * speed (m/s). */
@@ -24,6 +29,7 @@ interface BoatProps {
 const HULL_HEIGHT = 0.42
 const CABIN_HEIGHT = 1.0
 const COVER_HEIGHT = 0.28
+const HOUSEBOAT_CABIN_HEIGHT = 1.5
 
 /**
  * Stylised low-poly canal sloop. Hull is an extruded shape tapered
@@ -38,6 +44,8 @@ export function Boat({
   width = 1.7,
   hullColor = '#1d1a16',
   trimColor = '#d8d3c2',
+  cabinColor,
+  roofColor,
   variant = 'open',
   driftZ = 0,
 }: BoatProps) {
@@ -183,7 +191,10 @@ export function Boat({
             <boxGeometry
               args={[width * 0.78, CABIN_HEIGHT, length * 0.45]}
             />
-            <meshStandardMaterial color="#2e1f15" roughness={0.7} />
+            <meshStandardMaterial
+              color={cabinColor ?? '#2e1f15'}
+              roughness={0.7}
+            />
           </mesh>
           <mesh
             castShadow
@@ -192,7 +203,10 @@ export function Boat({
             <boxGeometry
               args={[width * 0.88, 0.08, length * 0.5]}
             />
-            <meshStandardMaterial color="#15110d" roughness={0.85} />
+            <meshStandardMaterial
+              color={roofColor ?? '#15110d'}
+              roughness={0.85}
+            />
           </mesh>
           {[-1, 1].map((side) => (
             <group
@@ -240,6 +254,99 @@ export function Boat({
           </mesh>
         </>
       )}
+
+      {variant === 'houseboat' && (() => {
+        const cabinLen = length * 0.82
+        const cabinW = width * 0.88
+        const cabinZ = -length * 0.04
+        const cabin = cabinColor ?? '#d8c8a8'
+        const roof = roofColor ?? '#2a221c'
+        return (
+          <>
+            {/* main cabin / living quarters */}
+            <mesh
+              castShadow
+              receiveShadow
+              position={[0, rimY + HOUSEBOAT_CABIN_HEIGHT / 2, cabinZ]}
+            >
+              <boxGeometry
+                args={[cabinW, HOUSEBOAT_CABIN_HEIGHT, cabinLen]}
+              />
+              <meshStandardMaterial color={cabin} roughness={0.85} />
+            </mesh>
+            {/* flat roof with slight overhang */}
+            <mesh
+              castShadow
+              position={[0, rimY + HOUSEBOAT_CABIN_HEIGHT + 0.04, cabinZ]}
+            >
+              <boxGeometry
+                args={[cabinW + 0.18, 0.08, cabinLen + 0.18]}
+              />
+              <meshStandardMaterial color={roof} roughness={0.9} />
+            </mesh>
+            {/* window strips along each side — five bays */}
+            {[-1, 1].map((side) => (
+              <group
+                key={`hb-win-${side}`}
+                position={[
+                  side * (cabinW / 2 + 0.005),
+                  rimY + HOUSEBOAT_CABIN_HEIGHT * 0.58,
+                  cabinZ,
+                ]}
+                rotation={[0, side > 0 ? Math.PI / 2 : -Math.PI / 2, 0]}
+              >
+                {[-2, -1, 0, 1, 2].map((wi) => (
+                  <mesh key={wi} position={[wi * (cabinLen * 0.155), 0, 0]}>
+                    <planeGeometry
+                      args={[cabinLen * 0.11, HOUSEBOAT_CABIN_HEIGHT * 0.34]}
+                    />
+                    <meshStandardMaterial
+                      color="#1a2530"
+                      emissive="#c4a04a"
+                      emissiveIntensity={0.18}
+                      roughness={0.25}
+                      metalness={0.35}
+                    />
+                  </mesh>
+                ))}
+              </group>
+            ))}
+            {/* door at the bow end */}
+            <mesh
+              position={[
+                0,
+                rimY + HOUSEBOAT_CABIN_HEIGHT * 0.32,
+                cabinZ + cabinLen / 2 + 0.005,
+              ]}
+            >
+              <planeGeometry
+                args={[cabinW * 0.22, HOUSEBOAT_CABIN_HEIGHT * 0.58]}
+              />
+              <meshStandardMaterial color="#3a2818" roughness={0.7} />
+            </mesh>
+            {/* chimney */}
+            <mesh
+              castShadow
+              position={[
+                cabinW * 0.28,
+                rimY + HOUSEBOAT_CABIN_HEIGHT + 0.4,
+                cabinZ - cabinLen * 0.22,
+              ]}
+            >
+              <boxGeometry args={[0.18, 0.6, 0.18]} />
+              <meshStandardMaterial color="#2a201a" roughness={0.9} />
+            </mesh>
+            {/* small bow-end planter for a touch of green */}
+            <mesh
+              castShadow
+              position={[0, rimY + 0.12, length * 0.42]}
+            >
+              <boxGeometry args={[width * 0.55, 0.18, 0.22]} />
+              <meshStandardMaterial color="#3b4a2a" roughness={0.9} />
+            </mesh>
+          </>
+        )
+      })()}
     </group>
   )
 }

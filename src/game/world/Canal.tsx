@@ -73,9 +73,11 @@ export function Canal({ bridges = [] }: CanalProps) {
         />
       </mesh>
 
-      {/* solid floor at canal bottom (a safety net) */}
+      {/* solid floor at canal bottom (a safety net). Sits a hair below
+        * the water plane so its top doesn't share a Y with the water
+        * (which would z-fight, since both are opaque). */}
       <RigidBody type="fixed" colliders="cuboid">
-        <mesh position={[X_CANAL, -CANAL_DEPTH - 0.2, 0]}>
+        <mesh position={[X_CANAL, -CANAL_DEPTH - 0.3, 0]}>
           <boxGeometry args={[CANAL_WIDTH, 0.4, CANAL_LENGTH]} />
           <meshStandardMaterial color="#26414a" />
         </mesh>

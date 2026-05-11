@@ -79,6 +79,7 @@ export function Car({
   return (
     <RigidBody
       ref={body}
+      name="car"
       type="kinematicPosition"
       colliders={false}
       position={[x, CAR_H / 2 + 0.05, startZ]}

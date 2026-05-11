@@ -30,12 +30,17 @@ export function Bridge({ z, width = 4 }: BridgeProps) {
   const railHeight = 1.0
   const railThickness = 0.1
 
+  // Lift the slab a hair above the sidewalk strips so its top doesn't
+  // share a Y plane with them (the slab overhangs the sidewalks, so
+  // coplanar tops z-fight along the overhang).
+  const SLAB_LIFT = 0.01
+
   return (
     <RigidBody type="fixed" colliders="cuboid">
       <mesh
         receiveShadow
         castShadow
-        position={[X_CANAL, -SURFACE_THICKNESS / 2, z]}
+        position={[X_CANAL, -SURFACE_THICKNESS / 2 + SLAB_LIFT, z]}
       >
         <boxGeometry args={[slabExtent, SURFACE_THICKNESS, width]} />
         <meshStandardMaterial color={COLOR_BRIDGE} />
@@ -45,7 +50,7 @@ export function Bridge({ z, width = 4 }: BridgeProps) {
         <mesh
           key={zOffset}
           castShadow
-          position={[X_CANAL, railHeight / 2, z + zOffset]}
+          position={[X_CANAL, railHeight / 2 + SLAB_LIFT, z + zOffset]}
         >
           <boxGeometry args={[railExtent, railHeight, railThickness]} />
           <meshStandardMaterial color="#5a4b3a" />

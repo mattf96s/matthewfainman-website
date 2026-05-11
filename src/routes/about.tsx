@@ -1,7 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router'
 
+import { seo } from '../lib/seo'
+
 export const Route = createFileRoute('/about')({
   component: About,
+  head: () =>
+    seo({
+      title: 'About',
+      description:
+        'About Matthew Fainman — what I work on, what I built this site with, and how to get in touch.',
+      path: '/about',
+    }),
 })
 
 function About() {
