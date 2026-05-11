@@ -8,6 +8,7 @@ import {
 } from '@react-three/rapier'
 
 import { triggerCameraShake } from '../cameraState'
+import { triggerKnockback } from '../playerImpulse'
 import { useGameStore } from '../../state/useGameStore'
 import { BLOCK_LENGTH } from '../world/constants'
 
@@ -46,7 +47,7 @@ export function Car({
   const body = useRef<RapierRigidBody>(null)
   const z = useRef(startZ)
   const cooldown = useRef(0)
-  const endGame = useGameStore((s) => s.endGame)
+  const takeDamage = useGameStore((s) => s.takeDamage)
 
   useFrame((_, delta) => {
     if (!body.current) return
@@ -69,7 +70,9 @@ export function Car({
     if (now - cooldown.current < 1500) return
     cooldown.current = now
     triggerCameraShake(500, 0.4)
-    endGame('car')
+    // Throw the player forward in the car's direction of travel.
+    triggerKnockback(700, 0, 4, direction * 12)
+    takeDamage(40, 'car')
   }
 
   // tram nose faces +Z when direction=1; flip the body so the headlights

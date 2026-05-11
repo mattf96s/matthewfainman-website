@@ -9,6 +9,7 @@ import {
 } from '@react-three/rapier'
 
 import { triggerCameraShake } from '../cameraState'
+import { triggerKnockback } from '../playerImpulse'
 import { useGameStore } from '../../state/useGameStore'
 import { BLOCK_LENGTH } from '../world/constants'
 import { TramBody } from './TramBody'
@@ -45,7 +46,8 @@ export function Tram({
   const dwellRemaining = useRef(0)
   const playerInside = useRef(false)
   const wasHit = useRef(false)
-  const endGame = useGameStore((s) => s.endGame)
+  const cooldown = useRef(0)
+  const takeDamage = useGameStore((s) => s.takeDamage)
   const addNearMiss = useGameStore((s) => s.addNearMiss)
   const gameOver = useGameStore((s) => s.gameOver)
 
@@ -76,9 +78,15 @@ export function Tram({
 
   const onHit = (e: IntersectionEnterPayload) => {
     if (e.other.rigidBodyObject?.name !== 'player') return
+    if (useGameStore.getState().gameOver) return
+    const now = performance.now()
+    if (now - cooldown.current < 1500) return
+    cooldown.current = now
     wasHit.current = true
     triggerCameraShake(800, 0.7)
-    endGame('tram')
+    // Throw the player a long way along the tram's direction of travel.
+    triggerKnockback(1000, 0, 7, direction.current * 22)
+    takeDamage(80, 'tram')
   }
 
   const onNearEnter = (e: IntersectionEnterPayload) => {

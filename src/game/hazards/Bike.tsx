@@ -9,6 +9,7 @@ import {
 } from '@react-three/rapier'
 
 import { triggerCameraShake } from '../cameraState'
+import { triggerKnockback } from '../playerImpulse'
 import { useGameStore } from '../../state/useGameStore'
 
 interface BikeProps {
@@ -67,7 +68,7 @@ export function Bike({
   const cooldown = useRef(0)
   const wasHitWhileNear = useRef(false)
   const playerInside = useRef(false)
-  const loseLife = useGameStore((s) => s.loseLife)
+  const takeDamage = useGameStore((s) => s.takeDamage)
   const addNearMiss = useGameStore((s) => s.addNearMiss)
 
   const startNewTrip = () => {
@@ -127,7 +128,9 @@ export function Bike({
     cooldown.current = now
     wasHitWhileNear.current = true
     triggerCameraShake(300, 0.25)
-    loseLife('bike')
+    // Throw the player in the direction the bike was travelling.
+    triggerKnockback(500, 0, 2, direction.current * 6)
+    takeDamage(20, 'bike')
   }
 
   const onNearEnter = (e: IntersectionEnterPayload) => {

@@ -3,8 +3,11 @@ import { Github, Linkedin } from 'lucide-react'
 
 import { isTouchDevice } from '../game/mobileInput'
 import { profile } from '../lib/profile'
-import { useGameStore } from '../state/useGameStore'
+import { MAX_HEALTH, useGameStore } from '../state/useGameStore'
 import { VirtualJoystick } from './VirtualJoystick'
+
+const HEART_COUNT = 5
+const HEALTH_PER_HEART = MAX_HEALTH / HEART_COUNT
 
 const baseText: React.CSSProperties = {
   color: 'white',
@@ -16,8 +19,9 @@ const baseText: React.CSSProperties = {
 export function HUD() {
   const fps = useGameStore((s) => s.fps)
   const score = useGameStore((s) => s.score)
-  const lives = useGameStore((s) => s.lives)
+  const health = useGameStore((s) => s.health)
   const nearMissCount = useGameStore((s) => s.nearMissCount)
+  const fullHearts = Math.ceil(health / HEALTH_PER_HEART)
   const started = useGameStore((s) => s.started)
   const paused = useGameStore((s) => s.paused)
   const gameOver = useGameStore((s) => s.gameOver)
@@ -42,9 +46,9 @@ export function HUD() {
       >
         <div>{score}</div>
         <div style={{ fontSize: 18, marginTop: 4 }}>
-          {'♥'.repeat(Math.max(0, lives))}
+          {'♥'.repeat(Math.max(0, fullHearts))}
           <span style={{ opacity: 0.25 }}>
-            {'♥'.repeat(Math.max(0, 3 - lives))}
+            {'♥'.repeat(Math.max(0, HEART_COUNT - fullHearts))}
           </span>
         </div>
         {nearMissCount > 0 && (
@@ -305,7 +309,9 @@ function SocialLinks() {
 function gameOverReasonText(reason: string | null): string {
   switch (reason) {
     case 'tram':
-      return 'A tram clipped you'
+      return 'A tram ploughed through you'
+    case 'car':
+      return 'A car ran you down'
     case 'bike':
       return 'A cyclist took you out'
     default:

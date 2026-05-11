@@ -22,9 +22,10 @@ interface GameState {
   addNearMiss: () => void
   nearMissCount: number
 
-  lives: number
-  /** Decrement and surface a reason in the console. */
-  loseLife: (reason: string) => void
+  /** Player health, 0–MAX_HEALTH. Drops below 1 → game over. */
+  health: number
+  /** Subtract `amount` from health; surface a reason; if ≤0, game over. */
+  takeDamage: (amount: number, reason: string) => void
 
   gameOver: boolean
   gameOverReason: string | null
@@ -33,7 +34,7 @@ interface GameState {
   reset: () => void
 }
 
-const STARTING_LIVES = 3
+export const MAX_HEALTH = 100
 const NEAR_MISS_BONUS = 5
 
 export const useGameStore = create<GameState>((set) => ({
@@ -58,29 +59,30 @@ export const useGameStore = create<GameState>((set) => ({
       nearMissCount: s.nearMissCount + 1,
     })),
 
-  lives: STARTING_LIVES,
-  loseLife: (reason) =>
+  health: MAX_HEALTH,
+  takeDamage: (amount, reason) =>
     set((s) => {
-      const next = s.lives - 1
-      console.log(`[hit] ${reason} (${next} lives left)`)
+      if (s.gameOver) return s
+      const next = Math.max(0, s.health - amount)
+      console.log(`[hit] ${reason} −${amount} (${next}/${MAX_HEALTH} hp)`)
       if (next <= 0) {
-        return { lives: 0, gameOver: true, gameOverReason: reason }
+        return { health: 0, gameOver: true, gameOverReason: reason }
       }
-      return { lives: next }
+      return { health: next }
     }),
 
   gameOver: false,
   gameOverReason: null,
   endGame: (reason) => {
     console.log(`[game over] ${reason}`)
-    set({ gameOver: true, gameOverReason: reason, lives: 0 })
+    set({ gameOver: true, gameOverReason: reason, health: 0 })
   },
 
   reset: () =>
     set({
       score: 0,
       nearMissCount: 0,
-      lives: STARTING_LIVES,
+      health: MAX_HEALTH,
       gameOver: false,
       gameOverReason: null,
       paused: false,

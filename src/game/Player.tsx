@@ -12,6 +12,7 @@ import * as THREE from 'three'
 import { useGameStore } from '../state/useGameStore'
 import { cameraState } from './cameraState'
 import { mobileInput } from './mobileInput'
+import { playerImpulse } from './playerImpulse'
 import {
   GRAVITY,
   KEYBOARD_YAW_SPEED,
@@ -40,6 +41,9 @@ export function Player() {
   const wasJumpPressed = useRef(false)
   /** Set when the player drops past the threshold; cleared on respawn. */
   const fallingSince = useRef<number | null>(null)
+  /** Last `playerImpulse.startedAt` we acted on, so we only apply the
+   * upward pop once per knockback (not every frame inside it). */
+  const lastImpulseAt = useRef(0)
 
   const move = useRef(new THREE.Vector3())
   const planar = useRef(new THREE.Vector3())
@@ -82,7 +86,10 @@ export function Player() {
 
     const { gameOver, paused, started } = useGameStore.getState()
     const frozen = gameOver || paused || !started
-    const keys = frozen
+    const now = performance.now()
+    const knockback = now < playerImpulse.endsAt
+
+    const keys = frozen || knockback
       ? {
           forward: false,
           backward: false,
@@ -101,40 +108,55 @@ export function Player() {
       cameraState.yaw += yawInput * KEYBOARD_YAW_SPEED * delta
     }
 
-    // axis values: +forward = into the scene (camera-forward), +right = camera-right.
-    // Keyboard contributes ±1; gyro and on-screen joystick contribute
-    // analog [-1, 1] and sum together. The combined vector clamps to
-    // the unit disc so diagonals stay unit length and a small tilt /
-    // small thumb-stick deflection produces a proportionally slow walk.
-    const fKey = Number(forward) - Number(backward)
-    const rKey = Number(right) - Number(left)
-    const fMob = frozen
-      ? 0
-      : mobileInput.gyroForward + mobileInput.joystickForward
-    const rMob = frozen
-      ? 0
-      : mobileInput.gyroRight + mobileInput.joystickRight
-    const fRaw = fKey + fMob
-    const rRaw = rKey + rMob
-    const len = Math.hypot(fRaw, rRaw)
-    const scale = len > 1 ? 1 / len : 1
-    const forwardAxis = fRaw * scale
-    const rightAxis = rRaw * scale
+    if (knockback) {
+      // On the frame a fresh knockback fires, pop the player up so they
+      // arc through the air instead of sliding along the ground.
+      if (playerImpulse.startedAt !== lastImpulseAt.current) {
+        lastImpulseAt.current = playerImpulse.startedAt
+        yVelocity.current = playerImpulse.vy
+      }
+      // Planar velocity decays linearly from full to zero over the duration.
+      const remaining = (playerImpulse.endsAt - now) / playerImpulse.durationMs
+      const t = Math.max(0, Math.min(1, remaining))
+      planar.current.set(playerImpulse.vx * t, 0, playerImpulse.vz * t)
+      planar.current.multiplyScalar(delta)
+    } else {
+      // axis values: +forward = into the scene (camera-forward), +right = camera-right.
+      // Keyboard contributes ±1; gyro and on-screen joystick contribute
+      // analog [-1, 1] and sum together. The combined vector clamps to
+      // the unit disc so diagonals stay unit length and a small tilt /
+      // small thumb-stick deflection produces a proportionally slow walk.
+      const fKey = Number(forward) - Number(backward)
+      const rKey = Number(right) - Number(left)
+      const fMob = frozen
+        ? 0
+        : mobileInput.gyroForward + mobileInput.joystickForward
+      const rMob = frozen
+        ? 0
+        : mobileInput.gyroRight + mobileInput.joystickRight
+      const fRaw = fKey + fMob
+      const rRaw = rKey + rMob
+      const len = Math.hypot(fRaw, rRaw)
+      const scale = len > 1 ? 1 / len : 1
+      const forwardAxis = fRaw * scale
+      const rightAxis = rRaw * scale
 
-    // camera-forward in world space is (-sin yaw, 0, -cos yaw); camera-right is (cos, 0, -sin)
-    const sin = Math.sin(cameraState.yaw)
-    const cos = Math.cos(cameraState.yaw)
-    planar.current.set(
-      forwardAxis * -sin + rightAxis * cos,
-      0,
-      forwardAxis * -cos + rightAxis * -sin,
-    )
-    planar.current.multiplyScalar(PLAYER_SPEED * delta)
+      // camera-forward in world space is (-sin yaw, 0, -cos yaw); camera-right is (cos, 0, -sin)
+      const sin = Math.sin(cameraState.yaw)
+      const cos = Math.cos(cameraState.yaw)
+      planar.current.set(
+        forwardAxis * -sin + rightAxis * cos,
+        0,
+        forwardAxis * -cos + rightAxis * -sin,
+      )
+      planar.current.multiplyScalar(PLAYER_SPEED * delta)
+    }
 
-    // vertical: gravity + jump on rising edge while grounded
+    // vertical: gravity + jump on rising edge while grounded (jump
+    // suppressed during knockback — we already set yVelocity on entry)
     const grounded = controller.computedGrounded()
     if (grounded && yVelocity.current < 0) yVelocity.current = 0
-    if (jump && !wasJumpPressed.current && grounded) {
+    if (!knockback && jump && !wasJumpPressed.current && grounded) {
       yVelocity.current = PLAYER_JUMP_SPEED
     }
     wasJumpPressed.current = !!jump
@@ -174,14 +196,33 @@ export function Player() {
       fallingSince.current = null
     }
 
-    // face the direction of horizontal motion
-    if (mesh.current && (planar.current.x !== 0 || planar.current.z !== 0)) {
-      const targetYaw = Math.atan2(planar.current.x, planar.current.z)
-      mesh.current.rotation.y = THREE.MathUtils.lerp(
-        mesh.current.rotation.y,
-        targetYaw,
-        0.2,
-      )
+    if (mesh.current) {
+      if (knockback) {
+        // tumble: lean steeply forward in the throw direction, spin a bit.
+        const throwYaw = Math.atan2(playerImpulse.vx, playerImpulse.vz)
+        mesh.current.rotation.y = throwYaw
+        const remaining = (playerImpulse.endsAt - now) / playerImpulse.durationMs
+        const t = Math.max(0, Math.min(1, 1 - remaining)) // 0→1 over duration
+        // peak tilt around mid-flight, ease back at landing
+        const tilt = Math.sin(t * Math.PI) * (Math.PI / 2)
+        mesh.current.rotation.x = tilt
+      } else {
+        // ease the tumble tilt back to upright after a hit
+        mesh.current.rotation.x = THREE.MathUtils.lerp(
+          mesh.current.rotation.x,
+          0,
+          0.2,
+        )
+        // face the direction of horizontal motion
+        if (planar.current.x !== 0 || planar.current.z !== 0) {
+          const targetYaw = Math.atan2(planar.current.x, planar.current.z)
+          mesh.current.rotation.y = THREE.MathUtils.lerp(
+            mesh.current.rotation.y,
+            targetYaw,
+            0.2,
+          )
+        }
+      }
     }
   })
 
