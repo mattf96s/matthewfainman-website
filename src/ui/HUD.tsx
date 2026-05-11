@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FileDown, Github, Linkedin } from 'lucide-react'
+import { Github, Linkedin } from 'lucide-react'
 
 import { isTouchDevice } from '../game/mobileInput'
 import { profile } from '../lib/profile'
@@ -225,16 +225,9 @@ function SocialLinks() {
     label: string
     href: string
     Icon: typeof Github
-    download?: string
   }> = [
     { label: 'GitHub', href: profile.github, Icon: Github },
     { label: 'LinkedIn', href: profile.linkedin, Icon: Linkedin },
-    {
-      label: 'Download CV',
-      href: profile.cvDownload,
-      Icon: FileDown,
-      download: profile.cvFilename,
-    },
   ]
 
   return (
@@ -247,13 +240,12 @@ function SocialLinks() {
         pointerEvents: 'auto',
       }}
     >
-      {items.map(({ label, href, Icon, download }) => (
+      {items.map(({ label, href, Icon }) => (
         <a
           key={label}
           href={href}
-          target={download ? undefined : '_blank'}
-          rel={download ? undefined : 'noopener noreferrer'}
-          download={download}
+          target="_blank"
+          rel="noopener noreferrer"
           aria-label={label}
           title={label}
           style={{
