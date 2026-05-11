@@ -2,23 +2,22 @@ import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import type * as THREE from 'three'
 
-import {
-  X_HOUSE_SIDEWALK,
-  X_NEAR_SIDEWALK,
-} from '../world/constants'
+import { BIN_POSITIONS } from '../world/Bins'
 
 interface Waypoint {
   x: number
   z: number
 }
 
-/** Order chosen to roughly match the bike-rack cluster z positions. */
-const WAYPOINTS: Waypoint[] = [
-  { x: X_NEAR_SIDEWALK, z: -22 },
-  { x: X_HOUSE_SIDEWALK, z: -14 },
-  { x: X_HOUSE_SIDEWALK, z: 20 },
-  { x: X_NEAR_SIDEWALK, z: 8 },
-]
+/** Stops at each bin in turn — driven from the same source of truth
+ * as the bin placements themselves. Offsets a touch on the X axis so
+ * the collector stands beside the bin, not inside it. */
+const STAND_OFFSET = 0.8
+const WAYPOINTS: Waypoint[] = BIN_POSITIONS.map(([x, z], i) => ({
+  // alternate which side of the bin the collector approaches from
+  x: x + (i % 2 === 0 ? -STAND_OFFSET : STAND_OFFSET),
+  z,
+}))
 
 const WALK_SPEED = 0.6
 const PAUSE_MIN = 4

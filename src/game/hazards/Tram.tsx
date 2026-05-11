@@ -10,7 +10,7 @@ import {
 
 import { triggerCameraShake } from '../cameraState'
 import { useGameStore } from '../../state/useGameStore'
-import { BLOCK_LENGTH, X_ROAD } from '../world/constants'
+import { BLOCK_LENGTH } from '../world/constants'
 
 const TRAM_LENGTH = 14
 const TRAM_WIDTH = 2.4
@@ -23,19 +23,25 @@ const HIT_HALF_WIDTH = 0.18
 const TRAM_GVB_BLUE = '#0066b3'
 
 interface TramProps {
-  /** Initial Z and travel direction. */
+  /** X position of the tram's centreline (lane centre). */
+  x: number
+  /** Initial Z. */
   startZ?: number
+  /** Initial travel direction. */
+  startDirection?: 1 | -1
   /** Maximum Z reach before reversing. */
   extent?: number
 }
 
 export function Tram({
+  x,
   startZ = 0,
+  startDirection = 1,
   extent = BLOCK_LENGTH / 2 - TRAM_LENGTH / 2 - 1,
 }: TramProps) {
   const body = useRef<RapierRigidBody>(null)
   const z = useRef(startZ)
-  const direction = useRef<1 | -1>(1)
+  const direction = useRef<1 | -1>(startDirection)
   const dwellRemaining = useRef(0)
   const playerInside = useRef(false)
   const wasHit = useRef(false)
@@ -62,7 +68,7 @@ export function Tram({
     }
 
     body.current.setNextKinematicTranslation({
-      x: X_ROAD,
+      x,
       y: TRAM_HEIGHT / 2,
       z: z.current,
     })
@@ -98,7 +104,7 @@ export function Tram({
       ref={body}
       type="kinematicPosition"
       colliders={false}
-      position={[X_ROAD, TRAM_HEIGHT / 2, startZ]}
+      position={[x, TRAM_HEIGHT / 2, startZ]}
       enabledRotations={[false, false, false]}
     >
       {/* hit zone — narrow strip along the tram's path of motion, so

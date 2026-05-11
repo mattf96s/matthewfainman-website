@@ -8,7 +8,7 @@ import { FpsTracker } from './FpsTracker'
 import { Player } from './Player'
 import { PointerLockBridge } from './PointerLockBridge'
 import { Bikes } from './hazards/Bikes'
-import { CrossTram } from './hazards/CrossTram'
+import { PathTram, type TramPath } from './hazards/PathTram'
 import { Tram } from './hazards/Tram'
 import { Statiegeld } from './npcs/Statiegeld'
 import { Tourists } from './npcs/Tourists'
@@ -16,6 +16,11 @@ import { ScoreTimer } from './systems/ScoreTimer'
 import { Block } from './world/Block'
 import { CanalLife } from './world/CanalLife'
 import { Rain } from './world/Rain'
+import {
+  X_ROAD_LANE_EAST,
+  X_ROAD_LANE_WEST,
+  Z_CROSS_LANE_SOUTH,
+} from './world/constants'
 
 const keyMap = [
   { name: 'forward', keys: ['ArrowUp', 'KeyW'] },
@@ -27,6 +32,35 @@ const keyMap = [
   { name: 'yawRight', keys: ['KeyE'] },
 ]
 
+// Tram that takes the corner: north up the east lane of the main road,
+// arcs right at the intersection, continues east on the cross-street's
+// south lane. Reverses at the end for the return trip.
+const TURN_RADIUS = 6
+const L_PATH: TramPath = [
+  {
+    kind: 'straight',
+    x1: X_ROAD_LANE_EAST,
+    z1: -26,
+    x2: X_ROAD_LANE_EAST,
+    z2: Z_CROSS_LANE_SOUTH - TURN_RADIUS,
+  },
+  {
+    kind: 'arc',
+    cx: X_ROAD_LANE_EAST + TURN_RADIUS,
+    cz: Z_CROSS_LANE_SOUTH - TURN_RADIUS,
+    radius: TURN_RADIUS,
+    startAngle: Math.PI,
+    endAngle: Math.PI / 2,
+  },
+  {
+    kind: 'straight',
+    x1: X_ROAD_LANE_EAST + TURN_RADIUS,
+    z1: Z_CROSS_LANE_SOUTH,
+    x2: 18,
+    z2: Z_CROSS_LANE_SOUTH,
+  },
+]
+
 export function Game() {
   return (
     <KeyboardControls map={keyMap}>
@@ -35,9 +69,7 @@ export function Game() {
         <fog attach="fog" args={['#cdd9d5', 60, 140]} />
         <Suspense fallback={null}>
           <Physics gravity={[0, -30, 0]}>
-            <hemisphereLight
-              args={['#ffe6c2', '#3a3e3a', 0.45]}
-            />
+            <hemisphereLight args={['#ffe6c2', '#3a3e3a', 0.45]} />
             <ambientLight intensity={0.15} />
             <directionalLight
               position={[30, 40, 20]}
@@ -56,8 +88,10 @@ export function Game() {
             <Block />
             <CanalLife />
             <Bikes />
-            <Tram />
-            <CrossTram z={35} extent={14} />
+            {/* west-lane tram bouncing N-S */}
+            <Tram x={X_ROAD_LANE_WEST} startZ={10} startDirection={-1} />
+            {/* east-lane tram that takes the corner onto the cross-street */}
+            <PathTram path={L_PATH} speed={7} endDwell={10} startOffset={5} />
             <Tourists />
             <Statiegeld />
             <Rain />

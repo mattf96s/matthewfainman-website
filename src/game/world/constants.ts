@@ -23,7 +23,7 @@ export const CANAL_LENGTH = 100
 
 /** Z of the perpendicular cross-street (north end of the block). */
 export const CROSS_STREET_Z = 35
-export const CROSS_STREET_WIDTH = 10
+export const CROSS_STREET_WIDTH = 14
 /** X half-extent of the cross-street — spans the canal and into the
  * houseside terrain. */
 export const CROSS_STREET_X_HALF = 20
@@ -35,7 +35,7 @@ export const SURFACE_THICKNESS = 0.4
 export const FAR_SIDEWALK_WIDTH = 4
 export const CANAL_WIDTH = 8
 export const NEAR_SIDEWALK_WIDTH = 4
-export const ROAD_WIDTH = 4
+export const ROAD_WIDTH = 8
 export const FIETSPAD_WIDTH = 2.5
 export const HOUSE_SIDEWALK_WIDTH = 4
 
@@ -61,6 +61,15 @@ export const X_NEAR_SIDEWALK = centres[2]!
 export const X_ROAD = centres[3]!
 export const X_FIETSPAD = centres[4]!
 export const X_HOUSE_SIDEWALK = centres[5]!
+
+/** Lane centres on the main road. Trams use these to ride the rails. */
+export const X_ROAD_LANE_WEST = X_ROAD - ROAD_WIDTH / 4
+export const X_ROAD_LANE_EAST = X_ROAD + ROAD_WIDTH / 4
+/** Cross-street road depth (Z). 8m of road between 3m sidewalks. */
+export const CROSS_ROAD_DEPTH = 8
+/** Lane centres on the cross-street (in Z). */
+export const Z_CROSS_LANE_SOUTH = CROSS_STREET_Z - CROSS_ROAD_DEPTH / 4
+export const Z_CROSS_LANE_NORTH = CROSS_STREET_Z + CROSS_ROAD_DEPTH / 4
 
 // X of the building front line (just past the house-side sidewalk)
 export const X_HOUSE_FRONT = X_HOUSE_SIDEWALK + HOUSE_SIDEWALK_WIDTH / 2

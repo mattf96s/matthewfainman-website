@@ -1,4 +1,5 @@
 import { CanalHouse } from './CanalHouse'
+import { Shop, type ShopBrand } from './Shop'
 import { BLOCK_LENGTH, HOUSE_BRICKS } from './constants'
 
 interface HouseRowProps {
@@ -10,45 +11,61 @@ interface HouseRowProps {
   seed?: number
   /** House indices (within this row) that should render as red-light houses. */
   redLightIndices?: ReadonlySet<number>
+  /** Indices to render as shops (with brand) instead of canal houses. */
+  shopAtIndex?: ReadonlyMap<number, ShopBrand>
 }
 
 const HOUSE_WIDTH = 5
 const HOUSE_DEPTH = 8
 const HOUSE_GAP = 0.4
+const SHOP_DEPTH = 5
+const SHOP_HEIGHT = 4.4
 
 /**
  * A row of narrow canal houses along Z, centred on the block. `frontX`
  * is the X coordinate of the facade; the body extends behind by HOUSE_DEPTH.
- * `facingY` chooses which direction the front faces — pass -π/2 for a
- * facade facing west (-X), +π/2 for a facade facing east (+X).
+ * Specific indices can be swapped for shops via `shopAtIndex`.
  */
 export function HouseRow({
   frontX,
   facingY,
   seed = 0,
   redLightIndices,
+  shopAtIndex,
 }: HouseRowProps) {
   const count = Math.floor(BLOCK_LENGTH / (HOUSE_WIDTH + HOUSE_GAP))
   const stride = HOUSE_WIDTH + HOUSE_GAP
   const startZ = -((count - 1) * stride) / 2
 
-  // CanalHouse's local +Z is the facade. After rotating by facingY, the
-  // facade ends up at world offset (HOUSE_DEPTH/2)·sin(facingY) from the
-  // body centre — invert to find where the body should sit.
   const sin = Math.sin(facingY)
-  const bodyX = frontX - (HOUSE_DEPTH / 2) * sin
+  const houseBodyX = frontX - (HOUSE_DEPTH / 2) * sin
+  const shopBodyX = frontX - (SHOP_DEPTH / 2) * sin
 
   return (
     <>
       {Array.from({ length: count }, (_, i) => {
         const z = startZ + i * stride
+        const brand = shopAtIndex?.get(i)
+        if (brand) {
+          return (
+            <Shop
+              key={i}
+              position={[shopBodyX, 0, z]}
+              rotationY={facingY}
+              brand={brand}
+              width={HOUSE_WIDTH}
+              depth={SHOP_DEPTH}
+              height={SHOP_HEIGHT}
+            />
+          )
+        }
         const brick = HOUSE_BRICKS[(i + seed) % HOUSE_BRICKS.length]!
         const heightJitter = 1.5 * Math.sin((i + seed) * 1.7)
         const redLight = redLightIndices?.has(i) ?? false
         return (
           <CanalHouse
             key={i}
-            position={[bodyX, 0, z]}
+            position={[houseBodyX, 0, z]}
             width={HOUSE_WIDTH}
             depth={HOUSE_DEPTH}
             height={9 + heightJitter}
