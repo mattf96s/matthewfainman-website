@@ -21,7 +21,8 @@ import {
 } from './constants'
 import { X_NEAR_SIDEWALK } from './world/constants'
 
-const SPAWN: [number, number, number] = [X_NEAR_SIDEWALK, 2, 0]
+// offset off the lamp posts (which sit at X_NEAR_SIDEWALK, z = 0, 12, ...)
+const SPAWN: [number, number, number] = [X_NEAR_SIDEWALK + 1.0, 2, 4]
 /** If the player drops below this Y, the fall-off timer starts. */
 const FALL_THRESHOLD_Y = -8
 /** How long to keep falling before respawning at the title overlay. */

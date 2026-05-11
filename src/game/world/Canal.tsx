@@ -63,7 +63,9 @@ export function Canal({ bridges = [] }: CanalProps) {
         position={[X_CANAL, -CANAL_DEPTH, 0]}
         rotation={[-Math.PI / 2, 0, 0]}
       >
-        <planeGeometry args={[CANAL_WIDTH, CANAL_LENGTH]} />
+        <planeGeometry
+          args={[CANAL_WIDTH - 2 * BANK_FACE_THICKNESS, CANAL_LENGTH]}
+        />
         <meshStandardMaterial
           color={COLOR_CANAL}
           metalness={0.1}
@@ -133,14 +135,19 @@ interface BankFaceProps {
 
 const BANK_FACE_THICKNESS = 0.3
 const BANK_TOP_Y = 0.05 // a hair above sidewalk top, like a stone curb
+/** Extend the wall below canal water so its bottom doesn't share a Y
+ * plane with the water surface (avoids Z-fighting). */
+const BANK_BELOW_WATER = 0.4
 
 function BankFace({ side, z, length }: BankFaceProps) {
   const edgeX =
     side === 'west' ? X_CANAL - CANAL_WIDTH / 2 : X_CANAL + CANAL_WIDTH / 2
-  const x = edgeX + (side === 'west' ? -1 : 1) * (BANK_FACE_THICKNESS / 2 - 0.05)
-  const totalH = CANAL_DEPTH + BANK_TOP_Y
-  // centre y so the box spans from -CANAL_DEPTH to +BANK_TOP_Y
-  const cy = (BANK_TOP_Y - CANAL_DEPTH) / 2
+  // sit the wall fully inside the canal area (no overlap with the
+  // sidewalk strip); its outer face is flush with the canal edge.
+  const x =
+    edgeX + (side === 'west' ? 1 : -1) * (BANK_FACE_THICKNESS / 2)
+  const totalH = CANAL_DEPTH + BANK_TOP_Y + BANK_BELOW_WATER
+  const cy = (BANK_TOP_Y - CANAL_DEPTH - BANK_BELOW_WATER) / 2
   return (
     <mesh receiveShadow castShadow position={[x, cy, z]}>
       <boxGeometry args={[BANK_FACE_THICKNESS, totalH, length]} />

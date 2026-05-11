@@ -19,8 +19,13 @@ interface BridgeProps {
  * the player can step on without a gap.
  */
 export function Bridge({ z, width = 4 }: BridgeProps) {
-  const xExtent =
+  // bridge floor slab overhangs onto the sidewalks slightly so there's
+  // no visible gap when stepping on
+  const slabExtent =
     CANAL_WIDTH + FAR_SIDEWALK_WIDTH / 2 + NEAR_SIDEWALK_WIDTH / 2
+  // railings are shorter — only past the canal edges by a small lip,
+  // so they don't reach into the streets/sidewalks
+  const railExtent = CANAL_WIDTH + 0.4
 
   const railHeight = 1.0
   const railThickness = 0.1
@@ -32,7 +37,7 @@ export function Bridge({ z, width = 4 }: BridgeProps) {
         castShadow
         position={[X_CANAL, -SURFACE_THICKNESS / 2, z]}
       >
-        <boxGeometry args={[xExtent, SURFACE_THICKNESS, width]} />
+        <boxGeometry args={[slabExtent, SURFACE_THICKNESS, width]} />
         <meshStandardMaterial color={COLOR_BRIDGE} />
       </mesh>
 
@@ -42,7 +47,7 @@ export function Bridge({ z, width = 4 }: BridgeProps) {
           castShadow
           position={[X_CANAL, railHeight / 2, z + zOffset]}
         >
-          <boxGeometry args={[xExtent, railHeight, railThickness]} />
+          <boxGeometry args={[railExtent, railHeight, railThickness]} />
           <meshStandardMaterial color="#5a4b3a" />
         </mesh>
       ))}
