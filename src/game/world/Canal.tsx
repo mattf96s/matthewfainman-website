@@ -1,11 +1,5 @@
-import { useRef } from 'react'
-import {
-  CuboidCollider,
-  RigidBody,
-  type IntersectionEnterPayload,
-} from '@react-three/rapier'
+import { RigidBody } from '@react-three/rapier'
 
-import { useGameStore } from '../../state/useGameStore'
 import {
   CANAL_DEPTH,
   CANAL_LENGTH,
@@ -22,50 +16,16 @@ export interface BridgeZone {
 }
 
 interface CanalProps {
-  /** Bridges to leave gaps for in the fall-in sensor. */
+  /** Bridges (kept for API compatibility; no longer used for kill sensors). */
   bridges?: BridgeZone[]
 }
 
 /**
- * Renders the canal water surface and a series of fall-in sensor
- * segments that skip the bridge zones (so crossing on a bridge doesn't
- * trigger a fall).
+ * Renders the canal water surface and a walkable floor at the canal
+ * bottom. There's no kill trigger any more — falling in the gracht
+ * just leaves the player wading in shallow water.
  */
-export function Canal({ bridges = [] }: CanalProps) {
-  const cooldown = useRef(0)
-
-  const handleEnter = (e: IntersectionEnterPayload) => {
-    if (e.other.rigidBodyObject?.name !== 'player') return
-    if (useGameStore.getState().gameOver) return
-    const now = performance.now()
-    if (now - cooldown.current < 1500) return
-    cooldown.current = now
-    useGameStore.getState().endGame('canal')
-  }
-
-  // segment the sensor around the bridge zones
-  const halfLen = CANAL_LENGTH / 2
-  const sorted = [...bridges].sort((a, b) => a.z - b.z)
-  const segments: Array<{ centre: number; len: number }> = []
-  let cursor = -halfLen
-  for (const b of sorted) {
-    const bStart = b.z - b.width / 2
-    const bEnd = b.z + b.width / 2
-    if (bStart > cursor) {
-      segments.push({
-        centre: (cursor + bStart) / 2,
-        len: bStart - cursor,
-      })
-    }
-    cursor = Math.max(cursor, bEnd)
-  }
-  if (cursor < halfLen) {
-    segments.push({
-      centre: (cursor + halfLen) / 2,
-      len: halfLen - cursor,
-    })
-  }
-
+export function Canal({ bridges: _bridges = [] }: CanalProps) {
   return (
     <group>
       <mesh
@@ -81,15 +41,12 @@ export function Canal({ bridges = [] }: CanalProps) {
         />
       </mesh>
 
-      <RigidBody type="fixed" colliders={false} sensor>
-        {segments.map((seg, i) => (
-          <CuboidCollider
-            key={i}
-            args={[CANAL_WIDTH / 2, 1.5, seg.len / 2]}
-            position={[X_CANAL, -0.5, seg.centre]}
-            onIntersectionEnter={handleEnter}
-          />
-        ))}
+      {/* solid floor at canal bottom so the player can wade in */}
+      <RigidBody type="fixed" colliders="cuboid">
+        <mesh position={[X_CANAL, -CANAL_DEPTH - 0.2, 0]}>
+          <boxGeometry args={[CANAL_WIDTH, 0.4, CANAL_LENGTH]} />
+          <meshStandardMaterial color="#26414a" />
+        </mesh>
       </RigidBody>
     </group>
   )

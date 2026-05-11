@@ -15,7 +15,11 @@ import { BLOCK_LENGTH, X_ROAD } from '../world/constants'
 const TRAM_LENGTH = 14
 const TRAM_WIDTH = 2.4
 const TRAM_HEIGHT = 3.0
-const TRAM_SPEED = 11
+const TRAM_SPEED = 8
+const TRAM_DWELL_SECONDS = 10
+/** Half-width of the on-track hit zone — only the tram's path of motion
+ * counts as a hit, so walking alongside doesn't register. */
+const HIT_HALF_WIDTH = 0.55
 const TRAM_GVB_BLUE = '#0066b3'
 
 interface TramProps {
@@ -32,6 +36,7 @@ export function Tram({
   const body = useRef<RapierRigidBody>(null)
   const z = useRef(startZ)
   const direction = useRef<1 | -1>(1)
+  const dwellRemaining = useRef(0)
   const playerInside = useRef(false)
   const wasHit = useRef(false)
   const endGame = useGameStore((s) => s.endGame)
@@ -40,13 +45,20 @@ export function Tram({
 
   useFrame((_, delta) => {
     if (!body.current || gameOver) return
-    z.current += direction.current * TRAM_SPEED * delta
-    if (z.current > extent) {
-      z.current = extent
-      direction.current = -1
-    } else if (z.current < -extent) {
-      z.current = -extent
-      direction.current = 1
+
+    if (dwellRemaining.current > 0) {
+      dwellRemaining.current -= delta
+    } else {
+      z.current += direction.current * TRAM_SPEED * delta
+      if (z.current >= extent) {
+        z.current = extent
+        direction.current = -1
+        dwellRemaining.current = TRAM_DWELL_SECONDS
+      } else if (z.current <= -extent) {
+        z.current = -extent
+        direction.current = 1
+        dwellRemaining.current = TRAM_DWELL_SECONDS
+      }
     }
 
     body.current.setNextKinematicTranslation({
@@ -89,8 +101,10 @@ export function Tram({
       position={[X_ROAD, TRAM_HEIGHT / 2, startZ]}
       enabledRotations={[false, false, false]}
     >
+      {/* hit zone — narrow strip along the tram's path of motion, so
+        * walking alongside the tram doesn't trigger a hit. */}
       <CuboidCollider
-        args={[TRAM_WIDTH / 2, TRAM_HEIGHT / 2, TRAM_LENGTH / 2]}
+        args={[HIT_HALF_WIDTH, TRAM_HEIGHT / 2, TRAM_LENGTH / 2]}
         sensor
         onIntersectionEnter={onHit}
       />

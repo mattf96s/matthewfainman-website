@@ -14,7 +14,9 @@ import { useGameStore } from '../../state/useGameStore'
 const TRAM_LENGTH = 12
 const TRAM_WIDTH = 2.2
 const TRAM_HEIGHT = 2.8
-const TRAM_SPEED = 9
+const TRAM_SPEED = 7
+const TRAM_DWELL_SECONDS = 12
+const HIT_HALF_DEPTH = 0.55
 const TRAM_GVB_BLUE = '#0066b3'
 
 interface CrossTramProps {
@@ -32,6 +34,7 @@ export function CrossTram({ z, extent }: CrossTramProps) {
   const body = useRef<RapierRigidBody>(null)
   const x = useRef(0)
   const direction = useRef<1 | -1>(1)
+  const dwellRemaining = useRef(0)
   const playerInside = useRef(false)
   const wasHit = useRef(false)
   const endGame = useGameStore((s) => s.endGame)
@@ -40,14 +43,22 @@ export function CrossTram({ z, extent }: CrossTramProps) {
   useFrame((_, delta) => {
     if (!body.current) return
     if (useGameStore.getState().gameOver) return
-    x.current += direction.current * TRAM_SPEED * delta
-    if (x.current > extent) {
-      x.current = extent
-      direction.current = -1
-    } else if (x.current < -extent) {
-      x.current = -extent
-      direction.current = 1
+
+    if (dwellRemaining.current > 0) {
+      dwellRemaining.current -= delta
+    } else {
+      x.current += direction.current * TRAM_SPEED * delta
+      if (x.current >= extent) {
+        x.current = extent
+        direction.current = -1
+        dwellRemaining.current = TRAM_DWELL_SECONDS
+      } else if (x.current <= -extent) {
+        x.current = -extent
+        direction.current = 1
+        dwellRemaining.current = TRAM_DWELL_SECONDS
+      }
     }
+
     body.current.setNextKinematicTranslation({
       x: x.current,
       y: TRAM_HEIGHT / 2,
@@ -87,9 +98,10 @@ export function CrossTram({ z, extent }: CrossTramProps) {
       position={[0, TRAM_HEIGHT / 2, z]}
       enabledRotations={[false, false, false]}
     >
-      {/* note: tram's long axis is X here */}
+      {/* hit zone — narrow along Z (the perpendicular-to-motion axis)
+        * so only on-track contact counts. Tram's long axis is X. */}
       <CuboidCollider
-        args={[TRAM_LENGTH / 2, TRAM_HEIGHT / 2, TRAM_WIDTH / 2]}
+        args={[TRAM_LENGTH / 2, TRAM_HEIGHT / 2, HIT_HALF_DEPTH]}
         sensor
         onIntersectionEnter={onHit}
       />

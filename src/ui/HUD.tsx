@@ -276,8 +276,6 @@ function gameOverReasonText(reason: string | null): string {
   switch (reason) {
     case 'tram':
       return 'A tram clipped you'
-    case 'canal':
-      return 'You fell in the gracht'
     case 'bike':
       return 'A cyclist took you out'
     default:
