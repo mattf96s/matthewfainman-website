@@ -82,6 +82,17 @@ function TitleOverlay() {
       <Title>Amsterdam Explorer</Title>
       <Subtitle>
         Press <kbd>Enter</kbd> to begin.
+        <div
+          style={{
+            marginTop: 10,
+            fontSize: 12,
+            opacity: 0.7,
+            letterSpacing: '0.02em',
+          }}
+        >
+          <kbd>WASD</kbd> or <kbd>arrow keys</kbd> to walk ·{' '}
+          <kbd>Q</kbd>/<kbd>E</kbd> to turn
+        </div>
         <SocialLinks />
       </Subtitle>
     </Overlay>
