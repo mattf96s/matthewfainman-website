@@ -38,12 +38,12 @@ const keyMap = [
 // Tram that takes the corner: north up the east tram lane of the main
 // road, arcs right at the intersection, continues east on the cross-
 // street's south lane. Reverses at the end for the return trip.
-const TURN_RADIUS = 6
+const TURN_RADIUS = 8
 const L_PATH: TramPath = [
   {
     kind: 'straight',
     x1: X_TRAM_EAST,
-    z1: -26,
+    z1: -46,
     x2: X_TRAM_EAST,
     z2: Z_CROSS_LANE_SOUTH - TURN_RADIUS,
   },

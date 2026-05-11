@@ -9,6 +9,7 @@ import {
 
 import { triggerCameraShake } from '../cameraState'
 import { useGameStore } from '../../state/useGameStore'
+import { BLOCK_LENGTH } from '../world/constants'
 
 interface CarProps {
   /** X position of the lane centreline. */
@@ -39,7 +40,7 @@ export function Car({
   startZ = 0,
   direction = 1,
   speed = 7,
-  extent = 30,
+  extent = BLOCK_LENGTH / 2,
   color = '#5e8aa8',
 }: CarProps) {
   const body = useRef<RapierRigidBody>(null)

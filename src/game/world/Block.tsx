@@ -72,9 +72,11 @@ export function Block() {
       <ClockTower position={[X_HOUSE_FRONT + 4, 0, CROSS_STREET_Z + 12]} />
 
       {/* zebra crossings spaced along the road, clear of the bridges */}
+      <ZebraCrossing z={-38} />
       <ZebraCrossing z={-20} />
       <ZebraCrossing z={15} />
       <ZebraCrossing z={28} />
+      <ZebraCrossing z={42} />
 
       <ParkedBikes />
       <Lamps />

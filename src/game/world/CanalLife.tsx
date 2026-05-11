@@ -16,6 +16,10 @@ interface MooredBoat {
 const SIDE_OFFSET = CANAL_WIDTH / 2 - 1.05
 
 const MOORED: MooredBoat[] = [
+  { side: 'west', z: -54, length: 5.5, variant: 'covered', hullColor: '#1c1a14' },
+  { side: 'west', z: -48, length: 5, variant: 'open', hullColor: '#211e16' },
+  { side: 'west', z: -42, length: 5.5, variant: 'cabin', hullColor: '#1a2638' },
+  { side: 'west', z: -36, length: 5, variant: 'open', hullColor: '#1f1a14' },
   { side: 'west', z: -32, length: 5.5, variant: 'open' },
   { side: 'west', z: -26, length: 5, variant: 'covered', hullColor: '#1a242b' },
   { side: 'west', z: -20.5, length: 5.5, variant: 'covered', hullColor: '#191815' },
@@ -27,7 +31,14 @@ const MOORED: MooredBoat[] = [
   { side: 'west', z: 18, length: 5.5, variant: 'open', trimColor: '#dce0d6' },
   { side: 'west', z: 24, length: 5, variant: 'covered', hullColor: '#171513' },
   { side: 'west', z: 30, length: 5.2, variant: 'open', hullColor: '#1a1812' },
+  { side: 'west', z: 36, length: 5, variant: 'covered', hullColor: '#1a242b' },
+  { side: 'west', z: 42, length: 5.5, variant: 'open', hullColor: '#1f1c16' },
+  { side: 'west', z: 48, length: 5, variant: 'covered', hullColor: '#15161c' },
 
+  { side: 'east', z: -52, length: 5, variant: 'open', hullColor: '#1f1a14' },
+  { side: 'east', z: -46, length: 5.5, variant: 'covered', hullColor: '#171513' },
+  { side: 'east', z: -40, length: 5, variant: 'open', hullColor: '#23201a' },
+  { side: 'east', z: -34, length: 5.5, variant: 'cabin', hullColor: '#1c1a14' },
   { side: 'east', z: -30, length: 5, variant: 'covered', hullColor: '#15161c' },
   { side: 'east', z: -24, length: 5.5, variant: 'open' },
   { side: 'east', z: -18, length: 4.8, variant: 'covered', hullColor: '#1e1614' },
@@ -38,6 +49,9 @@ const MOORED: MooredBoat[] = [
   { side: 'east', z: 14, length: 5.8, variant: 'covered', hullColor: '#171513' },
   { side: 'east', z: 20.5, length: 5, variant: 'open', hullColor: '#2c241c' },
   { side: 'east', z: 27, length: 5.5, variant: 'covered', hullColor: '#1a1812' },
+  { side: 'east', z: 33, length: 5, variant: 'open', hullColor: '#1f1c16' },
+  { side: 'east', z: 40, length: 5.5, variant: 'covered', hullColor: '#1a1812' },
+  { side: 'east', z: 46, length: 5, variant: 'cabin', hullColor: '#1a2a36' },
 ]
 
 /**
@@ -102,6 +116,8 @@ export function CanalLife() {
         beakColor="#e07020"
         size={1.6}
       />
+      <Duck position={[X_CANAL + 1.6, -40]} driftZ={0.2} />
+      <Duck position={[X_CANAL - 0.6, 44]} driftZ={-0.22} />
     </>
   )
 }

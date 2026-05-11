@@ -16,14 +16,14 @@
  * Centred on x = 0 (after laying out all strips).
  */
 
-export const BLOCK_LENGTH = 60
+export const BLOCK_LENGTH = 100
 
 /** Canal length — independent of block length so it can extend past
  * the cross-streets and out beyond the visible block edges. */
-export const CANAL_LENGTH = 100
+export const CANAL_LENGTH = 140
 
-/** Z of the perpendicular cross-street (north end of the block). */
-export const CROSS_STREET_Z = 35
+/** Z of the perpendicular cross-street (past the north end of the block). */
+export const CROSS_STREET_Z = 55
 export const CROSS_STREET_WIDTH = 14
 /** X half-extent of the cross-street. */
 export const CROSS_STREET_X_HALF = 20

@@ -11,6 +11,7 @@ import * as THREE from 'three'
 
 import { triggerCameraShake } from '../cameraState'
 import { useGameStore } from '../../state/useGameStore'
+import { TramBody } from './TramBody'
 
 export interface PathSegment {
   /** "straight" — line from (x1,z1) to (x2,z2). */
@@ -49,7 +50,6 @@ const TRAM_LENGTH = 14
 const TRAM_WIDTH = 2.4
 const TRAM_HEIGHT = 3.0
 const HIT_HALF_LATERAL = 0.18
-const TRAM_GVB_BLUE = '#0066b3'
 
 function segmentLength(seg: PathSegment | ArcSegment): number {
   if (seg.kind === 'straight') {
@@ -219,57 +219,11 @@ export function PathTram({
         onIntersectionExit={onNearExit}
       />
 
-      <mesh castShadow receiveShadow>
-        <boxGeometry args={[TRAM_WIDTH, TRAM_HEIGHT, TRAM_LENGTH]} />
-        <meshStandardMaterial color={TRAM_GVB_BLUE} roughness={0.6} />
-      </mesh>
-
-      <PathTramWindows />
-
-      {[-TRAM_LENGTH / 2 - 0.01, TRAM_LENGTH / 2 + 0.01].map((zEnd, i) => (
-        <mesh key={zEnd} position={[0, 0.9, zEnd]}>
-          <planeGeometry args={[TRAM_WIDTH * 0.7, 0.4]} />
-          <meshStandardMaterial
-            color={i === 0 ? '#fff4c2' : '#d63333'}
-            emissive={i === 0 ? '#fff4c2' : '#d63333'}
-            emissiveIntensity={0.6}
-          />
-        </mesh>
-      ))}
+      <TramBody
+        length={TRAM_LENGTH}
+        width={TRAM_WIDTH}
+        height={TRAM_HEIGHT}
+      />
     </RigidBody>
-  )
-}
-
-function PathTramWindows() {
-  const winCount = 6
-  const winW = (TRAM_LENGTH * 0.85) / winCount
-  const winH = TRAM_HEIGHT * 0.32
-  const gap =
-    (TRAM_LENGTH * 0.85 - winW * winCount) / Math.max(winCount - 1, 1)
-  const winsZ: number[] = []
-  for (let i = 0; i < winCount; i++) {
-    const start = (-TRAM_LENGTH * 0.85) / 2
-    winsZ.push(start + winW / 2 + i * (winW + gap))
-  }
-  return (
-    <group position={[0, 0.4, 0]}>
-      {winsZ.map((zPos) =>
-        [-1, 1].map((side) => (
-          <mesh
-            key={`${zPos}-${side}`}
-            position={[(TRAM_WIDTH / 2 + 0.01) * side, 0, zPos]}
-            rotation={[0, side > 0 ? Math.PI / 2 : -Math.PI / 2, 0]}
-          >
-            <planeGeometry args={[winW, winH]} />
-            <meshStandardMaterial
-              color="#1f3242"
-              emissive="#2a4a5e"
-              emissiveIntensity={0.2}
-              roughness={0.2}
-            />
-          </mesh>
-        )),
-      )}
-    </group>
   )
 }
