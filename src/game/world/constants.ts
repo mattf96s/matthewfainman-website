@@ -6,26 +6,26 @@
  * - +X = east
  * - +Y = up
  *
- * The block is laid out as parallel strips along the +Z axis. From -X
- * (canal side) to +X (house side):
+ * Cross-section, west → east:
+ *   far-bank sidewalk → canal → canal-side sidewalk →
+ *   west car lane → west median (waiting platform) →
+ *   west tram lane → east tram lane →
+ *   east median (waiting platform) → east car lane →
+ *   fietspad → house-side sidewalk → houses
  *
- *   canal water    →    far-bank sidewalk    →    canal    →
- *   canal-side sidewalk → road → fietspad → sidewalk → houses
- *
- * Centred on x = 0 so the player spawns roughly mid-block.
+ * Centred on x = 0 (after laying out all strips).
  */
 
 export const BLOCK_LENGTH = 60
 
-/** Canal length is independent of block length so it can extend past
- * cross-streets and out beyond the visible block edges. */
+/** Canal length — independent of block length so it can extend past
+ * the cross-streets and out beyond the visible block edges. */
 export const CANAL_LENGTH = 100
 
 /** Z of the perpendicular cross-street (north end of the block). */
 export const CROSS_STREET_Z = 35
 export const CROSS_STREET_WIDTH = 14
-/** X half-extent of the cross-street — spans the canal and into the
- * houseside terrain. */
+/** X half-extent of the cross-street. */
 export const CROSS_STREET_X_HALF = 20
 
 // surface thickness (Y depth of the cuboid colliders)
@@ -35,16 +35,22 @@ export const SURFACE_THICKNESS = 0.4
 export const FAR_SIDEWALK_WIDTH = 4
 export const CANAL_WIDTH = 8
 export const NEAR_SIDEWALK_WIDTH = 4
-export const ROAD_WIDTH = 8
+export const CAR_LANE_WIDTH = 3
+export const MEDIAN_WIDTH = 2.2
+export const TRAM_LANE_WIDTH = 3
 export const FIETSPAD_WIDTH = 2.5
 export const HOUSE_SIDEWALK_WIDTH = 4
 
-// cross-section X coordinates of the strip *centres* (west → east)
 const lanes = [
   FAR_SIDEWALK_WIDTH,
   CANAL_WIDTH,
   NEAR_SIDEWALK_WIDTH,
-  ROAD_WIDTH,
+  CAR_LANE_WIDTH, // west car lane
+  MEDIAN_WIDTH, // west median (tram-stop platform)
+  TRAM_LANE_WIDTH, // west-bound tram
+  TRAM_LANE_WIDTH, // east-bound tram
+  MEDIAN_WIDTH, // east median
+  CAR_LANE_WIDTH, // east car lane
   FIETSPAD_WIDTH,
   HOUSE_SIDEWALK_WIDTH,
 ] as const
@@ -55,31 +61,40 @@ for (const w of lanes) {
   centres.push(cursor + w / 2)
   cursor += w
 }
+
 export const X_FAR_SIDEWALK = centres[0]!
 export const X_CANAL = centres[1]!
 export const X_NEAR_SIDEWALK = centres[2]!
-export const X_ROAD = centres[3]!
-export const X_FIETSPAD = centres[4]!
-export const X_HOUSE_SIDEWALK = centres[5]!
+export const X_CAR_WEST = centres[3]!
+export const X_MEDIAN_WEST = centres[4]!
+export const X_TRAM_WEST = centres[5]!
+export const X_TRAM_EAST = centres[6]!
+export const X_MEDIAN_EAST = centres[7]!
+export const X_CAR_EAST = centres[8]!
+export const X_FIETSPAD = centres[9]!
+export const X_HOUSE_SIDEWALK = centres[10]!
 
-/** Lane centres on the main road. Trams use these to ride the rails. */
-export const X_ROAD_LANE_WEST = X_ROAD - ROAD_WIDTH / 4
-export const X_ROAD_LANE_EAST = X_ROAD + ROAD_WIDTH / 4
-/** Cross-street road depth (Z). 8m of road between 3m sidewalks. */
+/** Centre between the two tram lanes — handy for shop/zebra-crossing geometry. */
+export const X_ROAD = (X_TRAM_WEST + X_TRAM_EAST) / 2
+/** Full width from west car lane outer edge to east car lane outer edge. */
+export const ROAD_WIDTH =
+  CAR_LANE_WIDTH * 2 + MEDIAN_WIDTH * 2 + TRAM_LANE_WIDTH * 2
+
+/** Cross-street road depth (Z). */
 export const CROSS_ROAD_DEPTH = 8
-/** Lane centres on the cross-street (in Z). */
+/** Lane centres on the cross-street (Z). */
 export const Z_CROSS_LANE_SOUTH = CROSS_STREET_Z - CROSS_ROAD_DEPTH / 4
 export const Z_CROSS_LANE_NORTH = CROSS_STREET_Z + CROSS_ROAD_DEPTH / 4
 
-// X of the building front line (just past the house-side sidewalk)
 export const X_HOUSE_FRONT = X_HOUSE_SIDEWALK + HOUSE_SIDEWALK_WIDTH / 2
 
-// canal water surface sits below the bank
 export const CANAL_DEPTH = 1.2
 
-// colours — warm Amsterdam-ish palette
+// colours
 export const COLOR_SIDEWALK = '#bdb9ad'
+export const COLOR_MEDIAN = '#a8a59a'
 export const COLOR_ROAD = '#3f3f3f'
+export const COLOR_TRAM_LANE = '#363535'
 export const COLOR_FIETSPAD = '#9a3a2a'
 export const COLOR_CANAL = '#3d6470'
 export const COLOR_BRIDGE = '#7a6a55'

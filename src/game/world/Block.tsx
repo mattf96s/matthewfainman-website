@@ -10,7 +10,6 @@ import { Lamps } from './Lamps'
 import { ParkedBikes } from './ParkedBikes'
 import type { ShopBrand } from './Shop'
 import { Street } from './Street'
-import { TramStop } from './TramStop'
 import { ZebraCrossing } from './ZebraCrossing'
 import {
   CROSS_STREET_WIDTH,
@@ -18,7 +17,6 @@ import {
   FAR_SIDEWALK_WIDTH,
   X_FAR_SIDEWALK,
   X_HOUSE_FRONT,
-  X_NEAR_SIDEWALK,
 } from './constants'
 
 const CENTER_BRIDGE = { z: 0, width: 4 }
@@ -72,16 +70,6 @@ export function Block() {
 
       {/* landmark — sits in the open quadrant north of the cross-street */}
       <ClockTower position={[X_HOUSE_FRONT + 4, 0, CROSS_STREET_Z + 12]} />
-
-      {/* tram stop on the canal-side sidewalk, opening onto the road */}
-      <TramStop
-        position={[
-          X_NEAR_SIDEWALK + 0.3,
-          0,
-          -6,
-        ]}
-        rotationY={Math.PI / 2}
-      />
 
       {/* zebra crossings spaced along the road, clear of the bridges */}
       <ZebraCrossing z={-20} />

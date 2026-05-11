@@ -8,6 +8,7 @@ import { FpsTracker } from './FpsTracker'
 import { Player } from './Player'
 import { PointerLockBridge } from './PointerLockBridge'
 import { Bikes } from './hazards/Bikes'
+import { Cars } from './hazards/Cars'
 import { PathTram, type TramPath } from './hazards/PathTram'
 import { Tram } from './hazards/Tram'
 import { Statiegeld } from './npcs/Statiegeld'
@@ -19,8 +20,8 @@ import { Rain } from './world/Rain'
 import { StraightTramTracks, TramTracks } from './world/TramTracks'
 import {
   BLOCK_LENGTH,
-  X_ROAD_LANE_EAST,
-  X_ROAD_LANE_WEST,
+  X_TRAM_EAST,
+  X_TRAM_WEST,
   Z_CROSS_LANE_SOUTH,
 } from './world/constants'
 
@@ -34,21 +35,21 @@ const keyMap = [
   { name: 'yawRight', keys: ['KeyE'] },
 ]
 
-// Tram that takes the corner: north up the east lane of the main road,
-// arcs right at the intersection, continues east on the cross-street's
-// south lane. Reverses at the end for the return trip.
+// Tram that takes the corner: north up the east tram lane of the main
+// road, arcs right at the intersection, continues east on the cross-
+// street's south lane. Reverses at the end for the return trip.
 const TURN_RADIUS = 6
 const L_PATH: TramPath = [
   {
     kind: 'straight',
-    x1: X_ROAD_LANE_EAST,
+    x1: X_TRAM_EAST,
     z1: -26,
-    x2: X_ROAD_LANE_EAST,
+    x2: X_TRAM_EAST,
     z2: Z_CROSS_LANE_SOUTH - TURN_RADIUS,
   },
   {
     kind: 'arc',
-    cx: X_ROAD_LANE_EAST + TURN_RADIUS,
+    cx: X_TRAM_EAST + TURN_RADIUS,
     cz: Z_CROSS_LANE_SOUTH - TURN_RADIUS,
     radius: TURN_RADIUS,
     startAngle: Math.PI,
@@ -56,7 +57,7 @@ const L_PATH: TramPath = [
   },
   {
     kind: 'straight',
-    x1: X_ROAD_LANE_EAST + TURN_RADIUS,
+    x1: X_TRAM_EAST + TURN_RADIUS,
     z1: Z_CROSS_LANE_SOUTH,
     x2: 18,
     z2: Z_CROSS_LANE_SOUTH,
@@ -90,16 +91,17 @@ export function Game() {
             <Block />
             <CanalLife />
             <Bikes />
+            <Cars />
             {/* tram tracks */}
             <StraightTramTracks
-              x={X_ROAD_LANE_WEST}
+              x={X_TRAM_WEST}
               z1={-BLOCK_LENGTH / 2}
               z2={BLOCK_LENGTH / 2}
             />
             <TramTracks path={L_PATH} />
-            {/* west-lane tram bouncing N-S */}
-            <Tram x={X_ROAD_LANE_WEST} startZ={10} startDirection={-1} />
-            {/* east-lane tram that takes the corner onto the cross-street */}
+            {/* west tram lane: bouncing N-S */}
+            <Tram x={X_TRAM_WEST} startZ={10} startDirection={-1} />
+            {/* east tram lane: takes the corner onto the cross-street */}
             <PathTram path={L_PATH} speed={7} endDwell={10} startOffset={5} />
             <Tourists />
             <Statiegeld />
