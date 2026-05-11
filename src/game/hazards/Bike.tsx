@@ -26,7 +26,10 @@ interface BikeProps {
 
 const BIKE_BODY_HEIGHT = 1.1
 const BIKE_BODY_LENGTH = 1.6
-const BIKE_BODY_WIDTH = 0.5
+
+/** Half-width of the on-track hit zone — narrower than the visible
+ * bike so walking alongside on the sidewalk doesn't register. */
+const HIT_HALF_X = 0.2
 
 // near-miss zone — proximity halo where a clean pass earns bonus
 const NEAR_HALF_X = 1.2
@@ -102,9 +105,10 @@ export function Bike({
       position={[x, BIKE_BODY_HEIGHT / 2, startZ]}
       enabledRotations={[false, false, false]}
     >
-      {/* hit zone — tight body collider */}
+      {/* hit zone — narrow along X (the perpendicular-to-motion axis)
+        * so walking alongside the bike on the sidewalk doesn't register. */}
       <CuboidCollider
-        args={[BIKE_BODY_WIDTH / 2, BIKE_BODY_HEIGHT / 2, BIKE_BODY_LENGTH / 2]}
+        args={[HIT_HALF_X, BIKE_BODY_HEIGHT / 2, BIKE_BODY_LENGTH / 2]}
         sensor
         onIntersectionEnter={onHit}
       />

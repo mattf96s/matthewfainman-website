@@ -6,6 +6,7 @@ import { CrossStreet } from './CrossStreet'
 import { HouseRow } from './HouseRow'
 import { Lamps } from './Lamps'
 import { Street } from './Street'
+import { ZebraCrossing } from './ZebraCrossing'
 import {
   CROSS_STREET_WIDTH,
   CROSS_STREET_Z,
@@ -48,6 +49,11 @@ export function Block() {
 
       {/* landmark — sits in the open quadrant north of the cross-street */}
       <ClockTower position={[X_HOUSE_FRONT + 4, 0, CROSS_STREET_Z + 12]} />
+
+      {/* a few zebra crossings spaced along the road, clear of the bridges */}
+      <ZebraCrossing z={-20} />
+      <ZebraCrossing z={15} />
+      <ZebraCrossing z={28} />
 
       <Lamps />
       <BikeRacks />
