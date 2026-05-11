@@ -1,14 +1,18 @@
 /**
- * Mutable per-frame input from a touch device — tilt-to-move and
- * touch-drag-to-look. Read by the player controller alongside keyboard
- * input; kept out of Zustand because it updates every orientation /
- * touchmove event (~60 Hz) and would re-render the scene.
+ * Mutable per-frame input from a touch device — virtual joystick and
+ * optional gyroscope tilt. Read by the player controller alongside the
+ * keyboard; kept out of Zustand because it updates every touchmove /
+ * orientation event (~60 Hz) and would re-render the scene.
  */
 export const mobileInput = {
-  /** -1 (lean back) → 1 (lean forward). 0 inside the deadzone. */
-  forwardAxis: 0,
-  /** -1 (lean left) → 1 (lean right). */
-  rightAxis: 0,
+  /** Tilt contribution. -1 (lean back) → 1 (lean forward). */
+  gyroForward: 0,
+  /** Tilt contribution. -1 (lean left) → 1 (lean right). */
+  gyroRight: 0,
+  /** Joystick contribution. -1 (back) → 1 (forward). */
+  joystickForward: 0,
+  /** Joystick contribution. -1 (left) → 1 (right). */
+  joystickRight: 0,
   /** True once a deviceorientation event has been received. */
   hasGyro: false,
   /** True once we've tried to obtain permission (iOS requires it). */
@@ -27,8 +31,10 @@ export function calibrateGyro(forward: number, right: number) {
 }
 
 export function resetMobileInput() {
-  mobileInput.forwardAxis = 0
-  mobileInput.rightAxis = 0
+  mobileInput.gyroForward = 0
+  mobileInput.gyroRight = 0
+  mobileInput.joystickForward = 0
+  mobileInput.joystickRight = 0
   mobileInput.calibrated = false
 }
 

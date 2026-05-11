@@ -4,6 +4,7 @@ import { Github, Linkedin } from 'lucide-react'
 import { isTouchDevice } from '../game/mobileInput'
 import { profile } from '../lib/profile'
 import { useGameStore } from '../state/useGameStore'
+import { VirtualJoystick } from './VirtualJoystick'
 
 const baseText: React.CSSProperties = {
   color: 'white',
@@ -63,8 +64,30 @@ export function HUD() {
           reset={reset}
         />
       )}
+      <MobileJoystick
+        started={started}
+        paused={paused}
+        gameOver={gameOver}
+      />
     </>
   )
+}
+
+function MobileJoystick({
+  started,
+  paused,
+  gameOver,
+}: {
+  started: boolean
+  paused: boolean
+  gameOver: boolean
+}) {
+  const [touch, setTouch] = useState(false)
+  useEffect(() => {
+    setTouch(isTouchDevice())
+  }, [])
+  if (!touch || !started || paused || gameOver) return null
+  return <VirtualJoystick />
 }
 
 function TitleOverlay() {
@@ -98,7 +121,7 @@ function TitleOverlay() {
           }}
         >
           {touch ? (
-            <>Tilt your phone to walk · drag the screen to look around</>
+            <>Joystick or tilt to walk · drag the screen to look around</>
           ) : (
             <>
               <kbd>WASD</kbd> or <kbd>arrow keys</kbd> to walk ·{' '}

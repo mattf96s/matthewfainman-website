@@ -102,15 +102,20 @@ export function Player() {
     }
 
     // axis values: +forward = into the scene (camera-forward), +right = camera-right.
-    // Keyboard contributes ±1; gyro contributes analog [-1, 1]. They sum
-    // and then clamp to the unit disc — diagonals stay unit length and
-    // a small tilt produces a proportionally slow walk.
+    // Keyboard contributes ±1; gyro and on-screen joystick contribute
+    // analog [-1, 1] and sum together. The combined vector clamps to
+    // the unit disc so diagonals stay unit length and a small tilt /
+    // small thumb-stick deflection produces a proportionally slow walk.
     const fKey = Number(forward) - Number(backward)
     const rKey = Number(right) - Number(left)
-    const fGyro = frozen ? 0 : mobileInput.forwardAxis
-    const rGyro = frozen ? 0 : mobileInput.rightAxis
-    const fRaw = fKey + fGyro
-    const rRaw = rKey + rGyro
+    const fMob = frozen
+      ? 0
+      : mobileInput.gyroForward + mobileInput.joystickForward
+    const rMob = frozen
+      ? 0
+      : mobileInput.gyroRight + mobileInput.joystickRight
+    const fRaw = fKey + fMob
+    const rRaw = rKey + rMob
     const len = Math.hypot(fRaw, rRaw)
     const scale = len > 1 ? 1 / len : 1
     const forwardAxis = fRaw * scale

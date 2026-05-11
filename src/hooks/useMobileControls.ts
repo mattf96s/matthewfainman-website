@@ -14,9 +14,9 @@ import {
 import { useGameStore } from '../state/useGameStore'
 
 /** Degrees of tilt that count as "no input". */
-const TILT_DEADZONE = 4
+const TILT_DEADZONE = 3
 /** Degrees of tilt at which the axis saturates at ±1. */
-const TILT_FULL_SCALE = 22
+const TILT_FULL_SCALE = 16
 /** Radians per CSS pixel of touch drag. */
 const TOUCH_YAW_SENSITIVITY = 0.006
 const TOUCH_PITCH_SENSITIVITY = 0.006
@@ -90,8 +90,8 @@ export function useMobileControls() {
         mobileInput.hasGyro = true
         return
       }
-      mobileInput.forwardAxis = mapAxis(forward - mobileInput.baselineForward)
-      mobileInput.rightAxis = mapAxis(right - mobileInput.baselineRight)
+      mobileInput.gyroForward = mapAxis(forward - mobileInput.baselineForward)
+      mobileInput.gyroRight = mapAxis(right - mobileInput.baselineRight)
     }
 
     const attachOrientationListener = () => {
