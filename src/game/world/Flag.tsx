@@ -5,17 +5,18 @@ import * as THREE from 'three'
 export type FlagKind = 'nl' | 'amsterdam'
 
 interface FlagProps {
-  position: [number, number]
-  kind: FlagKind
-  /** Pole height; flag hangs near the top. */
-  poleHeight?: number
-  /** Direction the flag flies out from the pole. */
+  /** Where the bracket attaches to the wall, world space. */
+  position: [number, number, number]
+  /** Direction the pole sticks out (Y rotation). 0 → +X; π → -X. */
   rotationY?: number
+  kind: FlagKind
+  /** How far the pole sticks out from the wall. */
+  poleLength?: number
 }
 
-const FLAG_W = 1.6
-const FLAG_H = 1.0
-const POLE_R = 0.05
+const FLAG_W = 1.0
+const FLAG_H = 1.7
+const POLE_R = 0.045
 
 function makeDutchTexture(): THREE.CanvasTexture {
   const c = document.createElement('canvas')
@@ -39,7 +40,7 @@ function makeAmsterdamTexture(): THREE.CanvasTexture {
   c.height = 64
   const ctx = c.getContext('2d')!
 
-  // red-black-red horizontal stripes (the red bands top + bottom are thinner)
+  // red-black-red bands (thin red top + bottom, thick black middle)
   const topH = 16
   const midH = 32
   ctx.fillStyle = '#cc1c2a'
@@ -82,14 +83,16 @@ function getTexture(kind: FlagKind) {
 }
 
 /**
- * A flagpole with a flag hanging at the top. Flag plane gently
- * waves on Y by oscillating its rotation.
+ * A wall-mounted flag: a small bracket on the building, a horizontal
+ * pole sticking out, and a flag hanging vertically from the pole's far
+ * end. Gently sways. `position` is the attachment point on the wall;
+ * `rotationY` aims the pole away from the wall (0 → +X, π → -X, etc.)
  */
 export function Flag({
-  position: [x, z],
-  kind,
-  poleHeight = 5,
+  position,
   rotationY = 0,
+  kind,
+  poleLength = 1.4,
 }: FlagProps) {
   const flag = useRef<THREE.Group>(null)
   const phase = useRef(Math.random() * Math.PI * 2)
@@ -97,30 +100,46 @@ export function Flag({
 
   useFrame((state) => {
     if (!flag.current) return
-    const t = state.clock.elapsedTime * 1.5 + phase.current
-    flag.current.rotation.y = Math.sin(t) * 0.1
+    const t = state.clock.elapsedTime * 1.3 + phase.current
+    // small sway about the pole axis + a gentle billow
+    flag.current.rotation.x = Math.sin(t) * 0.08
     flag.current.rotation.z = Math.sin(t * 0.7) * 0.04
   })
 
-  const flagHangY = poleHeight - 0.1
+  // flag hangs from the far end of the pole, top edge near the pole
+  const flagAnchorX = poleLength - 0.02
 
   return (
-    <group position={[x, 0, z]} rotation={[0, rotationY, 0]}>
-      {/* pole */}
-      <mesh castShadow position={[0, poleHeight / 2, 0]}>
-        <cylinderGeometry args={[POLE_R, POLE_R, poleHeight, 8]} />
+    <group position={position} rotation={[0, rotationY, 0]}>
+      {/* mounting bracket against the wall */}
+      <mesh castShadow position={[0.06, 0, 0]}>
+        <boxGeometry args={[0.12, 0.22, 0.22]} />
+        <meshStandardMaterial color="#161616" roughness={0.7} />
+      </mesh>
+
+      {/* horizontal pole along local +X */}
+      <mesh
+        castShadow
+        position={[poleLength / 2, 0, 0]}
+        rotation={[0, 0, Math.PI / 2]}
+      >
+        <cylinderGeometry args={[POLE_R, POLE_R, poleLength, 10]} />
         <meshStandardMaterial color="#dadada" roughness={0.5} metalness={0.4} />
       </mesh>
-      {/* finial */}
-      <mesh castShadow position={[0, poleHeight + 0.06, 0]}>
+
+      {/* finial — small gold ball at the far end */}
+      <mesh castShadow position={[poleLength + 0.06, 0, 0]}>
         <sphereGeometry args={[0.08, 10, 8]} />
         <meshStandardMaterial color="#f4c84d" metalness={0.6} roughness={0.3} />
       </mesh>
 
-      {/* flag — positioned so its top-left attaches near the pole top */}
-      <group ref={flag} position={[FLAG_W / 2 + POLE_R, flagHangY - FLAG_H / 2, 0]}>
+      {/* the cloth — hangs from the pole near its far end */}
+      <group
+        ref={flag}
+        position={[flagAnchorX - FLAG_W / 2, -FLAG_H / 2 - 0.05, 0]}
+      >
         <mesh castShadow>
-          <planeGeometry args={[FLAG_W, FLAG_H, 8, 1]} />
+          <planeGeometry args={[FLAG_W, FLAG_H, 6, 6]} />
           <meshStandardMaterial
             map={texture}
             side={THREE.DoubleSide}
