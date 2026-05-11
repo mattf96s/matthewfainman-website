@@ -4,6 +4,7 @@ import { Bridge } from './Bridge'
 import { Canal } from './Canal'
 import { ClockTower } from './ClockTower'
 import { CrossStreet } from './CrossStreet'
+import { Flags } from './Flags'
 import { HouseRow } from './HouseRow'
 import { Lamps } from './Lamps'
 import { ParkedBikes } from './ParkedBikes'
@@ -91,6 +92,7 @@ export function Block() {
       <Lamps />
       <BikeRacks />
       <Bins />
+      <Flags />
     </group>
   )
 }

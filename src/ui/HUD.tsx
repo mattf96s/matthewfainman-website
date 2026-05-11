@@ -81,16 +81,7 @@ function TitleOverlay() {
       </div>
       <Title>Amsterdam Explorer</Title>
       <Subtitle>
-        Walk the gracht. Mind the cyclists. Don't argue with the tram.
-        <div style={{ marginTop: 20 }}>
-          <strong>
-            Press <kbd>Enter</kbd> or click to begin.
-          </strong>
-          <div style={{ marginTop: 8, opacity: 0.75, fontSize: 13 }}>
-            <kbd>WASD</kbd> walk · <kbd>Q</kbd>/<kbd>E</kbd> turn · mouse look ·{' '}
-            <kbd>Space</kbd> jump · <kbd>Esc</kbd> pause
-          </div>
-        </div>
+        Press <kbd>Enter</kbd> to begin.
         <SocialLinks />
       </Subtitle>
     </Overlay>

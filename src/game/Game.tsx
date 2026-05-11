@@ -16,7 +16,9 @@ import { ScoreTimer } from './systems/ScoreTimer'
 import { Block } from './world/Block'
 import { CanalLife } from './world/CanalLife'
 import { Rain } from './world/Rain'
+import { StraightTramTracks, TramTracks } from './world/TramTracks'
 import {
+  BLOCK_LENGTH,
   X_ROAD_LANE_EAST,
   X_ROAD_LANE_WEST,
   Z_CROSS_LANE_SOUTH,
@@ -88,6 +90,13 @@ export function Game() {
             <Block />
             <CanalLife />
             <Bikes />
+            {/* tram tracks */}
+            <StraightTramTracks
+              x={X_ROAD_LANE_WEST}
+              z1={-BLOCK_LENGTH / 2}
+              z2={BLOCK_LENGTH / 2}
+            />
+            <TramTracks path={L_PATH} />
             {/* west-lane tram bouncing N-S */}
             <Tram x={X_ROAD_LANE_WEST} startZ={10} startDirection={-1} />
             {/* east-lane tram that takes the corner onto the cross-street */}
