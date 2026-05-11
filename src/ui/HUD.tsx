@@ -1,3 +1,6 @@
+import { FileDown, Github, Linkedin } from 'lucide-react'
+
+import { profile } from '../lib/profile'
 import { useGameStore } from '../state/useGameStore'
 
 const baseText: React.CSSProperties = {
@@ -88,6 +91,7 @@ function TitleOverlay() {
             <kbd>Space</kbd> jump · <kbd>Esc</kbd> pause
           </div>
         </div>
+        <SocialLinks />
       </Subtitle>
     </Overlay>
   )
@@ -197,6 +201,73 @@ function Subtitle({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ fontSize: 15, opacity: 0.9, lineHeight: 1.5 }}>
       {children}
+    </div>
+  )
+}
+
+function SocialLinks() {
+  const items: Array<{
+    label: string
+    href: string
+    Icon: typeof Github
+    download?: string
+  }> = [
+    { label: 'GitHub', href: profile.github, Icon: Github },
+    { label: 'LinkedIn', href: profile.linkedin, Icon: Linkedin },
+    {
+      label: 'Download CV',
+      href: profile.cvDownload,
+      Icon: FileDown,
+      download: profile.cvFilename,
+    },
+  ]
+
+  return (
+    <div
+      style={{
+        marginTop: 28,
+        display: 'flex',
+        justifyContent: 'center',
+        gap: 12,
+        pointerEvents: 'auto',
+      }}
+    >
+      {items.map(({ label, href, Icon, download }) => (
+        <a
+          key={label}
+          href={href}
+          target={download ? undefined : '_blank'}
+          rel={download ? undefined : 'noopener noreferrer'}
+          download={download}
+          aria-label={label}
+          title={label}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '8px 14px',
+            borderRadius: 999,
+            border: '1px solid rgba(255,255,255,0.25)',
+            background: 'rgba(255,255,255,0.08)',
+            color: 'white',
+            fontSize: 13,
+            fontWeight: 500,
+            textDecoration: 'none',
+            transition: 'background 120ms',
+          }}
+          onMouseEnter={(e) => {
+            ;(e.currentTarget as HTMLAnchorElement).style.background =
+              'rgba(255,255,255,0.18)'
+          }}
+          onMouseLeave={(e) => {
+            ;(e.currentTarget as HTMLAnchorElement).style.background =
+              'rgba(255,255,255,0.08)'
+          }}
+        >
+          <Icon size={16} strokeWidth={1.8} />
+          {label}
+        </a>
+      ))}
     </div>
   )
 }
