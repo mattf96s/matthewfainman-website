@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { ClientOnly } from '../components/ClientOnly'
+import { GameKeybinds } from '../components/GameKeybinds'
 import { Game } from '../game/Game'
 import { HUD } from '../ui/HUD'
 
@@ -21,6 +22,7 @@ function App() {
       <ClientOnly>
         <Game />
         <HUD />
+        <GameKeybinds />
       </ClientOnly>
     </div>
   )

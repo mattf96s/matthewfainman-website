@@ -7,9 +7,13 @@ interface GameState {
   locked: boolean
   setLocked: (locked: boolean) => void
 
-  /** True after the player's first click — gates the title screen. */
+  /** True after the player begins — gates the title screen. */
   started: boolean
   setStarted: (started: boolean) => void
+
+  /** Explicit pause (Esc). Independent of pointer-lock state. */
+  paused: boolean
+  setPaused: (paused: boolean) => void
 
   score: number
   /** Adds whole-number seconds; floor handled by caller. */
@@ -41,6 +45,9 @@ export const useGameStore = create<GameState>((set) => ({
 
   started: false,
   setStarted: (started) => set({ started }),
+
+  paused: false,
+  setPaused: (paused) => set({ paused }),
 
   score: 0,
   addScore: (amount) => set((s) => ({ score: s.score + amount })),
@@ -76,5 +83,6 @@ export const useGameStore = create<GameState>((set) => ({
       lives: STARTING_LIVES,
       gameOver: false,
       gameOverReason: null,
+      paused: false,
     }),
 }))

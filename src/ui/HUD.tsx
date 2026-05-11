@@ -12,8 +12,8 @@ export function HUD() {
   const score = useGameStore((s) => s.score)
   const lives = useGameStore((s) => s.lives)
   const nearMissCount = useGameStore((s) => s.nearMissCount)
-  const locked = useGameStore((s) => s.locked)
   const started = useGameStore((s) => s.started)
+  const paused = useGameStore((s) => s.paused)
   const gameOver = useGameStore((s) => s.gameOver)
   const gameOverReason = useGameStore((s) => s.gameOverReason)
   const reset = useGameStore((s) => s.reset)
@@ -49,7 +49,7 @@ export function HUD() {
       </div>
 
       {!started && <TitleOverlay />}
-      {started && !locked && !gameOver && <PauseOverlay />}
+      {started && paused && !gameOver && <PauseOverlay />}
       {gameOver && (
         <GameOverOverlay
           reason={gameOverReason}
@@ -79,11 +79,14 @@ function TitleOverlay() {
       <Title>Amsterdam Explorer</Title>
       <Subtitle>
         Walk the gracht. Mind the cyclists. Don't argue with the tram.
-        <div style={{ marginTop: 20, opacity: 0.7 }}>
-          <strong>Click to begin.</strong>{' '}
-          <span style={{ display: 'inline-block', marginTop: 4 }}>
-            WASD walk · mouse look · space jump · <kbd>Esc</kbd> pause
-          </span>
+        <div style={{ marginTop: 20 }}>
+          <strong>
+            Press <kbd>Enter</kbd> or click to begin.
+          </strong>
+          <div style={{ marginTop: 8, opacity: 0.75, fontSize: 13 }}>
+            <kbd>WASD</kbd> walk · <kbd>Q</kbd>/<kbd>E</kbd> turn · mouse look ·{' '}
+            <kbd>Space</kbd> jump · <kbd>Esc</kbd> pause
+          </div>
         </div>
       </Subtitle>
     </Overlay>
@@ -94,7 +97,9 @@ function PauseOverlay() {
   return (
     <Overlay>
       <Title>Paused</Title>
-      <Subtitle>Click anywhere to resume.</Subtitle>
+      <Subtitle>
+        Press <kbd>Enter</kbd> or click to resume.
+      </Subtitle>
     </Overlay>
   )
 }

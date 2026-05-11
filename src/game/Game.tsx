@@ -19,6 +19,8 @@ const keyMap = [
   { name: 'left', keys: ['ArrowLeft', 'KeyA'] },
   { name: 'right', keys: ['ArrowRight', 'KeyD'] },
   { name: 'jump', keys: ['Space'] },
+  { name: 'yawLeft', keys: ['KeyQ'] },
+  { name: 'yawRight', keys: ['KeyE'] },
 ]
 
 export function Game() {

@@ -13,6 +13,7 @@ import { useGameStore } from '../state/useGameStore'
 import { cameraState } from './cameraState'
 import {
   GRAVITY,
+  KEYBOARD_YAW_SPEED,
   PLAYER_HEIGHT,
   PLAYER_JUMP_SPEED,
   PLAYER_RADIUS,
@@ -70,10 +71,26 @@ export function Player() {
     const collider = rb.collider(0)
     if (!collider) return
 
-    const { gameOver } = useGameStore.getState()
-    const { forward, backward, left, right, jump } = gameOver
-      ? { forward: false, backward: false, left: false, right: false, jump: false }
+    const { gameOver, paused, started } = useGameStore.getState()
+    const frozen = gameOver || paused || !started
+    const keys = frozen
+      ? {
+          forward: false,
+          backward: false,
+          left: false,
+          right: false,
+          jump: false,
+          yawLeft: false,
+          yawRight: false,
+        }
       : getKeys()
+    const { forward, backward, left, right, jump, yawLeft, yawRight } = keys
+
+    // keyboard yaw rotation (Q/E) — works without pointer lock
+    const yawInput = Number(yawLeft) - Number(yawRight)
+    if (yawInput !== 0) {
+      cameraState.yaw += yawInput * KEYBOARD_YAW_SPEED * delta
+    }
 
     // axis values: +forward = into the scene (camera-forward), +right = camera-right
     const forwardAxis = Number(forward) - Number(backward)

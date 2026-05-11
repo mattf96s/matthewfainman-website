@@ -8,5 +8,7 @@ export const CAMERA_DISTANCE = 6
 export const CAMERA_HEIGHT = 3
 export const CAMERA_LERP = 0.12
 export const MOUSE_SENSITIVITY = 0.0025
+/** Radians per second when yawing via Q/E. */
+export const KEYBOARD_YAW_SPEED = 2.2
 export const CAMERA_PITCH_MIN = -0.5
 export const CAMERA_PITCH_MAX = 1.2

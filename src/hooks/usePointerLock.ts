@@ -7,12 +7,13 @@ import {
   CAMERA_PITCH_MIN,
   MOUSE_SENSITIVITY,
 } from '../game/constants'
+import { useGameStore } from '../state/useGameStore'
 
 /**
- * Requests pointer lock when the canvas is clicked and pipes mouse
- * deltas into the shared cameraState yaw/pitch while locked.
- *
- * Returns `locked` so the UI can show a "click to play" overlay.
+ * Wires the canvas to pointer-lock-based mouse look and to start/resume
+ * the game when clicked. Pointer lock is best-effort — environments
+ * that block it (sandboxed iframes) still get the start/resume side
+ * effect so the game is playable with the keyboard alone.
  */
 export function usePointerLock() {
   const canvas = useThree((s) => s.gl.domElement)
@@ -22,8 +23,18 @@ export function usePointerLock() {
     if (!canvas) return
 
     const onClick = () => {
+      const store = useGameStore.getState()
+      if (!store.started) store.setStarted(true)
+      if (store.paused) store.setPaused(false)
+      if (store.gameOver) store.reset()
+
       if (document.pointerLockElement !== canvas) {
-        canvas.requestPointerLock()
+        // best-effort: harmless if the browser refuses
+        try {
+          canvas.requestPointerLock()
+        } catch {
+          /* ignored */
+        }
       }
     }
 
