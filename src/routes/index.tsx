@@ -4,6 +4,7 @@ import { ClientOnly } from '../components/ClientOnly'
 import { GameKeybinds } from '../components/GameKeybinds'
 import { Game } from '../game/Game'
 import { seo } from '../lib/seo'
+import { PlayroomProvider } from '../multiplayer/PlayroomProvider'
 import { HUD } from '../ui/HUD'
 
 export const Route = createFileRoute('/')({
@@ -27,6 +28,7 @@ function App() {
         <Game />
         <HUD />
         <GameKeybinds />
+        <PlayroomProvider />
       </ClientOnly>
     </div>
   )

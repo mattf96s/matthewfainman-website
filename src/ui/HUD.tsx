@@ -3,7 +3,8 @@ import { Github, Linkedin } from 'lucide-react'
 
 import { isTouchDevice } from '../game/mobileInput'
 import { profile } from '../lib/profile'
-import { MAX_HEALTH, useGameStore } from '../state/useGameStore'
+import { PlayroomLobbyButton } from '../multiplayer/PlayroomLobby'
+import { MAX_HEALTH, useGameStore, type KillFeedEntry } from '../state/useGameStore'
 import { VirtualJoystick } from './VirtualJoystick'
 
 const HEART_COUNT = 5
@@ -27,12 +28,44 @@ export function HUD() {
   const gameOver = useGameStore((s) => s.gameOver)
   const gameOverReason = useGameStore((s) => s.gameOverReason)
   const reset = useGameStore((s) => s.reset)
+  const multiplayerJoined = useGameStore((s) => s.multiplayerJoined)
+  const kills = useGameStore((s) => s.kills)
+  const deaths = useGameStore((s) => s.deaths)
+  const killFeed = useGameStore((s) => s.killFeed)
+  const respawning = multiplayerJoined && health <= 0
 
   return (
     <>
       <div style={{ ...baseText, position: 'absolute', top: 12, left: 12, fontSize: 14 }}>
         {fps.toFixed(0)} fps
       </div>
+
+      {started && !gameOver && health > 0 && <Crosshair />}
+
+      {multiplayerJoined && (
+        <div
+          style={{
+            ...baseText,
+            position: 'absolute',
+            top: 12,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            fontSize: 13,
+            letterSpacing: '0.08em',
+            opacity: 0.85,
+          }}
+        >
+          <span style={{ color: '#a4e8a4' }}>{kills} K</span>
+          <span style={{ opacity: 0.4, margin: '0 6px' }}>/</span>
+          <span style={{ color: '#e8a4a4' }}>{deaths} D</span>
+        </div>
+      )}
+
+      {multiplayerJoined && killFeed.length > 0 && (
+        <KillFeed entries={killFeed} />
+      )}
+
+      {respawning && <RespawnOverlay />}
 
       <div
         style={{
@@ -133,9 +166,109 @@ function TitleOverlay() {
             </>
           )}
         </div>
+        {!touch && <PlayroomLobbyButton />}
         <SocialLinks />
       </Subtitle>
     </Overlay>
+  )
+}
+
+function Crosshair() {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        width: 14,
+        height: 14,
+        transform: 'translate(-50%, -50%)',
+        pointerEvents: 'none',
+      }}
+    >
+      <div
+        style={{
+          position: 'absolute',
+          left: 6,
+          top: 0,
+          width: 2,
+          height: 14,
+          background: 'rgba(255,255,255,0.8)',
+          boxShadow: '0 0 2px rgba(0,0,0,0.7)',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 6,
+          width: 14,
+          height: 2,
+          background: 'rgba(255,255,255,0.8)',
+          boxShadow: '0 0 2px rgba(0,0,0,0.7)',
+        }}
+      />
+    </div>
+  )
+}
+
+function KillFeed({ entries }: { entries: KillFeedEntry[] }) {
+  return (
+    <div
+      style={{
+        ...baseText,
+        position: 'absolute',
+        top: 64,
+        right: 16,
+        fontSize: 13,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4,
+        textAlign: 'right',
+      }}
+    >
+      {entries.map((e) => (
+        <div key={e.id} style={{ opacity: 0.85 }}>
+          <span
+            style={{
+              color: e.killer === 'You' ? '#a4e8a4' : '#e8d68a',
+            }}
+          >
+            {e.killer}
+          </span>
+          <span style={{ opacity: 0.6 }}> → </span>
+          <span
+            style={{
+              color: e.victim === 'You' ? '#e8a4a4' : '#e8d68a',
+            }}
+          >
+            {e.victim}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function RespawnOverlay() {
+  return (
+    <div
+      style={{
+        ...baseText,
+        position: 'absolute',
+        top: '40%',
+        left: 0,
+        right: 0,
+        textAlign: 'center',
+        fontSize: 28,
+        fontWeight: 700,
+        letterSpacing: '0.1em',
+        textTransform: 'uppercase',
+        opacity: 0.85,
+      }}
+    >
+      Respawning…
+    </div>
   )
 }
 

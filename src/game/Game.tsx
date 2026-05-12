@@ -5,6 +5,7 @@ import { Physics } from '@react-three/rapier'
 
 import { FollowCamera } from './FollowCamera'
 import { FpsTracker } from './FpsTracker'
+import { Gun } from './Gun'
 import { MobileControlsBridge } from './MobileControlsBridge'
 import { Player } from './Player'
 import { PointerLockBridge } from './PointerLockBridge'
@@ -12,6 +13,9 @@ import { Bikes } from './hazards/Bikes'
 import { Cars } from './hazards/Cars'
 import { PathTram, type TramPath } from './hazards/PathTram'
 import { Tram } from './hazards/Tram'
+import { PlayerStateSync } from './multiplayer/PlayerStateSync'
+import { RemotePlayers } from './multiplayer/RemotePlayers'
+import { Tracers } from './multiplayer/Tracers'
 import { Rats } from './npcs/Rats'
 import { Statiegeld } from './npcs/Statiegeld'
 import { Tourists } from './npcs/Tourists'
@@ -113,6 +117,10 @@ export function Game() {
             <Stroopwafels />
             <Rain />
             <Player />
+            <Gun />
+            <RemotePlayers />
+            <Tracers />
+            <PlayerStateSync />
             <FollowCamera />
             <ScoreTimer />
             <CanalWater />

@@ -31,6 +31,14 @@ const FALL_THRESHOLD_Y = -8
 /** How long to keep falling before respawning at the title overlay. */
 const FALL_RESET_MS = 1400
 
+/** Lerps `from` toward `to` taking the shortest arc. */
+function lerpAngle(from: number, to: number, alpha: number): number {
+  let diff = to - from
+  while (diff > Math.PI) diff -= Math.PI * 2
+  while (diff < -Math.PI) diff += Math.PI * 2
+  return from + diff * alpha
+}
+
 export function Player() {
   const body = useRef<RapierRigidBody>(null)
   const mesh = useRef<THREE.Group>(null)
@@ -64,17 +72,21 @@ export function Player() {
   }, [world])
 
   // teleport back to spawn when the game resets (gameOver: true → false)
+  // or when the multiplayer respawn tick bumps.
   useEffect(() => {
-    let prev = useGameStore.getState().gameOver
+    let prevGameOver = useGameStore.getState().gameOver
+    let prevTick = useGameStore.getState().respawnTick
     return useGameStore.subscribe((state) => {
-      if (prev && !state.gameOver && body.current) {
+      const tickedRespawn = state.respawnTick !== prevTick
+      if (((prevGameOver && !state.gameOver) || tickedRespawn) && body.current) {
         body.current.setTranslation(
           { x: SPAWN[0], y: SPAWN[1], z: SPAWN[2] },
           true,
         )
         yVelocity.current = 0
       }
-      prev = state.gameOver
+      prevGameOver = state.gameOver
+      prevTick = state.respawnTick
     })
   }, [])
 
@@ -224,15 +236,16 @@ export function Player() {
           0,
           0.2,
         )
-        // face the direction of horizontal motion
-        if (planar.current.x !== 0 || planar.current.z !== 0) {
-          const targetYaw = Math.atan2(planar.current.x, planar.current.z)
-          mesh.current.rotation.y = THREE.MathUtils.lerp(
-            mesh.current.rotation.y,
-            targetYaw,
-            0.2,
-          )
-        }
+        // face camera-forward (= aim direction) so the gun on the
+        // player's shoulder lines up with the crosshair. Mesh local +Z
+        // points "forward"; the camera looks from yaw rotated +π behind
+        // the player, so player faces yaw + π in world space.
+        const targetYaw = cameraState.yaw + Math.PI
+        mesh.current.rotation.y = lerpAngle(
+          mesh.current.rotation.y,
+          targetYaw,
+          0.25,
+        )
       }
     }
   })

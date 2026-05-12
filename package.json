@@ -26,6 +26,7 @@
     "@tanstack/router-plugin": "^1.167.35",
     "lucide-react": "^0.545.0",
     "nitro": "npm:nitro-nightly@3.0.1-20260508-123613-d2e64906",
+    "playroomkit": "^0.0.96",
     "posthog-js": "^1.372.10",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",

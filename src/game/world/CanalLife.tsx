@@ -1,6 +1,8 @@
+import { CuboidCollider, RigidBody } from '@react-three/rapier'
+
 import { Boat, type BoatVariant } from './Boat'
 import { Duck } from './Duck'
-import { CANAL_WIDTH, X_CANAL } from './constants'
+import { CANAL_DEPTH, CANAL_WIDTH, X_CANAL } from './constants'
 
 interface MooredBoat {
   side: 'west' | 'east'
@@ -21,6 +23,14 @@ interface MooredBoat {
 const BANK_INNER = CANAL_WIDTH / 2
 /** Small water gap between the bank and the moored boat's broadside. */
 const BANK_GAP = 0.15
+
+/** World Y of the boat's deck top, where the player stands. Matches the
+ * `waterY` in `Boat.tsx` (waterline + a sliver) — bobbing is ignored
+ * for the static collider. */
+const BOAT_DECK_Y = -CANAL_DEPTH + 0.16
+/** Half-height of the boat's deck collider — thick enough to catch the
+ * player at high vertical speeds without poking above the visible deck. */
+const BOAT_COLLIDER_HALF_H = 0.08
 
 /**
  * Real Amsterdam canal boats sit moored *along* the bank — their long
@@ -116,6 +126,7 @@ export function CanalLife() {
     <>
       {MOORED.map((b, i) => {
         const width = b.width ?? 1.7
+        const length = b.length ?? 5.4
         // Sit the boat's broadside flush against the bank with a small
         // water gap. Centre X is bank_inner_edge ± (gap + half_width).
         const inset = BANK_GAP + width / 2
@@ -127,18 +138,27 @@ export function CanalLife() {
         // for some boats to vary which way the bow points.
         const rotY = b.flip ? Math.PI : 0
         return (
-          <Boat
-            key={`boat-${i}`}
-            position={[x, b.z]}
-            rotationY={rotY}
-            length={b.length}
-            width={width}
-            variant={b.variant ?? 'open'}
-            hullColor={b.hullColor}
-            trimColor={b.trimColor}
-            cabinColor={b.cabinColor}
-            roofColor={b.roofColor}
-          />
+          <group key={`boat-${i}`}>
+            <Boat
+              position={[x, b.z]}
+              rotationY={rotY}
+              length={length}
+              width={width}
+              variant={b.variant ?? 'open'}
+              hullColor={b.hullColor}
+              trimColor={b.trimColor}
+              cabinColor={b.cabinColor}
+              roofColor={b.roofColor}
+            />
+            {/* Static deck collider so the player can stand on / hop
+              * between boats. The visible boat bobs ±0.03 m; we ignore
+              * that and put the collider at the resting deck level. */}
+            <RigidBody type="fixed" colliders={false} position={[x, BOAT_DECK_Y, b.z]}>
+              <CuboidCollider
+                args={[width / 2 * 0.85, BOAT_COLLIDER_HALF_H, length / 2 * 0.85]}
+              />
+            </RigidBody>
+          </group>
         )
       })}
 
