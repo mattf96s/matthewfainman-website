@@ -26,6 +26,8 @@ interface GameState {
   health: number
   /** Subtract `amount` from health; surface a reason; if ≤0, game over. */
   takeDamage: (amount: number, reason: string) => void
+  /** Restore `amount` of health, clamped to MAX_HEALTH. No-op if dead. */
+  heal: (amount: number) => void
 
   gameOver: boolean
   gameOverReason: string | null
@@ -68,6 +70,13 @@ export const useGameStore = create<GameState>((set) => ({
       if (next <= 0) {
         return { health: 0, gameOver: true, gameOverReason: reason }
       }
+      return { health: next }
+    }),
+
+  heal: (amount) =>
+    set((s) => {
+      if (s.gameOver) return s
+      const next = Math.min(MAX_HEALTH, s.health + amount)
       return { health: next }
     }),
 

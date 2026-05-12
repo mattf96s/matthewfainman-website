@@ -314,6 +314,8 @@ function gameOverReasonText(reason: string | null): string {
       return 'A car ran you down'
     case 'bike':
       return 'A cyclist took you out'
+    case 'water':
+      return 'You drowned in the gracht'
     default:
       return 'You were knocked down'
   }

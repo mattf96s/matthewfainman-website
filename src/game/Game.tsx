@@ -12,8 +12,11 @@ import { Bikes } from './hazards/Bikes'
 import { Cars } from './hazards/Cars'
 import { PathTram, type TramPath } from './hazards/PathTram'
 import { Tram } from './hazards/Tram'
+import { Rats } from './npcs/Rats'
 import { Statiegeld } from './npcs/Statiegeld'
 import { Tourists } from './npcs/Tourists'
+import { Stroopwafels } from './pickups/Stroopwafels'
+import { CanalWater } from './systems/CanalWater'
 import { ScoreTimer } from './systems/ScoreTimer'
 import { Block } from './world/Block'
 import { CanalLife } from './world/CanalLife'
@@ -106,10 +109,13 @@ export function Game() {
             <PathTram path={L_PATH} speed={7} endDwell={10} startOffset={5} />
             <Tourists />
             <Statiegeld />
+            <Rats />
+            <Stroopwafels />
             <Rain />
             <Player />
             <FollowCamera />
             <ScoreTimer />
+            <CanalWater />
             <FpsTracker />
             <PointerLockBridge />
             <MobileControlsBridge />
