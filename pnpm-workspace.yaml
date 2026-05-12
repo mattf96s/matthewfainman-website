@@ -1,0 +1,4 @@
+minimumReleaseAge: 2880 # avoid supply chain compromise by only allowing packages to be released after 48 hours
+allowBuilds:
+  lightningcss: true
+  esbuild: true
