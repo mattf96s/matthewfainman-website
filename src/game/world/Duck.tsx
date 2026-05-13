@@ -49,14 +49,13 @@ export function Duck({
 
   return (
     <group ref={group} position={[x, waterY, z]}>
-      {/* body */}
-      <mesh castShadow position={[0, 0.08 * size, 0]} scale={size}>
+      {/* body — too small to read in shadow */}
+      <mesh position={[0, 0.08 * size, 0]} scale={size}>
         <capsuleGeometry args={[0.12, 0.18, 4, 8]} />
         <meshStandardMaterial color={bodyColor} roughness={0.85} />
       </mesh>
       {/* neck/head */}
       <mesh
-        castShadow
         position={[0, 0.18 * size, 0.18 * size]}
         scale={size}
       >

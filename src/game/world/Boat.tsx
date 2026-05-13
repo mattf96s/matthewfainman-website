@@ -144,11 +144,11 @@ export function Boat({
         <meshStandardMaterial color="#8a6e4a" roughness={0.85} />
       </mesh>
 
-      {/* gunwale trim — thin painted strip along the rim */}
+      {/* gunwale trim — thin painted strip along the rim. No shadow:
+        * it's tiny and the hull already shadows the same footprint. */}
       {[-1, 1].map((side) => (
         <mesh
           key={`gun-${side}`}
-          castShadow
           position={[side * (width / 2 - 0.04), rimY + 0.04, 0]}
         >
           <boxGeometry args={[0.07, 0.08, length * 0.92]} />
@@ -171,9 +171,8 @@ export function Boat({
               roughness={0.98}
             />
           </mesh>
-          {/* ridge along the spine */}
+          {/* ridge along the spine — too thin to cast a meaningful shadow */}
           <mesh
-            castShadow
             position={[0, rimY + COVER_HEIGHT + 0.025, 0]}
           >
             <boxGeometry args={[0.08, 0.05, length * 0.72]} />
@@ -197,7 +196,6 @@ export function Boat({
             />
           </mesh>
           <mesh
-            castShadow
             position={[0, rimY + CABIN_HEIGHT + 0.04, -length * 0.18]}
           >
             <boxGeometry
@@ -238,7 +236,6 @@ export function Boat({
         <>
           {/* simple plank seat across the boat near the stern */}
           <mesh
-            castShadow
             position={[0, rimY - 0.06, -length * 0.28]}
           >
             <boxGeometry args={[width * 0.78, 0.08, 0.28]} />
@@ -246,7 +243,6 @@ export function Boat({
           </mesh>
           {/* outboard motor cowling at the stern */}
           <mesh
-            castShadow
             position={[0, rimY + 0.15, -length / 2 + 0.18]}
           >
             <boxGeometry args={[0.28, 0.42, 0.2]} />
@@ -274,9 +270,8 @@ export function Boat({
               />
               <meshStandardMaterial color={cabin} roughness={0.85} />
             </mesh>
-            {/* flat roof with slight overhang */}
+            {/* flat roof with slight overhang — cabin already shadows below */}
             <mesh
-              castShadow
               position={[0, rimY + HOUSEBOAT_CABIN_HEIGHT + 0.04, cabinZ]}
             >
               <boxGeometry
@@ -324,9 +319,8 @@ export function Boat({
               />
               <meshStandardMaterial color="#3a2818" roughness={0.7} />
             </mesh>
-            {/* chimney */}
+            {/* chimney — narrow, no shadow */}
             <mesh
-              castShadow
               position={[
                 cabinW * 0.28,
                 rimY + HOUSEBOAT_CABIN_HEIGHT + 0.4,
@@ -338,7 +332,6 @@ export function Boat({
             </mesh>
             {/* small bow-end planter for a touch of green */}
             <mesh
-              castShadow
               position={[0, rimY + 0.12, length * 0.42]}
             >
               <boxGeometry args={[width * 0.55, 0.18, 0.22]} />

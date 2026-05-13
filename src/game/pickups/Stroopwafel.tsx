@@ -83,8 +83,9 @@ export function Stroopwafel({
   return (
     <group ref={group} position={[x, HOVER_Y, z]}>
       {/* The wafel disc — a short golden cylinder. Slim profile, edge-on
-        * silhouette pops as it spins. */}
-      <mesh castShadow>
+        * silhouette pops as it spins. No shadow: too small to read and
+        * one shadow caster × N pickups respawning is wasted work. */}
+      <mesh>
         <cylinderGeometry args={[0.22, 0.22, 0.06, 24]} />
         <meshStandardMaterial
           color="#c98a3a"

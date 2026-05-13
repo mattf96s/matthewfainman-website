@@ -103,14 +103,14 @@ export function Tourist({
         </mesh>
 
         {hasHat && (
-          <mesh castShadow position={[0, 1.78, 0.04]}>
+          <mesh position={[0, 1.78, 0.04]}>
             <cylinderGeometry args={[0.22, 0.22, 0.12, 12]} />
             <meshStandardMaterial color="#222" roughness={0.7} />
           </mesh>
         )}
 
         {hasBackpack && (
-          <mesh castShadow position={[0, 1.05, -0.3]}>
+          <mesh position={[0, 1.05, -0.3]}>
             <boxGeometry args={[0.38, 0.45, 0.22]} />
             <meshStandardMaterial color="#3a2818" roughness={0.85} />
           </mesh>

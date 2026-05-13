@@ -88,13 +88,13 @@ export function Rat({
 
   return (
     <group ref={group} position={[x, PARKED_Y, 0]}>
-      {/* body */}
-      <mesh castShadow position={[0, 0.06, 0]} rotation={[0, 0, 0]}>
+      {/* body — too small to read in shadow */}
+      <mesh position={[0, 0.06, 0]} rotation={[0, 0, 0]}>
         <capsuleGeometry args={[0.07, 0.18, 4, 8]} />
         <meshStandardMaterial color="#2a2622" roughness={0.9} />
       </mesh>
       {/* head */}
-      <mesh castShadow position={[0, 0.08, 0.16]}>
+      <mesh position={[0, 0.08, 0.16]}>
         <sphereGeometry args={[0.06, 8, 6]} />
         <meshStandardMaterial color="#1f1d1a" roughness={0.85} />
       </mesh>
@@ -110,7 +110,6 @@ export function Rat({
       {/* tail — pivoted at the base so the flick yaws cleanly */}
       <group ref={tail} position={[0, 0.06, -0.13]}>
         <mesh
-          castShadow
           position={[0, 0, -0.11]}
           rotation={[Math.PI / 2, 0, 0]}
         >

@@ -108,7 +108,6 @@ export function Bridge({ z, width = 4 }: BridgeProps) {
             key={`cap-${i}`}
             position={[X_CANAL, SLAB_LIFT + 0.045, z + zo]}
             receiveShadow
-            castShadow
           >
             <boxGeometry args={[CANAL_WIDTH + 0.6, 0.09, 0.22]} />
             <meshStandardMaterial color={COLOR_CAP} roughness={0.85} />
@@ -170,7 +169,9 @@ function Railing({ z, length, height }: RailingProps) {
 
   return (
     <group position={[X_CANAL, 0, z]}>
-      {/* top handrail */}
+      {/* top handrail — only the handrail casts a shadow; the thin
+        * balusters and bottom rail are too narrow for the shadow map
+        * to resolve and were costing >60 draw-calls per railing. */}
       <mesh
         position={[0, topRailY, 0]}
         rotation={[0, 0, Math.PI / 2]}
@@ -188,7 +189,6 @@ function Railing({ z, length, height }: RailingProps) {
       <mesh
         position={[0, bottomRailY, 0]}
         rotation={[0, 0, Math.PI / 2]}
-        castShadow
       >
         <cylinderGeometry args={[0.025, 0.025, length, 8]} />
         <meshStandardMaterial
@@ -203,7 +203,6 @@ function Railing({ z, length, height }: RailingProps) {
         <mesh
           key={`bal-${i}`}
           position={[bx, baseY + (height + 0.14) / 2, 0]}
-          castShadow
         >
           <cylinderGeometry
             args={[0.018, 0.018, height - 0.14, 6]}
@@ -234,7 +233,6 @@ function Railing({ z, length, height }: RailingProps) {
           </mesh>
           <mesh
             position={[0, baseY + height + 0.26, 0]}
-            castShadow
           >
             <sphereGeometry args={[0.085, 10, 8]} />
             <meshStandardMaterial

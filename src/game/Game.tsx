@@ -75,7 +75,11 @@ const L_PATH: TramPath = [
 export function Game() {
   return (
     <KeyboardControls map={keyMap}>
-      <Canvas shadows camera={{ position: [0, 5, 12], fov: 60 }}>
+      <Canvas
+        shadows
+        camera={{ position: [0, 5, 12], fov: 60 }}
+        dpr={[1, 1.5]}
+      >
         <color attach="background" args={['#cdd9d5']} />
         <fog attach="fog" args={['#cdd9d5', 60, 140]} />
         <Suspense fallback={null}>
@@ -87,13 +91,13 @@ export function Game() {
               intensity={1.7}
               color="#fff4d6"
               castShadow
-              shadow-mapSize={[2048, 2048]}
+              shadow-mapSize={[1024, 1024]}
               shadow-camera-left={-40}
               shadow-camera-right={40}
               shadow-camera-top={40}
               shadow-camera-bottom={-40}
               shadow-camera-near={1}
-              shadow-camera-far={120}
+              shadow-camera-far={80}
               shadow-bias={-0.0005}
             />
             <Block />

@@ -180,7 +180,6 @@ export function Bike({
         (zOffset) => (
           <mesh
             key={zOffset}
-            castShadow
             position={[0, -0.25, zOffset]}
             rotation={[0, 0, Math.PI / 2]}
           >
@@ -190,7 +189,7 @@ export function Bike({
         ),
       )}
 
-      <mesh castShadow position={[0, 0.4, BIKE_BODY_LENGTH / 2 - 0.25]}>
+      <mesh position={[0, 0.4, BIKE_BODY_LENGTH / 2 - 0.25]}>
         <boxGeometry args={[0.6, 0.05, 0.05]} />
         <meshStandardMaterial color="#222" />
       </mesh>
