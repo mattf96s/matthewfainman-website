@@ -2,3 +2,8 @@ minimumReleaseAge: 2880 # avoid supply chain compromise by only allowing package
 allowBuilds:
   lightningcss: true
   esbuild: true
+  # No build needed: core-js's postinstall is just a funding banner; protobufjs's
+  # is a no-op without versionScheme (its dist ships prebuilt). Disallowed so CI
+  # doesn't fail with ERR_PNPM_IGNORED_BUILDS on an undecided script.
+  core-js: false
+  protobufjs: false
