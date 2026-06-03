@@ -15,15 +15,20 @@ export const SITE = {
   /** Used for `<title>` suffixing, e.g. `About — Matthew Fainman`. */
   titleSuffix: 'Matthew Fainman',
   /** Default <title> shown when no per-route title is set. */
-  defaultTitle: 'Matthew Fainman — Amsterdam Explorer',
+  defaultTitle: 'Matthew Fainman',
   description:
-    'Personal site of Matthew Fainman. Walk around a low-poly Amsterdam in the browser — dodge cyclists, trams, and the canals.',
+    'I build software in Amsterdam.',
   /** Production URL. Update if the canonical domain changes. */
-  url: 'https://matthewfainman.com',
+  url: 'https://matthewfainman.dev',
   locale: 'en_GB',
   twitterHandle: '',
   /** Path under public/ to a 1200×630 social preview image. */
   ogImage: '/og-image.png',
+  /** Intrinsic size of the OG image. Lets scrapers render the card without downloading first. */
+  ogImageWidth: 1200,
+  ogImageHeight: 630,
+  /** Accessible description of the OG image, shown by screen readers on link previews. */
+  ogImageAlt: 'Illustration of Amsterdam canal houses reflected in the water',
   themeColor: '#0e1f24',
 } as const
 
@@ -40,6 +45,7 @@ export function siteHead() {
       { property: 'og:site_name', content: SITE.name },
       { property: 'og:locale', content: SITE.locale },
       { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'theme-color', content: SITE.themeColor },
       ...(SITE.twitterHandle
         ? [
             { name: 'twitter:site', content: SITE.twitterHandle },
@@ -50,14 +56,24 @@ export function siteHead() {
   }
 }
 
-type SeoMeta = { title?: string; description?: string; image?: string; path?: string }
+type SeoMeta = {
+  title?: string
+  description?: string
+  image?: string
+  /** Alt text for a per-page `image` override. Falls back to the site default. */
+  imageAlt?: string
+  path?: string
+}
 
 /** Per-page meta + canonical. Call from every route's `head()`. */
-export function seo({ title, description, image, path }: SeoMeta = {}) {
+export function seo({ title, description, image, imageAlt, path }: SeoMeta = {}) {
   const fullTitle = title ? `${title} — ${SITE.titleSuffix}` : SITE.defaultTitle
   const desc = description ?? SITE.description
   const ogImg = absoluteUrl(image ?? SITE.ogImage)
+  const ogAlt = imageAlt ?? SITE.ogImageAlt
   const canonical = absoluteUrl(path ?? '/')
+  // Width/height only apply to the default image; a per-page override may differ.
+  const isDefaultImage = !image
 
   return {
     meta: [
@@ -68,10 +84,18 @@ export function seo({ title, description, image, path }: SeoMeta = {}) {
       { property: 'og:description', content: desc },
       { property: 'og:url', content: canonical },
       { property: 'og:image', content: ogImg },
+      { property: 'og:image:alt', content: ogAlt },
+      ...(isDefaultImage
+        ? [
+            { property: 'og:image:width', content: String(SITE.ogImageWidth) },
+            { property: 'og:image:height', content: String(SITE.ogImageHeight) },
+          ]
+        : []),
 
       { name: 'twitter:title', content: fullTitle },
       { name: 'twitter:description', content: desc },
       { name: 'twitter:image', content: ogImg },
+      { name: 'twitter:image:alt', content: ogAlt },
     ],
     links: [{ rel: 'canonical', href: canonical }],
   }
