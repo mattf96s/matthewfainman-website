@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
+import { Link } from '@tanstack/react-router'
 import { Github, Linkedin, Volume2, VolumeX } from 'lucide-react'
 
 import { isTouchDevice, mobileInput } from '../game/mobileInput'
@@ -321,6 +322,18 @@ function Credit() {
       }}
     >
       <span style={{ fontWeight: 600 }}>Matthew Fainman</span>
+      <Link
+        to="/about"
+        style={{
+          color: '#fff',
+          opacity: 0.85,
+          fontWeight: 600,
+          textDecoration: 'none',
+          pointerEvents: 'auto',
+        }}
+      >
+        about
+      </Link>
       <a href={profile.github} target="_blank" rel="noreferrer" aria-label="GitHub" style={iconLink}>
         <Github size={15} />
       </a>

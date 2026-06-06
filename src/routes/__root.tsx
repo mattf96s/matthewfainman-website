@@ -1,6 +1,4 @@
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-import Footer from '../components/Footer'
-import Header from '../components/Header'
 
 import PostHogProvider from '../integrations/posthog/provider'
 import { SITE, siteHead } from '../lib/seo'
@@ -42,11 +40,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body className="font-sans antialiased wrap-anywhere selection:bg-[rgba(79,184,178,0.24)]">
-        <PostHogProvider>
-          <Header />
-          {children}
-          <Footer />
-        </PostHogProvider>
+        <PostHogProvider>{children}</PostHogProvider>
         <Scripts />
       </body>
     </html>
