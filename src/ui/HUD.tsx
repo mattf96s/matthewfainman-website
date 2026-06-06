@@ -25,14 +25,12 @@ export function HUD() {
   const fullHearts = Math.ceil(health / HEALTH_PER_HEART)
   const started = useGameStore((s) => s.started)
   const paused = useGameStore((s) => s.paused)
-  const gameOver = useGameStore((s) => s.gameOver)
-  const gameOverReason = useGameStore((s) => s.gameOverReason)
-  const reset = useGameStore((s) => s.reset)
+  const deathReason = useGameStore((s) => s.deathReason)
   const multiplayerJoined = useGameStore((s) => s.multiplayerJoined)
   const kills = useGameStore((s) => s.kills)
   const deaths = useGameStore((s) => s.deaths)
   const killFeed = useGameStore((s) => s.killFeed)
-  const respawning = multiplayerJoined && health <= 0
+  const dead = health <= 0
 
   return (
     <>
@@ -40,7 +38,7 @@ export function HUD() {
         {fps.toFixed(0)} fps
       </div>
 
-      {started && !gameOver && health > 0 && <Crosshair />}
+      {started && !dead && <Crosshair />}
 
       {multiplayerJoined && (
         <div
@@ -65,7 +63,7 @@ export function HUD() {
         <KillFeed entries={killFeed} />
       )}
 
-      {respawning && <RespawnOverlay />}
+      {dead && <RespawnOverlay reason={deathReason} />}
 
       <div
         style={{
@@ -92,20 +90,8 @@ export function HUD() {
       </div>
 
       {!started && <TitleOverlay />}
-      {started && paused && !gameOver && <PauseOverlay />}
-      {gameOver && (
-        <GameOverOverlay
-          reason={gameOverReason}
-          score={score}
-          nearMissCount={nearMissCount}
-          reset={reset}
-        />
-      )}
-      <MobileJoystick
-        started={started}
-        paused={paused}
-        gameOver={gameOver}
-      />
+      {started && paused && !dead && <PauseOverlay />}
+      <MobileJoystick started={started} paused={paused} dead={dead} />
     </>
   )
 }
@@ -113,17 +99,17 @@ export function HUD() {
 function MobileJoystick({
   started,
   paused,
-  gameOver,
+  dead,
 }: {
   started: boolean
   paused: boolean
-  gameOver: boolean
+  dead: boolean
 }) {
   const [touch, setTouch] = useState(false)
   useEffect(() => {
     setTouch(isTouchDevice())
   }, [])
-  if (!touch || !started || paused || gameOver) return null
+  if (!touch || !started || paused || dead) return null
   return <VirtualJoystick />
 }
 
@@ -250,24 +236,33 @@ function KillFeed({ entries }: { entries: KillFeedEntry[] }) {
   )
 }
 
-function RespawnOverlay() {
+function RespawnOverlay({ reason }: { reason: string | null }) {
   return (
     <div
       style={{
         ...baseText,
         position: 'absolute',
-        top: '40%',
+        top: '38%',
         left: 0,
         right: 0,
         textAlign: 'center',
-        fontSize: 28,
-        fontWeight: 700,
-        letterSpacing: '0.1em',
-        textTransform: 'uppercase',
-        opacity: 0.85,
+        opacity: 0.9,
       }}
     >
-      Respawning…
+      <div style={{ fontSize: 22, fontWeight: 600, marginBottom: 8 }}>
+        {deathReasonText(reason)}
+      </div>
+      <div
+        style={{
+          fontSize: 24,
+          fontWeight: 700,
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          opacity: 0.85,
+        }}
+      >
+        Respawning…
+      </div>
     </div>
   )
 }
@@ -279,49 +274,6 @@ function PauseOverlay() {
       <Subtitle>
         Press <kbd>Enter</kbd> or click to resume.
       </Subtitle>
-    </Overlay>
-  )
-}
-
-function GameOverOverlay({
-  reason,
-  score,
-  nearMissCount,
-  reset,
-}: {
-  reason: string | null
-  score: number
-  nearMissCount: number
-  reset: () => void
-}) {
-  return (
-    <Overlay enablePointer>
-      <Title>Game over</Title>
-      <Subtitle>
-        {gameOverReasonText(reason)} after {score} points.
-        {nearMissCount > 0 && (
-          <div style={{ marginTop: 8, opacity: 0.7 }}>
-            {nearMissCount} near miss{nearMissCount === 1 ? '' : 'es'}.
-          </div>
-        )}
-      </Subtitle>
-      <button
-        onClick={reset}
-        style={{
-          marginTop: 22,
-          padding: '10px 22px',
-          fontSize: 16,
-          fontWeight: 600,
-          borderRadius: 999,
-          border: '1px solid rgba(255,255,255,0.3)',
-          background: 'rgba(255,255,255,0.12)',
-          color: 'white',
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-        }}
-      >
-        Try again
-      </button>
     </Overlay>
   )
 }
@@ -439,7 +391,7 @@ function SocialLinks() {
   )
 }
 
-function gameOverReasonText(reason: string | null): string {
+function deathReasonText(reason: string | null): string {
   switch (reason) {
     case 'tram':
       return 'A tram ploughed through you'
@@ -449,7 +401,9 @@ function gameOverReasonText(reason: string | null): string {
       return 'A cyclist took you out'
     case 'water':
       return 'You drowned in the gracht'
+    case 'shot':
+      return 'You got gunned down'
     default:
-      return 'You were knocked down'
+      return 'You went down'
   }
 }

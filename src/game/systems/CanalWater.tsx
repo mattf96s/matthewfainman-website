@@ -27,9 +27,8 @@ export function CanalWater() {
   const accumulator = useRef(0)
 
   useFrame((_, delta) => {
-    const { gameOver, paused, started, takeDamage } =
-      useGameStore.getState()
-    if (!started || paused || gameOver) return
+    const { paused, started, health, takeDamage } = useGameStore.getState()
+    if (!started || paused || health <= 0) return
     if (!playerPosition.ready) return
 
     const inCanalX =

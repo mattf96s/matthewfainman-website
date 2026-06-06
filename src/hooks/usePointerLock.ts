@@ -26,7 +26,6 @@ export function usePointerLock() {
       const store = useGameStore.getState()
       if (!store.started) store.setStarted(true)
       if (store.paused) store.setPaused(false)
-      if (store.gameOver) store.reset()
 
       if (document.pointerLockElement !== canvas) {
         // best-effort: harmless if the browser refuses

@@ -71,21 +71,18 @@ export function Player() {
     }
   }, [world])
 
-  // teleport back to spawn when the game resets (gameOver: true → false)
-  // or when the multiplayer respawn tick bumps.
+  // teleport back to spawn whenever the respawn tick bumps (solo and
+  // multiplayer both respawn by incrementing it after a death).
   useEffect(() => {
-    let prevGameOver = useGameStore.getState().gameOver
     let prevTick = useGameStore.getState().respawnTick
     return useGameStore.subscribe((state) => {
-      const tickedRespawn = state.respawnTick !== prevTick
-      if (((prevGameOver && !state.gameOver) || tickedRespawn) && body.current) {
+      if (state.respawnTick !== prevTick && body.current) {
         body.current.setTranslation(
           { x: SPAWN[0], y: SPAWN[1], z: SPAWN[2] },
           true,
         )
         yVelocity.current = 0
       }
-      prevGameOver = state.gameOver
       prevTick = state.respawnTick
     })
   }, [])
@@ -97,8 +94,8 @@ export function Player() {
     const collider = rb.collider(0)
     if (!collider) return
 
-    const { gameOver, paused, started } = useGameStore.getState()
-    const frozen = gameOver || paused || !started
+    const { health, paused, started } = useGameStore.getState()
+    const frozen = paused || !started || health <= 0
     const now = performance.now()
     const knockback = now < playerImpulse.endsAt
 

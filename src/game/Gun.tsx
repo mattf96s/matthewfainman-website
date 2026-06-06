@@ -40,8 +40,7 @@ export function Gun() {
       if (!document.pointerLockElement) return
 
       const store = useGameStore.getState()
-      if (!store.started || store.paused || store.gameOver) return
-      if (store.health <= 0) return
+      if (!store.started || store.paused || store.health <= 0) return
 
       const now = performance.now()
       if (now - lastFire.current < FIRE_INTERVAL_MS) return

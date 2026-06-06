@@ -20,6 +20,7 @@ import { Rats } from './npcs/Rats'
 import { Statiegeld } from './npcs/Statiegeld'
 import { Tourists } from './npcs/Tourists'
 import { Stroopwafels } from './pickups/Stroopwafels'
+import { AutoRespawn } from './systems/AutoRespawn'
 import { CanalWater } from './systems/CanalWater'
 import { ScoreTimer } from './systems/ScoreTimer'
 import { Block } from './world/Block'
@@ -128,6 +129,7 @@ export function Game() {
             <FollowCamera />
             <ScoreTimer />
             <CanalWater />
+            <AutoRespawn />
             <FpsTracker />
             <PointerLockBridge />
             <MobileControlsBridge />

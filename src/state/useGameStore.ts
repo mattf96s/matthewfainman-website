@@ -22,16 +22,17 @@ interface GameState {
   addNearMiss: () => void
   nearMissCount: number
 
-  /** Player health, 0–MAX_HEALTH. Drops below 1 → game over. */
+  /** Player health, 0–MAX_HEALTH. At 0 the player is dead and an
+   * auto-respawn brings them back — death is never terminal. */
   health: number
-  /** Subtract `amount` from health; surface a reason; if ≤0, game over. */
+  /** Subtract `amount` from health; record what did it. No-op if already dead. */
   takeDamage: (amount: number, reason: string) => void
   /** Restore `amount` of health, clamped to MAX_HEALTH. No-op if dead. */
   heal: (amount: number) => void
 
-  gameOver: boolean
-  gameOverReason: string | null
-  endGame: (reason: string) => void
+  /** What killed the player this death (`'tram'`, `'water'`, …), shown on
+   * the respawn overlay. Null while alive. */
+  deathReason: string | null
 
   /** True once the player has clicked through the Playroom lobby. */
   multiplayerJoined: boolean
@@ -93,42 +94,37 @@ export const useGameStore = create<GameState>((set) => ({
   health: MAX_HEALTH,
   takeDamage: (amount, reason) =>
     set((s) => {
-      if (s.gameOver) return s
+      if (s.health <= 0) return s // already dead, waiting on respawn
       const next = Math.max(0, s.health - amount)
       console.log(`[hit] ${reason} −${amount} (${next}/${MAX_HEALTH} hp)`)
-      if (next <= 0) {
-        // In multiplayer, dying isn't terminal — the Playroom bridge
-        // watches health=0 and triggers a respawn after a short delay.
-        // Single-player keeps the old game-over flow.
-        if (s.multiplayerJoined) return { health: 0 }
-        return { health: 0, gameOver: true, gameOverReason: reason }
-      }
+      // Death is never terminal: hitting 0 flags the death reason and the
+      // auto-respawn system brings the player back after a short delay.
+      if (next <= 0) return { health: 0, deathReason: reason }
       return { health: next }
     }),
 
   heal: (amount) =>
     set((s) => {
-      if (s.gameOver) return s
+      if (s.health <= 0) return s
       const next = Math.min(MAX_HEALTH, s.health + amount)
       return { health: next }
     }),
 
-  gameOver: false,
-  gameOverReason: null,
-  endGame: (reason) => {
-    console.log(`[game over] ${reason}`)
-    set({ gameOver: true, gameOverReason: reason, health: 0 })
-  },
+  deathReason: null,
 
   multiplayerJoined: false,
   setMultiplayerJoined: (multiplayerJoined) => set({ multiplayerJoined }),
 
-  /** Increments when the local player should be teleported back to spawn
-   * — used by Player.tsx to subscribe to respawn requests in multiplayer
-   * (single-player respawn already runs off the gameOver edge). */
+  /** Increments when the local player should be teleported back to spawn.
+   * Player.tsx subscribes to it; both the solo AutoRespawn system and the
+   * multiplayer Playroom bridge bump it (via respawn()) after a death. */
   respawnTick: 0,
   respawn: () =>
-    set((s) => ({ health: MAX_HEALTH, respawnTick: s.respawnTick + 1 })),
+    set((s) => ({
+      health: MAX_HEALTH,
+      deathReason: null,
+      respawnTick: s.respawnTick + 1,
+    })),
 
   kills: 0,
   deaths: 0,
@@ -155,8 +151,7 @@ export const useGameStore = create<GameState>((set) => ({
       score: 0,
       nearMissCount: 0,
       health: MAX_HEALTH,
-      gameOver: false,
-      gameOverReason: null,
+      deathReason: null,
       paused: false,
       // kills/deaths persist across reset in multiplayer
       kills: s.multiplayerJoined ? s.kills : 0,

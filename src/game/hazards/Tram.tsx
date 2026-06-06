@@ -48,14 +48,13 @@ export function Tram({
   const cooldown = useRef(0)
   const takeDamage = useGameStore((s) => s.takeDamage)
   const addNearMiss = useGameStore((s) => s.addNearMiss)
-  const gameOver = useGameStore((s) => s.gameOver)
 
   /** True while player overlaps the on-rails hit zone — gates damage to
    * once-per-entry instead of every frame. */
   const hitInside = useRef(false)
 
   useFrame((_, delta) => {
-    if (!body.current || gameOver) return
+    if (!body.current) return
 
     if (dwellRemaining.current > 0) {
       dwellRemaining.current -= delta

@@ -49,7 +49,6 @@ export function Car({
 
   useFrame((_, delta) => {
     if (!body.current) return
-    if (useGameStore.getState().gameOver) return
     z.current += direction * speed * delta
     const span = extent * 2
     if (z.current > extent) z.current -= span

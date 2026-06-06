@@ -88,7 +88,6 @@ export function Bike({
 
   useFrame((_, delta) => {
     if (!body.current) return
-    if (useGameStore.getState().gameOver) return
 
     const now = performance.now()
 

@@ -128,7 +128,7 @@ export function useMobileControls() {
 
       const store = useGameStore.getState()
       if (!store.started) store.setStarted(true)
-      else if (store.paused && !store.gameOver) store.setPaused(false)
+      else if (store.paused) store.setPaused(false)
 
       if (primaryId === null && e.touches.length > 0) {
         const t = e.touches[0]!

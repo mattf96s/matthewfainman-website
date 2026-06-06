@@ -12,8 +12,8 @@ export function ScoreTimer() {
   const addScore = useGameStore((s) => s.addScore)
 
   useFrame((_, delta) => {
-    const { gameOver, started, paused } = useGameStore.getState()
-    if (!started || paused || gameOver) return
+    const { started, paused, health } = useGameStore.getState()
+    if (!started || paused || health <= 0) return
     accumulator.current += delta
     if (accumulator.current >= 1) {
       const whole = Math.floor(accumulator.current)

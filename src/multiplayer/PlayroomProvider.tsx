@@ -100,8 +100,8 @@ export function PlayroomProvider() {
 
         if (data.victimId && data.victimId === playroom.myId) {
           const store = useGameStore.getState()
-          // takeDamage in multiplayer mode keeps gameOver gated to solo;
-          // hp=0 here just marks dying and the timer below respawns us.
+          // hp=0 just marks us dying; the auto-respawn timer below brings
+          // us back. Death is never terminal.
           store.takeDamage(data.damage, 'shot')
           if (useGameStore.getState().health <= 0) {
             const killerName = sender.getProfile().name ?? 'someone'

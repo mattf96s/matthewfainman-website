@@ -52,8 +52,8 @@ export function Stroopwafel({
 
   useFrame((state) => {
     if (!group.current || resolved.current) return
-    const { gameOver, paused, started, heal } = useGameStore.getState()
-    if (!started || paused || gameOver) return
+    const { paused, started, health, heal } = useGameStore.getState()
+    if (!started || paused || health <= 0) return
 
     const now = performance.now()
     const aliveMs = now - spawnedAt.current

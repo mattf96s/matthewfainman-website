@@ -15,10 +15,10 @@ export function useGameKeybinds() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const state = useGameStore.getState()
-      const { started, paused, gameOver } = state
+      const { started, paused } = state
 
       if (e.key === 'Escape') {
-        if (started && !gameOver && !paused) {
+        if (started && !paused) {
           state.setPaused(true)
         }
         return
@@ -31,9 +31,6 @@ export function useGameKeybinds() {
           e.preventDefault()
         } else if (paused) {
           state.setPaused(false)
-          e.preventDefault()
-        } else if (gameOver) {
-          state.reset()
           e.preventDefault()
         }
       }
