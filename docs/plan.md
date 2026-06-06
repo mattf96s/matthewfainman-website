@@ -1,245 +1,173 @@
-# Amsterdam Explorer — Project Brief
+# Amsterdam — Project Brief
 
-A browser-based 3D exploration game set in a stylised version of Amsterdam.
-The player wanders the city on foot while avoiding cyclists and trams. Built
-as a personal website / portfolio piece.
+A browser-based 3D toy: a stylised, slightly chaotic low-poly Amsterdam you
+run around in. Solo, it's a charming city full of recognisable Amsterdam gags.
+With friends, it's a silly free-for-all where you can shoot each other.
+Built as a personal website / portfolio piece.
+
+> **Working title:** Amsterdam Explorer. Tone may warrant a punchier name later.
 
 ---
 
-## Vision
+## Concept (the north star)
 
-A low-poly, slightly playful interpretation of Amsterdam's centrum — canals,
-narrow brick houses, fietspaden, tram lines. The mood is calm exploration
-punctuated by near-misses with bicycles and the genuine terror of a tram
-coming at you on Damrak.
+**"Amsterdam, the toy."** A playful, meme-y interpretation of Amsterdam — not
+a serious game, not a competitive shooter, not a realistic sim. The *place* is
+the star: trams that will flatten you, swarms of bikes, canals to fall in, the
+red-light district, stroopwafels, the statiegeld bottle-collector, rats.
+Shooting other players is the **chaos bonus** that kicks in when friends join —
+it is not the point and is never meant to be balanced or fair.
 
-Not a realistic simulation. Closer in spirit to *A Short Hike* or *Untitled
-Goose Game* than to GTA. Aesthetic: flat-shaded geometry, warm colour
-palette, soft shadows.
+Tone reference: *Untitled Goose Game* / *Pico Park* energy — comedic,
+low-stakes, instantly shareable. Closer to a 90-second "send this to your mates"
+toy than to a game you grind. Aesthetic: flat-shaded geometry, warm palette,
+soft shadows.
+
+**Every decision serves one question: is this delightful in the first 90
+seconds, and do you want to send the link to a friend?**
 
 ## Goals
 
-- Ships as a personal website (works at the root domain, no install)
-- Loads in under 5 seconds on a decent connection
-- Runs at 60fps on a 2020+ laptop integrated GPU
-- Distinctive enough to be a portfolio piece
-- Scoped to be buildable in evenings and weekends (~6–10 weeks)
+- Ships as a personal website (works at the root domain, no install, no account)
+- **Joyful in the first 15 seconds** — drop straight in, no menus, immediately fun
+- **Frictionless multiplayer** — one shareable link, one click to join, instant chaos
+- **Works on a phone** — memes spread on mobile; touch controls are first-class
+- Loads in under 5 seconds; holds 60fps on a 2020+ integrated GPU
+- Dense with recognisable Amsterdam gags — flavour over technical depth
+- Coherent and *finished*. A small delightful toy beats a sprawling half-thing.
 
 ## Non-goals
 
-- Photo-realistic Amsterdam (use OpenStreetMap as reference, not as ground truth)
-- Multiplayer
-- Mobile-first (works on mobile, but desktop is the primary target)
-- A full city — one neighbourhood done well beats the whole centrum done badly
+- **Competitive balance / anti-cheat.** PvP is for laughs. p2p trust is fine.
+- **A serious game loop.** No hard game-over, no grind, no progression.
+- Photo-realistic Amsterdam (recognisable-funny, not accurate)
+- A full city — one dense, characterful neighbourhood beats the whole centrum
+- Hostile AI / bots — NPCs are flavour, not enemies
 
 ---
 
-## Tech Stack
+## Current state (what's already built)
+
+This is well past a prototype. What works today:
+
+- **World** — one densely-composed Amsterdam block: canal + bridges, canal
+  houses, shops (incl. red-light windows), tram tracks, fietspad, parked
+  bikes/cars, props, ambient boats & ducks. (`src/game/world/`)
+- **Player** — kinematic character controller, third-person follow camera,
+  pointer-lock, jump, knockback. (`src/game/Player.tsx`, `FollowCamera.tsx`)
+- **Hazards** — trams, cars, bikes on splines that damage/knock-back the
+  player, with near-miss bonus scoring. (`src/game/hazards/`)
+- **Combat** — hitscan gun, tracers, recoil, camera shake. (`src/game/Gun.tsx`)
+- **Multiplayer** — Playroom Kit, up to 8 players, position/health sync at
+  ~20Hz, p2p shot RPCs, kill/death tracking, kill-feed. (`src/multiplayer/`,
+  `src/game/multiplayer/`)
+- **Mobile** — virtual joystick, gyro tilt, touch-look. (`src/game/mobileInput.ts`)
+- **Pickups** — stroopwafel = health. (`src/game/pickups/`)
+- **Ambient NPCs** — rats, tourists, statiegeld collector. (`src/game/npcs/`)
+- **Shell** — TanStack Start app, game is the homepage, HUD, PostHog wired.
+
+## What to absolutely nail (in priority order)
+
+1. **The first 15 seconds.** Drop the player straight into a living Amsterdam —
+   no title gate, controls obvious instantly, something funny happening on
+   screen (a tram, a bike swarm) within seconds.
+2. **The join flow.** "Send link → friend clicks → they're in your world
+   shooting at you" must be one frictionless path. This is the viral loop.
+   Shareable room URL, no accounts.
+3. **Density of Amsterdam gags.** The "I see what they did there" hits: tram
+   terror, bike swarms, falling in the canal, red-light neon, stroopwafels,
+   the statiegeld guy, coffeeshop signage, Amsterdammertje bollards. More
+   recognisable detail = more meme.
+4. **Toy-like forgiveness.** No punishing game-over. Die → respawn instantly →
+   keep messing around. It's a playground.
+5. **Polish where it's seen; cut everything else.** One coherent vibe, no
+   leftover scaffolding, no dead weight in the bundle.
+6. **The "about this build" page.** Where you articulate the stack and the
+   decisions (incl. *why p2p netcode is fine for a meme*). This is where the
+   portfolio piece demonstrates product + systems judgment, not just output.
+
+## Keep / cut / repurpose (from the systems audit)
+
+**Keep — these ARE the meme:**
+- Trams, bikes, cars as hazards (the comedy of Amsterdam traffic)
+- Near-miss scoring ("you survived a tram")
+- Ambient NPCs — rats, tourists, statiegeld collector, ducks, boats
+- Red-light district windows (stylised neon gag, kept light/tasteful)
+- Mobile controls (first-class now — memes spread on phones)
+- Combat, multiplayer, kill-feed (the chaos bonus)
+
+**Soften:**
+- Hard single-player game-over on death → always instant respawn
+- The two divergent tram behaviours (`Tram` knockback vs `PathTram`
+  instant-kill) → unify so nothing insta-gibs you
+
+**Cut — orphaned boilerplate / dead weight (true under any concept):**
+- `/demo/posthog` route and the "Demos" nav dropdown
+- "TanStack Docs" nav link, TanStack devtools in production
+- `src/components/amsterdan-illustration.tsx` (~5k-line SVG, unused in game) —
+  delete or lazy-load off the game bundle
+
+**Repurpose (optional, later):**
+- Stroopwafel pickup → add ammo / fun power-up variants
+- PostHog → instrument the fun (joins, kills, falls-in-canal, session length)
+
+---
+
+## Tech Stack (as built)
 
 **Core:**
 - **Vite** — build tool, dev server
 - **TypeScript** — strict mode
-- **React Three Fiber** (`@react-three/fiber`) — Three.js scene graph in React
-- **@react-three/drei** — helpers (camera, environment, shadows, KeyboardControls)
-- **@react-three/rapier** — physics (player collider, bike/tram bodies, canal triggers)
-- **Zustand** — game state (score, lives, current zone, paused/playing)
+- **React 19** (+ React Compiler) — function components only
+- **TanStack Start / Router** — app shell, routing, SSR
+- **React Three Fiber** + **drei** — Three.js scene graph & helpers
+- **@react-three/rapier** — physics (kinematic player, kinematic NPCs)
+- **Zustand** — gameplay & UI state (never per-frame state)
+- **Tailwind CSS 4** — HUD / shell styling
 
-**Tooling:**
-- **pnpm** — package manager
-- **Biome** or **ESLint + Prettier** — formatting/linting
-- **Vitest** — for any unit-testable logic (spline math, scoring)
+**Multiplayer & data:**
+- **Playroom Kit** — lobby, presence, state sync, RPC (p2p, no server auth)
+- **PostHog** — product analytics
 
-**Assets:**
-- **Blender** — for any custom geometry (or use procedural generation)
-- **Kenney.nl** low-poly asset packs as placeholders
-- **OpenStreetMap** (via Overpass API) to extract real building footprints
-  and canal geometry for one neighbourhood, used as a generation seed
-
-**Deployment:**
-- **Vercel** or **Cloudflare Pages** — static hosting
-- Custom domain pointing at the personal site
+**Deploy:**
+- **Vercel** — static/SSR hosting. pnpm 11 pinned via `packageManager`;
+  some deps need explicit build-script allow-listing or install fails.
 
 ---
 
-## Phase 1 — Skeleton (week 1)
-
-**Deliverable:** A browser window showing a flat grey plane, a player capsule,
-WASD movement, and a third-person follow camera. No city yet.
-
-Tasks:
-1. Vite + TS + R3F + Drei + Rapier scaffold
-2. Player as a kinematic character controller (Rapier's `KinematicCharacterController`)
-3. WASD + mouse-look via Drei's `KeyboardControls` and `PointerLockControls`
-4. Third-person camera with smooth follow and collision avoidance
-5. Simple HUD overlay (HTML, positioned absolute over the canvas) showing FPS
-
-**Acceptance:** You can walk around an empty plane smoothly. Movement feels
-good. No physics glitches.
-
-## Phase 2 — Block (week 2)
-
-**Deliverable:** A single hand-modelled Amsterdam block — three or four
-canal houses, a stretch of canal with a bridge, a road, and a fietspad.
-
-Tasks:
-1. Define a coordinate system. 1 unit = 1 metre. North = +Z.
-2. Build the block in Blender (or procedurally generate with simple geometry).
-   Canal houses: tall, narrow, gabled. Brick palette.
-3. Import as GLTF. Verify it loads, is correctly scaled, casts shadows.
-4. Define the road surface, fietspad surface, sidewalk, and canal as separate
-   meshes with different friction / step heights / triggers.
-5. Canal as a water plane (flat, reflective, blue). Falling in = lose condition
-   (just log it for now).
-6. Lighting pass: warm directional sun, ambient fill, soft shadows.
-
-**Acceptance:** The block looks recognisably Amsterdam-ish. Walking on the
-sidewalk feels different from walking in the canal. Falling in the canal
-triggers a console event.
-
-## Phase 3 — Hazards (weeks 3–4)
-
-**Deliverable:** Cyclists on the fietspad, a tram on a rail line.
-
-Tasks:
-1. **Bike NPCs**:
-   - Spline path along the fietspad (Catmull-Rom curve)
-   - Kinematic body following the spline at a configurable speed
-   - Low-poly bicycle + rider model (Kenney pack or simple Blender)
-   - Bell/bike sound on approach
-   - Bikes spawn at one end, despawn at the other, with random gaps
-2. **Tram**:
-   - Define one tram route along the road
-   - Kinematic body, much faster, much bigger
-   - Tram bell sound when approaching
-   - GVB-blue paint job
-3. **Collision response**:
-   - Bike hit: player flinches, screen shake, -1 life
-   - Tram hit: instant lose
-   - Canal fall: instant lose
-4. **Scoring**:
-   - Score = seconds survived + bonus for "near misses" (player collider
-     within 1m of a bike/tram for >100ms without contact)
-   - Display in HUD
-
-**Acceptance:** Bikes feel threatening but fair. The tram is genuinely scary.
-Near-miss scoring rewards risky play near the fietspad.
-
-## Phase 4 — Neighbourhood (weeks 5–6)
-
-**Deliverable:** Expand the block into a small explorable area — 4–6 blocks
-around a recognisable landmark.
-
-Tasks:
-1. Pick the area. Suggestions: Jordaan around Westerkerk, Leidseplein,
-   Nieuwmarkt, or the Bloemenmarkt stretch of the Singel.
-2. Extract building footprints from OSM via Overpass API. Script that
-   generates extruded low-poly buildings from footprint polygons.
-3. Hand-place landmark buildings (the church, the market, etc.) with more
-   detail.
-4. Lay out the road network and fietspaden along OSM data.
-5. Add multiple tram lines and bike spawn paths.
-6. Decorative props: street lamps, bike racks, café terraces with chairs,
-   the occasional Albert Heijn.
-
-**Acceptance:** A Dutch person looking at it says "yeah that's Amsterdam."
-
-## Phase 5 — Polish (weeks 7–8)
-
-**Deliverable:** It feels like a finished game, not a tech demo.
-
-Tasks:
-1. Title screen, pause menu, game-over screen
-2. Sound design: ambient canal/birds, tram bells, bike bells, footsteps
-3. Music — light, jazzy, looped (commission or use a CC-BY track)
-4. Day/night cycle (optional but very satisfying)
-5. Particle effects: water splash on canal fall, dust on hard tram hit
-6. Loading screen with progress (model loading is the slow part)
-7. Settings menu: volume, mouse sensitivity, graphics quality (toggle shadows)
-8. Mobile fallback: detect touch, show "best on desktop" message
-
-**Acceptance:** A friend can open the URL, understand what to do, play for
-five minutes, and not encounter anything broken.
-
-## Phase 6 — Ship (week 9–10)
-
-Tasks:
-1. Performance pass: profile with Spector.js, reduce draw calls, batch geometry
-2. Bundle pass: compress GLTF with Draco, lazy-load assets, audit bundle size
-3. Deploy to Vercel
-4. Custom domain
-5. Lighthouse audit; fix anything below 90
-6. Write a short "about this project" page describing the stack and decisions
-
----
-
-## Architecture Notes
-
-**Folder structure:**
-```
-src/
-  game/
-    player/           — player controller, input, animations
-    hazards/          — bike, tram, canal
-    world/            — terrain, buildings, props
-    systems/          — scoring, lives, score, near-miss detection
-  scene/              — top-level R3F components
-  ui/                 — HUD, menus, screens
-  audio/              — sound manager, audio refs
-  state/              — Zustand stores
-  lib/                — math, splines, OSM importers
-  assets/             — GLTFs, audio, textures
-```
+## Architecture Notes (still true)
 
 **State management:**
-- All gameplay state in Zustand (`useGameStore`, `useScoreStore`, etc.)
-- Per-frame transient state (positions, velocities) stays inside R3F refs
-- UI state (menus open, settings) in a separate Zustand store
+- Gameplay state (score, health, kills, paused) in Zustand
+- Per-frame transient state (positions, velocities, animation time) in R3F
+  refs — never Zustand (re-renders kill frame rate)
+- UI state (menus, settings) in Zustand
+
+**Physics:**
+- Player: kinematic character controller (never dynamic)
+- NPCs (bikes, trams, cars): kinematic, following splines, not simulated
+- Hazard/trigger detection: **manual AABB checks** against player position.
+  Rapier kinematic-vs-sensor intersection events do *not* fire reliably here.
 
 **Performance principles:**
-- Instanced meshes for repeated props (lamps, bike racks, trees)
-- Frustum culling on (R3F default)
-- One draw call per material where possible
+- Instanced meshes for repeated props (lamps, bike racks, trees, bollards)
 - Shadows only on player and large objects, not every prop
-- LOD on buildings far from camera (Drei `<Detailed>`)
-
-**Physics principles:**
-- Player: kinematic character controller (not dynamic — avoids weird drift)
-- NPCs (bikes, trams): kinematic, following splines, not simulated
-- Trigger volumes (canal, hazard zones): sensor colliders, no contact
+- LOD on distant buildings (drei `<Detailed>`); frustum culling on (default)
+- Watch frame budget with 8 players + ambient NPCs on screen
 
 ---
 
-## Open Questions (decide before starting)
+## Stretch ideas (later, not now)
 
-1. **Camera**: third-person follow vs first-person? Third-person is safer and
-   easier to make pretty. Pick one and don't switch later.
-2. **Player model**: stylised tourist (backpack, camera)? Generic capsule?
-   Decides how much character art is needed.
-3. **Win condition**: time-based survival, or collect items (stroopwafels?
-   tulips?) scattered around the map?
-4. **Tone**: comedic (Goose Game energy) or chill (Short Hike energy)?
-   Decides music, art direction, sound design.
-5. **Real Amsterdam locations**: how recognisable should it be? Real
-   street names? Real café names? The more specific, the more delightful
-   for locals but the more legal/IP grey area.
-
----
-
-## Stretch ideas (for later, not v1)
-
-- Photo mode (pause, free camera, hide HUD, export PNG)
-- A koffie shop minigame
-- Seasonal mode: winter Amsterdam with ice on the canals
-- A "tourist mode" with markers on real landmarks and short info panels
-- Easter egg: find the Anne Frank house, get a small reflective moment
-- Leaderboard via a tiny backend (Cloudflare Worker + D1)
-
----
+- Photo mode (free camera, hide HUD, export PNG)
+- Emotes / silly cosmetics for multiplayer
+- Seasonal mode: winter Amsterdam, ice on the canals
+- More gags: King's Day crowds, a runaway beer crate, herring stand
+- Easter egg landmarks
+- Tiny leaderboard for "longest tram survival"
 
 ## Reference / inspiration
 
-- *A Short Hike* — pace and tone
-- *Untitled Goose Game* — physical comedy of NPCs
-- Monument Valley — stylised architecture
-- The PlayCanvas Amsterdam demo (search "playcanvas amsterdam")
-- Kenney.nl city packs — placeholder asset visual style
+- *Untitled Goose Game* — physical comedy, low-stakes chaos
+- *Pico Park* — "send the link" co-op silliness
+- Monument Valley / low-poly city packs — stylised architecture
