@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { Billboard } from '@react-three/drei'
 import * as THREE from 'three'
 
 import { PLAYER_RADIUS } from '../constants'
@@ -52,8 +53,8 @@ export function Stroopwafel({
 
   useFrame((state) => {
     if (!group.current || resolved.current) return
-    const { gameOver, paused, started, heal } = useGameStore.getState()
-    if (!started || paused || gameOver) return
+    const { paused, started, health, heal } = useGameStore.getState()
+    if (!started || paused || health <= 0) return
 
     const now = performance.now()
     const aliveMs = now - spawnedAt.current
@@ -109,6 +110,18 @@ export function Stroopwafel({
           side={THREE.DoubleSide}
         />
       </mesh>
+      {/* A billboarded green "+" floating above the wafel so it reads
+        * unmistakably as a health pickup from any angle / distance. */}
+      <Billboard position={[0, 0.6, 0]}>
+        <mesh>
+          <boxGeometry args={[0.32, 0.1, 0.04]} />
+          <meshBasicMaterial color="#3ad06a" />
+        </mesh>
+        <mesh>
+          <boxGeometry args={[0.1, 0.32, 0.04]} />
+          <meshBasicMaterial color="#3ad06a" />
+        </mesh>
+      </Billboard>
     </group>
   )
 }

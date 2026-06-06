@@ -7,7 +7,9 @@ interface GameState {
   locked: boolean
   setLocked: (locked: boolean) => void
 
-  /** True after the player begins — gates the title screen. */
+  /** Whether the sim is live. Defaults true so visitors drop straight into
+   * a moving scene — there's no blocking title screen. Kept as a flag so
+   * pause and per-frame systems have a single gate to check. */
   started: boolean
   setStarted: (started: boolean) => void
 
@@ -22,20 +24,27 @@ interface GameState {
   addNearMiss: () => void
   nearMissCount: number
 
-  /** Player health, 0–MAX_HEALTH. Drops below 1 → game over. */
+  /** Player health, 0–MAX_HEALTH. At 0 the player is dead and an
+   * auto-respawn brings them back — death is never terminal. */
   health: number
-  /** Subtract `amount` from health; surface a reason; if ≤0, game over. */
+  /** Subtract `amount` from health; record what did it. No-op if already dead. */
   takeDamage: (amount: number, reason: string) => void
   /** Restore `amount` of health, clamped to MAX_HEALTH. No-op if dead. */
   heal: (amount: number) => void
 
-  gameOver: boolean
-  gameOverReason: string | null
-  endGame: (reason: string) => void
+  /** What killed the player this death (`'tram'`, `'water'`, …), shown on
+   * the respawn overlay. Null while alive. */
+  deathReason: string | null
 
-  /** True once the player has clicked through the Playroom lobby. */
+  /** True once we've connected to the shared Playroom room. */
   multiplayerJoined: boolean
   setMultiplayerJoined: (joined: boolean) => void
+
+  /** Other connected players, for presence UI + remote avatars. Updated
+   * on join/leave only — never per frame. */
+  peers: Peer[]
+  addPeer: (peer: Peer) => void
+  removePeer: (id: string) => void
 
   /** Bumped each time the Player controller should teleport to spawn —
    * used by the multiplayer bridge to respawn the player after death. */
@@ -62,11 +71,19 @@ export interface KillFeedEntry {
   at: number
 }
 
+export interface Peer {
+  id: string
+  name: string
+  color: string
+}
+
 const KILL_FEED_MAX = 5
 let killFeedNextId = 1
 
 export const MAX_HEALTH = 100
 const NEAR_MISS_BONUS = 5
+/** Score awarded for eliminating another player. */
+const KILL_SCORE = 100
 
 export const useGameStore = create<GameState>((set) => ({
   fps: 0,
@@ -75,7 +92,7 @@ export const useGameStore = create<GameState>((set) => ({
   locked: false,
   setLocked: (locked) => set({ locked }),
 
-  started: false,
+  started: true,
   setStarted: (started) => set({ started }),
 
   paused: false,
@@ -93,42 +110,47 @@ export const useGameStore = create<GameState>((set) => ({
   health: MAX_HEALTH,
   takeDamage: (amount, reason) =>
     set((s) => {
-      if (s.gameOver) return s
+      if (s.health <= 0) return s // already dead, waiting on respawn
       const next = Math.max(0, s.health - amount)
       console.log(`[hit] ${reason} −${amount} (${next}/${MAX_HEALTH} hp)`)
-      if (next <= 0) {
-        // In multiplayer, dying isn't terminal — the Playroom bridge
-        // watches health=0 and triggers a respawn after a short delay.
-        // Single-player keeps the old game-over flow.
-        if (s.multiplayerJoined) return { health: 0 }
-        return { health: 0, gameOver: true, gameOverReason: reason }
-      }
+      // Death is never terminal: hitting 0 flags the death reason and the
+      // auto-respawn system brings the player back after a short delay.
+      if (next <= 0) return { health: 0, deathReason: reason }
       return { health: next }
     }),
 
   heal: (amount) =>
     set((s) => {
-      if (s.gameOver) return s
+      if (s.health <= 0) return s
       const next = Math.min(MAX_HEALTH, s.health + amount)
       return { health: next }
     }),
 
-  gameOver: false,
-  gameOverReason: null,
-  endGame: (reason) => {
-    console.log(`[game over] ${reason}`)
-    set({ gameOver: true, gameOverReason: reason, health: 0 })
-  },
+  deathReason: null,
 
   multiplayerJoined: false,
   setMultiplayerJoined: (multiplayerJoined) => set({ multiplayerJoined }),
 
-  /** Increments when the local player should be teleported back to spawn
-   * — used by Player.tsx to subscribe to respawn requests in multiplayer
-   * (single-player respawn already runs off the gameOver edge). */
+  peers: [],
+  addPeer: (peer) =>
+    set((s) =>
+      s.peers.some((p) => p.id === peer.id)
+        ? s
+        : { peers: [...s.peers, peer] },
+    ),
+  removePeer: (id) =>
+    set((s) => ({ peers: s.peers.filter((p) => p.id !== id) })),
+
+  /** Increments when the local player should be teleported back to spawn.
+   * Player.tsx subscribes to it; both the solo AutoRespawn system and the
+   * multiplayer Playroom bridge bump it (via respawn()) after a death. */
   respawnTick: 0,
   respawn: () =>
-    set((s) => ({ health: MAX_HEALTH, respawnTick: s.respawnTick + 1 })),
+    set((s) => ({
+      health: MAX_HEALTH,
+      deathReason: null,
+      respawnTick: s.respawnTick + 1,
+    })),
 
   kills: 0,
   deaths: 0,
@@ -136,6 +158,7 @@ export const useGameStore = create<GameState>((set) => ({
   addKill: (victimName) =>
     set((s) => ({
       kills: s.kills + 1,
+      score: s.score + KILL_SCORE,
       killFeed: [
         { id: killFeedNextId++, killer: 'You', victim: victimName, at: Date.now() },
         ...s.killFeed,
@@ -155,8 +178,7 @@ export const useGameStore = create<GameState>((set) => ({
       score: 0,
       nearMissCount: 0,
       health: MAX_HEALTH,
-      gameOver: false,
-      gameOverReason: null,
+      deathReason: null,
       paused: false,
       // kills/deaths persist across reset in multiplayer
       kills: s.multiplayerJoined ? s.kills : 0,

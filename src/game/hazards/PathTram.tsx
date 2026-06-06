@@ -5,6 +5,7 @@ import * as THREE from 'three'
 
 import { triggerCameraShake } from '../cameraState'
 import { PLAYER_RADIUS } from '../constants'
+import { triggerKnockback } from '../playerImpulse'
 import { playerPosition } from '../playerPosition'
 import { useGameStore } from '../../state/useGameStore'
 import { TramBody } from './TramBody'
@@ -132,8 +133,12 @@ export function PathTram({
   const dwellRemaining = useRef(0)
   const playerInside = useRef(false)
   const wasHit = useRef(false)
+  /** True while the player overlaps the hit box — gates damage to once
+   * per entry, with a cooldown, instead of every frame. */
+  const hitInside = useRef(false)
+  const cooldown = useRef(0)
 
-  const endGame = useGameStore((s) => s.endGame)
+  const takeDamage = useGameStore((s) => s.takeDamage)
   const addNearMiss = useGameStore((s) => s.addNearMiss)
 
   const total = totalPathLength(path)
@@ -141,7 +146,6 @@ export function PathTram({
 
   useFrame((_, delta) => {
     if (!body.current) return
-    if (useGameStore.getState().gameOver) return
 
     if (dwellRemaining.current > 0) {
       dwellRemaining.current -= delta
@@ -188,11 +192,20 @@ export function PathTram({
     const inHit =
       absX < HIT_HALF_LATERAL + PLAYER_RADIUS &&
       absZ < TRAM_LENGTH / 2 + PLAYER_RADIUS
+    const now = performance.now()
     if (inHit) {
-      wasHit.current = true
-      triggerCameraShake(800, 0.7)
-      endGame('tram')
-      return
+      if (!hitInside.current && now - cooldown.current >= 1500) {
+        hitInside.current = true
+        cooldown.current = now
+        wasHit.current = true
+        triggerCameraShake(800, 0.7)
+        // shove the player off the tracks, away from the tram centre
+        const pushLen = Math.hypot(dx, dz) || 1
+        triggerKnockback(1000, (dx / pushLen) * 22, 7, (dz / pushLen) * 22)
+        takeDamage(80, 'tram')
+      }
+    } else {
+      hitInside.current = false
     }
 
     const inNear =

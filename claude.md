@@ -4,32 +4,40 @@ Project context for Claude Code. Read this before making changes.
 
 ## What this is
 
-Amsterdam Explorer — a browser-based 3D exploration game set in a stylised
-low-poly Amsterdam. Player walks on foot; hazards are cyclists and trams.
-Personal website / portfolio piece. Shipped as a static site.
+Amsterdam Explorer — a browser-based 3D "meme toy": a playful low-poly
+Amsterdam you run around in, full of classic Amsterdam gags (trams, bike
+swarms, canals, red-light district). When friends join over multiplayer you
+can shoot each other — chaos bonus, never serious or balanced. Works on
+desktop and mobile. Personal website / portfolio piece, shipped as a static
+site.
+
+Tone: comedic and low-stakes (*Untitled Goose Game* / *Pico Park*), not a
+calm exploration sim and not a competitive shooter.
 
 ## Status
 
-In active development. Built in phases.
+In active development. The concept, current systems, and the keep/cut list
+live in `docs/plan.md` — read that before adding features.
 
-- Phase 1 (movement skeleton) — see `docs/phase-1.md`
-- Full plan — see `docs/plan.md`
-
-When unsure what to work on, ask. Don't jump ahead to later phases without
-being told.
+When unsure what to work on, ask. Cut features that fight the meme-toy
+concept rather than piling more on.
 
 ## Stack
 
-| Layer       | Tool                         | Notes                                  |
-| ----------- | ---------------------------- | -------------------------------------- |
-| Language    | TypeScript (strict)          | No `any` without justification         |
-| Framework   | React 19                     | Function components only               |
-| Build       | Vite                         | Already configured                     |
-| Package mgr | pnpm                         | Not npm, not yarn                      |
-| 3D          | three + @react-three/fiber 9 | R3F is the source of truth for scene   |
-| 3D helpers  | @react-three/drei            | Use over hand-rolling where possible   |
-| Physics     | @react-three/rapier 2        | Kinematic, not dynamic, for the player |
-| State       | Zustand                      | Gameplay state only — see below        |
+| Layer        | Tool                         | Notes                                  |
+| ------------ | ---------------------------- | -------------------------------------- |
+| Language     | TypeScript (strict)          | No `any` without justification         |
+| UI framework | React 19 (+ React Compiler)  | Function components only               |
+| App / router | TanStack Start + Router      | SSR + file-based routes; Nitro build   |
+| Build        | Vite 8                       | Already configured                     |
+| Package mgr  | pnpm                         | Not npm, not yarn                      |
+| Styling      | Tailwind CSS 4               | Site shell + HUD                       |
+| 3D           | three + @react-three/fiber 9 | R3F is the source of truth for scene   |
+| 3D helpers   | @react-three/drei            | Use over hand-rolling where possible   |
+| Physics      | @react-three/rapier 2        | Kinematic, not dynamic, for the player |
+| Multiplayer  | Playroom Kit                 | Lobby, presence, state sync, RPC (p2p) |
+| State        | Zustand                      | Gameplay + UI state — see below        |
+| Analytics    | PostHog                      | Product analytics                      |
 
 Versions pinned in `package.json`. If a version mismatch comes up,
 flag it before installing.
@@ -38,28 +46,31 @@ flag it before installing.
 
 ```
 src/
-  game/         — anything that lives inside the <Canvas>
-    player/     — player controller, input
-    hazards/    — bike, tram, canal logic
-    world/      — terrain, buildings, props
-    systems/    — scoring, lives, near-miss detection
-    Game.tsx    — top-level R3F scene
-  scene/        — composition of game components
-  ui/           — HUD, menus, screens (regular React, NOT inside Canvas)
-  state/        — Zustand stores
-  hooks/        — shared React hooks
-  lib/          — pure utilities (math, splines, OSM parsers)
-  assets/       — GLTFs, textures, audio (small things; large via public/)
-public/
-  models/       — large GLTF files (Draco-compressed)
-  audio/        — sound effects, music
+  game/           — anything that lives inside the <Canvas>
+    Game.tsx      — top-level R3F scene
+    Player.tsx, Gun.tsx, FollowCamera.tsx, *State.ts — player, camera, input
+    hazards/      — bikes, trams, cars (spline-driven, damage the player)
+    world/        — canal, houses, streets, bridges, props
+    npcs/         — ambient life (rats, tourists, statiegeld collector)
+    pickups/      — stroopwafel (health) pickups
+    systems/      — scoring, canal damage, auto-respawn
+    multiplayer/  — in-Canvas remote players, tracers, state sync
+  multiplayer/    — Playroom provider, lobby, shared netcode state (NON-Canvas)
+  routes/         — TanStack Start routes; the game mounts at `/`
+  ui/             — HUD, overlays (regular React, NOT inside Canvas)
+  components/     — site shell (Header, Footer, ThemeToggle)
+  state/          — Zustand stores (useGameStore)
+  hooks/          — shared React hooks (input, pointer lock, keybinds)
+  lib/            — pure utilities (seo, profile)
+  integrations/   — third-party providers (PostHog)
+public/           — static assets (favicons, og-image, manifest)
 docs/
-  plan.md
-  phase-N.md
+  plan.md         — concept, current systems, keep/cut list
 ```
 
 When creating a new file, match this layout. Don't dump components in `src/`
-root or invent new top-level folders without asking.
+root or invent new top-level folders without asking. Note: all 3D geometry is
+**procedural** (hand-built meshes in JSX) — there are no GLTF model files.
 
 ## Coding conventions
 
@@ -78,13 +89,16 @@ root or invent new top-level folders without asking.
   - Per-frame state (positions, velocities, animation time) lives in refs
     inside R3F components. Never in Zustand. Zustand updates trigger React
     re-renders and will kill frame rate.
-  - Gameplay state (score, lives, current zone, paused) lives in Zustand.
+  - Gameplay state (score, health, kills/deaths, paused, multiplayer-joined)
+    lives in Zustand. Death is never terminal — see `docs/plan.md`.
   - UI state (menus open, settings) lives in Zustand.
 
 - **Physics**:
   - Player: `type="kinematicPosition"` + character controller. Never dynamic.
-  - NPCs (bikes, trams): kinematic, following splines. Not simulated.
-  - Triggers (canal, hazard zones): sensor colliders, no contact response.
+  - NPCs (bikes, trams, cars): kinematic, following splines. Not simulated.
+  - Hazard hit detection: **manual AABB checks** against the shared
+    `playerPosition` each frame — NOT Rapier sensor/intersection events.
+    Kinematic-character-vs-sensor events don't fire reliably here.
 
 - **Performance**:
   - Use `<Instances>` / `<Merged>` from Drei for repeated geometry.
@@ -93,19 +107,20 @@ root or invent new top-level folders without asking.
   - Frustum culling is on by default — don't disable it.
 
 - **Loading**:
-  - All asset-loading components inside `<Suspense>`.
-  - Use Drei's `useGLTF` with Draco-compressed models.
-  - Preload critical models with `useGLTF.preload(url)`.
+  - Geometry is procedural today, so there's little to load — the scene is
+    already wrapped in `<Suspense>` in `Game.tsx`.
+  - *If* you add a GLTF: Draco-compress it, put it under `public/`, load it
+    with Drei's `useGLTF` inside `<Suspense>`, and `useGLTF.preload(url)` if
+    it's critical.
 
 ## Commands
 
 ```bash
-pnpm dev         # start dev server
+pnpm dev         # start dev server (port 3000)
 pnpm build       # production build
 pnpm preview     # preview the production build locally
 pnpm typecheck   # tsc --noEmit
-pnpm lint        # if configured
-pnpm test        # vitest, if configured
+pnpm test        # vitest (no test files yet)
 ```
 
 Before committing, run `pnpm typecheck` and `pnpm build` and confirm both pass.
@@ -118,7 +133,8 @@ Before committing, run `pnpm typecheck` and `pnpm build` and confirm both pass.
 - **Switching from kinematic to dynamic physics for the player.** Don't.
   If something is broken, it's almost certainly fixable inside kinematic.
 - **Putting per-frame state in Zustand.** Don't. Use refs.
-- **Inlining large GLTFs into the bundle.** Put them in `public/models/`.
+- **Inlining large assets into the bundle.** If you add a GLTF, texture, or
+  audio file, put it under `public/` — don't inline it.
 
 ## What to do without asking
 
@@ -129,6 +145,5 @@ Before committing, run `pnpm typecheck` and `pnpm build` and confirm both pass.
 
 ## Pointers
 
-- Project plan: `docs/plan.md`
-- Current phase: `docs/phase-1.md`
+- Concept, current systems, keep/cut list: `docs/plan.md`
 - This file: keep it short. If it grows past 200 lines, split.
