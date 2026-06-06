@@ -7,80 +7,117 @@ import {
   type PlayerState,
 } from 'playroomkit'
 
+import { track } from '../lib/analytics'
 import { useGameStore } from '../state/useGameStore'
+import { lastLocalFireAt, registerNet, unregisterNet } from './netBridge'
 import { pushShot } from './shots'
 import {
   playroom,
   remotePlayerHandles,
   remoteSnapshots,
-  type RemoteSnapshot,
 } from './playroomState'
 
 const RESPAWN_DELAY_MS = 1800
 
+/** One shared public room: every visitor lands in the same place, so if
+ * anyone else is around you can immediately see and shoot them. */
+const ROOM_CODE = 'amsterdam-canal'
+const MAX_PLAYERS = 12
+
 /**
- * Top-level multiplayer lifecycle. Mounted once at the route level
- * (client-only). Exposes nothing — listens to the game store for the
- * "user clicked Multiplayer" trigger, then enters the Playroom lobby
- * and registers RPC handlers.
+ * Multiplayer lifecycle, lazy-loaded and mounted once at the route level
+ * (client-only). Connects automatically on mount — there's no lobby and
+ * no "join" button. Being the only module that imports `playroomkit`, it
+ * gets code-split into its own chunk; the rest of the game talks to the
+ * network through the dependency-free `netBridge`.
  */
 export function PlayroomProvider() {
-  const wantJoin = useGameStore((s) => s.multiplayerJoined)
   const initStartedRef = useRef(false)
   const respawnTimerRef = useRef<number | null>(null)
 
-  // Enter the Playroom lobby once the user opts in.
+  // Connect on mount. Open the page → you're in the shared room.
   useEffect(() => {
-    if (!wantJoin || initStartedRef.current) return
+    if (initStartedRef.current) return
     initStartedRef.current = true
 
-    // GameId from joinplayroom.com — falls back to dev mode if absent.
-    // Set VITE_PLAYROOM_GAME_ID to override for a different game.
     const gameId =
       (import.meta.env.VITE_PLAYROOM_GAME_ID as string | undefined) ??
       '2UqOeQa5wobIMg14yURV'
 
+    // Wire the in-canvas Gun / PlayerStateSync (which only know about the
+    // bridge) to the live network now that this layer has loaded.
+    registerNet({
+      shot: (p) => {
+        if (!playroom.joined) return
+        try {
+          RPC.call('shot', p, RPC.Mode.OTHERS)
+        } catch (e) {
+          console.warn('[playroom] shot RPC failed', e)
+        }
+      },
+      snapshot: (s) => {
+        if (!playroom.joined) return
+        try {
+          myPlayer().setState('s', s, false)
+        } catch (e) {
+          console.warn('[playroom] setState failed', e)
+        }
+      },
+    })
+
     insertCoin(
       {
         gameId,
-        maxPlayersPerRoom: 8,
-        skipLobby: false,
+        roomCode: ROOM_CODE,
+        maxPlayersPerRoom: MAX_PLAYERS,
+        skipLobby: true,
         defaultPlayerStates: {
-          s: { x: 0, y: 1, z: 0, yaw: 0, hp: 100, dead: false, t: 0 },
+          s: { x: 0, y: 1, z: 0, yaw: 0, hp: 100, dead: false, receivedAt: 0 },
         },
       },
       () => {
         playroom.joined = true
         playroom.myId = myPlayer().id
+        useGameStore.getState().setMultiplayerJoined(true)
+        track('multiplayer_connected')
       },
       (err) => {
-        console.error('[playroom] failed to enter lobby', err)
-        useGameStore.getState().setMultiplayerJoined(false)
-        initStartedRef.current = false
+        console.error('[playroom] failed to connect', err)
       },
     )
 
-    // Track joins & quits — keep handle map in sync; quits also clear snapshots.
+    // Track joins & quits — keep the handle map (for per-frame state
+    // reads) and the store peer list (for presence + avatars) in sync.
     const unsub = onPlayerJoin((player: PlayerState) => {
       remotePlayerHandles.set(player.id, player)
+      if (player.id !== myPlayer().id) {
+        const profile = player.getProfile()
+        useGameStore.getState().addPeer({
+          id: player.id,
+          name: profile.name ?? 'stranger',
+          color: profile.color?.hexString ?? '#e07a5f',
+        })
+        track('peer_joined', { peers: useGameStore.getState().peers.length })
+      }
       player.onQuit(() => {
         remotePlayerHandles.delete(player.id)
         remoteSnapshots.delete(player.id)
+        useGameStore.getState().removePeer(player.id)
+        track('peer_left', { peers: useGameStore.getState().peers.length })
       })
     })
 
     return () => {
       unsub()
+      unregisterNet()
     }
-  }, [wantJoin])
+  }, [])
 
-  // RPC handlers — bind once when joined.
+  // RPC handlers — incoming shots and kill credit.
   useEffect(() => {
-    if (!wantJoin) return
-
     // Other players announce they shot. Render the tracer locally; if
-    // we're the named victim, apply damage and (if it kills us) tell
-    // the shooter via 'killed-by' so they can score the kill.
+    // we're the named victim, apply damage and (if it kills us) tell the
+    // shooter via 'killed-by' so they can score the kill.
     const unshot = RPC.register(
       'shot',
       async (
@@ -100,8 +137,6 @@ export function PlayroomProvider() {
 
         if (data.victimId && data.victimId === playroom.myId) {
           const store = useGameStore.getState()
-          // hp=0 just marks us dying; the auto-respawn timer below brings
-          // us back. Death is never terminal.
           store.takeDamage(data.damage, 'shot')
           if (useGameStore.getState().health <= 0) {
             const killerName = sender.getProfile().name ?? 'someone'
@@ -120,20 +155,14 @@ export function PlayroomProvider() {
       },
     )
 
-    // The victim tells us we killed them. senderPlayer is the second arg.
+    // The victim tells everyone who died; credit the kill to us only if
+    // we fired in the last second (cheap heuristic — no server auth).
     const unkilled = RPC.register(
       'killed-by',
       async (data: { victimName: string }, sender: PlayerState) => {
-        // Only the shooter (whoever fired the matching 'shot') should
-        // score; we can't easily tag that, so credit whoever the victim
-        // last took damage from. Simplification: every shooter who hit
-        // the now-dead victim within the cooldown gets credit on their
-        // own client. Cheap heuristic: only count if I fired in the last 1s.
-        const lastFire = lastLocalFireAt.value
-        if (performance.now() - lastFire < 1000) {
+        if (performance.now() - lastLocalFireAt.value < 1000) {
           useGameStore.getState().addKill(data.victimName)
         }
-        // Silence unused-var lint.
         void sender
       },
     )
@@ -142,11 +171,10 @@ export function PlayroomProvider() {
       unshot()
       unkilled()
     }
-  }, [wantJoin])
+  }, [])
 
-  // Auto-respawn: when hp hits 0 in multiplayer, wait then heal+teleport.
+  // Auto-respawn: when hp hits 0 in multiplayer, wait then heal + teleport.
   useEffect(() => {
-    if (!wantJoin) return
     return useGameStore.subscribe((state) => {
       if (
         state.multiplayerJoined &&
@@ -159,46 +187,7 @@ export function PlayroomProvider() {
         }, RESPAWN_DELAY_MS)
       }
     })
-  }, [wantJoin])
+  }, [])
 
   return null
-}
-
-/** Module-scope timestamp so the kill-credit heuristic can read it. */
-export const lastLocalFireAt = { value: 0 }
-
-/** Helper for the local Gun: push our own shot to the network and to the
- * local tracer queue in one call. */
-export function broadcastShot(
-  ox: number,
-  oy: number,
-  oz: number,
-  hx: number,
-  hy: number,
-  hz: number,
-  victimId: string | null,
-  damage: number,
-): void {
-  pushShot(ox, oy, oz, hx, hy, hz)
-  lastLocalFireAt.value = performance.now()
-  if (!playroom.joined) return
-  try {
-    RPC.call(
-      'shot',
-      { ox, oy, oz, hx, hy, hz, victimId, damage },
-      RPC.Mode.OTHERS,
-    )
-  } catch (e) {
-    console.warn('[playroom] shot RPC failed', e)
-  }
-}
-
-/** Helper for PlayerStateSync: broadcast my latest snapshot. */
-export function broadcastSnapshot(snapshot: RemoteSnapshot): void {
-  if (!playroom.joined) return
-  try {
-    myPlayer().setState('s', snapshot, false)
-  } catch (e) {
-    console.warn('[playroom] setState failed', e)
-  }
 }

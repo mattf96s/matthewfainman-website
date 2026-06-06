@@ -13,6 +13,10 @@ export const mobileInput = {
   joystickForward: 0,
   /** Joystick contribution. -1 (left) → 1 (right). */
   joystickRight: 0,
+  /** True while the on-screen FIRE button is held (hold to auto-fire). */
+  firePressed: false,
+  /** True while the on-screen JUMP button is held. */
+  jumpPressed: false,
   /** True once a deviceorientation event has been received. */
   hasGyro: false,
   /** True once we've tried to obtain permission (iOS requires it). */
@@ -35,6 +39,8 @@ export function resetMobileInput() {
   mobileInput.gyroRight = 0
   mobileInput.joystickForward = 0
   mobileInput.joystickRight = 0
+  mobileInput.firePressed = false
+  mobileInput.jumpPressed = false
   mobileInput.calibrated = false
 }
 

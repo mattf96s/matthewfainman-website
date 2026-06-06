@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 
-import { broadcastSnapshot } from '../../multiplayer/PlayroomProvider'
+import { broadcastSnapshot } from '../../multiplayer/netBridge'
 import {
   playroom,
   remotePlayerHandles,

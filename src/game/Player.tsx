@@ -166,10 +166,12 @@ export function Player() {
     // suppressed during knockback — we already set yVelocity on entry)
     const grounded = controller.computedGrounded()
     if (grounded && yVelocity.current < 0) yVelocity.current = 0
-    if (!knockback && jump && !wasJumpPressed.current && grounded) {
+    // jump from keyboard (Space) or the on-screen mobile JUMP button
+    const jumpInput = jump || (!frozen && !knockback && mobileInput.jumpPressed)
+    if (!knockback && jumpInput && !wasJumpPressed.current && grounded) {
       yVelocity.current = PLAYER_JUMP_SPEED
     }
-    wasJumpPressed.current = !!jump
+    wasJumpPressed.current = !!jumpInput
     yVelocity.current -= GRAVITY * delta
 
     move.current.set(planar.current.x, yVelocity.current * delta, planar.current.z)
@@ -202,9 +204,9 @@ export function Player() {
       if (fallingSince.current === null) {
         fallingSince.current = now
       } else if (now - fallingSince.current >= FALL_RESET_MS) {
-        const store = useGameStore.getState()
-        store.reset()
-        store.setStarted(false)
+        // Fell off the world — just pop back at spawn. Death is never
+        // terminal and there's no title screen to return to, so don't
+        // reset score or freeze the player.
         rb.setTranslation(
           { x: SPAWN[0], y: SPAWN[1], z: SPAWN[2] },
           true,

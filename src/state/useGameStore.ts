@@ -7,7 +7,9 @@ interface GameState {
   locked: boolean
   setLocked: (locked: boolean) => void
 
-  /** True after the player begins — gates the title screen. */
+  /** Whether the sim is live. Defaults true so visitors drop straight into
+   * a moving scene — there's no blocking title screen. Kept as a flag so
+   * pause and per-frame systems have a single gate to check. */
   started: boolean
   setStarted: (started: boolean) => void
 
@@ -34,9 +36,15 @@ interface GameState {
    * the respawn overlay. Null while alive. */
   deathReason: string | null
 
-  /** True once the player has clicked through the Playroom lobby. */
+  /** True once we've connected to the shared Playroom room. */
   multiplayerJoined: boolean
   setMultiplayerJoined: (joined: boolean) => void
+
+  /** Other connected players, for presence UI + remote avatars. Updated
+   * on join/leave only — never per frame. */
+  peers: Peer[]
+  addPeer: (peer: Peer) => void
+  removePeer: (id: string) => void
 
   /** Bumped each time the Player controller should teleport to spawn —
    * used by the multiplayer bridge to respawn the player after death. */
@@ -63,11 +71,19 @@ export interface KillFeedEntry {
   at: number
 }
 
+export interface Peer {
+  id: string
+  name: string
+  color: string
+}
+
 const KILL_FEED_MAX = 5
 let killFeedNextId = 1
 
 export const MAX_HEALTH = 100
 const NEAR_MISS_BONUS = 5
+/** Score awarded for eliminating another player. */
+const KILL_SCORE = 100
 
 export const useGameStore = create<GameState>((set) => ({
   fps: 0,
@@ -76,7 +92,7 @@ export const useGameStore = create<GameState>((set) => ({
   locked: false,
   setLocked: (locked) => set({ locked }),
 
-  started: false,
+  started: true,
   setStarted: (started) => set({ started }),
 
   paused: false,
@@ -115,6 +131,16 @@ export const useGameStore = create<GameState>((set) => ({
   multiplayerJoined: false,
   setMultiplayerJoined: (multiplayerJoined) => set({ multiplayerJoined }),
 
+  peers: [],
+  addPeer: (peer) =>
+    set((s) =>
+      s.peers.some((p) => p.id === peer.id)
+        ? s
+        : { peers: [...s.peers, peer] },
+    ),
+  removePeer: (id) =>
+    set((s) => ({ peers: s.peers.filter((p) => p.id !== id) })),
+
   /** Increments when the local player should be teleported back to spawn.
    * Player.tsx subscribes to it; both the solo AutoRespawn system and the
    * multiplayer Playroom bridge bump it (via respawn()) after a death. */
@@ -132,6 +158,7 @@ export const useGameStore = create<GameState>((set) => ({
   addKill: (victimName) =>
     set((s) => ({
       kills: s.kills + 1,
+      score: s.score + KILL_SCORE,
       killFeed: [
         { id: killFeedNextId++, killer: 'You', victim: victimName, at: Date.now() },
         ...s.killFeed,
