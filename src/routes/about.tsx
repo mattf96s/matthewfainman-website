@@ -1,5 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { motion, type Variants } from 'motion/react'
+import { ArrowLeft, Github, Linkedin } from 'lucide-react'
 
+import { BackdropParallaxSvg } from '../components/about/BackdropParallaxSvg'
+import { profile } from '../lib/profile'
 import { seo } from '../lib/seo'
 
 export const Route = createFileRoute('/about')({
@@ -7,26 +11,136 @@ export const Route = createFileRoute('/about')({
   head: () =>
     seo({
       title: 'About',
-      description:
-        'About Matthew Fainman — what I work on, what I built this site with, and how to get in touch.',
+      description: 'Matthew Fainman — a software developer in Amsterdam.',
       path: '/about',
     }),
 })
 
+const container: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08, delayChildren: 0.15 } },
+}
+const item: Variants = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
+}
+
 function About() {
   return (
-    <main className="page-wrap px-4 py-12">
-      <section className="island-shell rounded-2xl p-6 sm:p-8">
-        <p className="island-kicker mb-2">About</p>
-        <h1 className="display-title mb-3 text-4xl font-bold text-[var(--sea-ink)] sm:text-5xl">
-          A small starter with room to grow.
-        </h1>
-        <p className="m-0 max-w-3xl text-base leading-8 text-[var(--sea-ink-soft)]">
-          TanStack Start gives you type-safe routing, server functions, and
-          modern SSR defaults. Use this as a clean foundation, then layer in
-          your own routes, styling, and add-ons.
-        </p>
-      </section>
-    </main>
+    <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', background: '#0a1418' }}>
+      <BackdropParallaxSvg />
+
+      {/* readability scrim — darkens bottom-left where the text sits */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          background:
+            'linear-gradient(90deg, rgba(5,11,15,0.82) 0%, rgba(5,11,15,0.45) 34%, rgba(5,11,15,0) 62%), linear-gradient(0deg, rgba(5,11,15,0.86) 0%, rgba(5,11,15,0.22) 34%, rgba(5,11,15,0) 58%)',
+        }}
+      />
+
+      {/* back to the game */}
+      <Link
+        to="/"
+        className="inline-flex items-center gap-2 no-underline"
+        style={{
+          position: 'absolute',
+          top: 20,
+          left: 20,
+          padding: '8px 14px',
+          borderRadius: 999,
+          fontSize: 13,
+          fontWeight: 600,
+          color: '#fff',
+          background: 'rgba(255,255,255,0.14)',
+          border: '1px solid rgba(255,255,255,0.28)',
+          backdropFilter: 'blur(6px)',
+        }}
+      >
+        <ArrowLeft size={16} strokeWidth={2} />
+        Back to the game
+      </Link>
+
+      {/* content, lower-left, HUD-style over the scene */}
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        style={{
+          position: 'absolute',
+          left: 0,
+          bottom: 0,
+          maxWidth: 820,
+          padding: '0 clamp(22px, 6vw, 88px) clamp(40px, 9vh, 104px)',
+          color: '#fff',
+          fontFamily:
+            'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+          textShadow: '0 2px 16px rgba(0,0,0,0.6)',
+        }}
+      >
+        <motion.p
+          variants={item}
+          className="island-kicker"
+          style={{ color: '#c9eee7', margin: 0 }}
+        >
+          Matthew Fainman
+        </motion.p>
+        <motion.h1
+          variants={item}
+          className="display-title"
+          style={{
+            margin: '10px 0 0',
+            fontSize: 'clamp(36px, 6.4vw, 66px)',
+            lineHeight: 1.04,
+            fontWeight: 700,
+            maxWidth: 720,
+          }}
+        >
+          I’m a software developer in Amsterdam.
+        </motion.h1>
+
+        <motion.div
+          variants={item}
+          style={{ marginTop: 26, display: 'flex', flexWrap: 'wrap', gap: 12 }}
+        >
+          <SocialLink href={profile.github} label="GitHub">
+            <Github size={16} strokeWidth={1.8} />
+          </SocialLink>
+          <SocialLink href={profile.linkedin} label="LinkedIn">
+            <Linkedin size={16} strokeWidth={1.8} />
+          </SocialLink>
+        </motion.div>
+      </motion.div>
+    </div>
+  )
+}
+
+function SocialLink({
+  href,
+  label,
+  children,
+}: {
+  href: string
+  label: string
+  children: React.ReactNode
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold no-underline"
+      style={{
+        color: '#fff',
+        background: 'rgba(255,255,255,0.16)',
+        border: '1px solid rgba(255,255,255,0.3)',
+        backdropFilter: 'blur(6px)',
+      }}
+    >
+      {children}
+      {label}
+    </a>
   )
 }
