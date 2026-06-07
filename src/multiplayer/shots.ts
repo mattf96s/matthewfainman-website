@@ -16,7 +16,7 @@ export interface ShotEvent {
   startedAt: number
 }
 
-export const TRACER_LIFETIME_MS = 140
+export const TRACER_LIFETIME_MS = 200
 export const GUN_DAMAGE = 25
 export const GUN_RANGE = 80
 /** Cooldown between local shots (ms). */
