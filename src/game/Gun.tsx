@@ -15,6 +15,7 @@ import { playerPosition } from './playerPosition'
 
 const FORWARD = new THREE.Vector3()
 const ORIGIN = new THREE.Vector3()
+const MUZZLE = new THREE.Vector3()
 const HIT = new THREE.Vector3()
 const REMOTE_CENTRE = new THREE.Vector3()
 
@@ -78,11 +79,25 @@ export function Gun() {
     const dist = bestId ? bestT : GUN_RANGE
     HIT.copy(FORWARD).multiplyScalar(dist).add(ORIGIN)
 
+    // Visual tracer starts at the gun muzzle (right shoulder, nudged forward),
+    // NOT the eye. Emitting from the eye put the muzzle flash inside the player
+    // capsule and the beam dead-on the view axis — so both were invisible to
+    // the shooter. The endpoint stays the crosshair hit point, so aim and hit
+    // detection are unchanged; only where the streak is drawn from moves.
+    const yaw = cameraState.yaw
+    const sx = 0.32 * Math.cos(yaw) + (PLAYER_RADIUS + 0.05) * -Math.sin(yaw)
+    const sz = 0.32 * -Math.sin(yaw) + (PLAYER_RADIUS + 0.05) * -Math.cos(yaw)
+    MUZZLE.set(
+      playerPosition.x + sx + FORWARD.x * 0.4,
+      playerPosition.y + 0.55 + FORWARD.y * 0.4,
+      playerPosition.z + sz + FORWARD.z * 0.4,
+    )
+
     // Broadcast to the network + local Tracers.
-    broadcastShot(ORIGIN.x, ORIGIN.y, ORIGIN.z, HIT.x, HIT.y, HIT.z, bestId, GUN_DAMAGE)
+    broadcastShot(MUZZLE.x, MUZZLE.y, MUZZLE.z, HIT.x, HIT.y, HIT.z, bestId, GUN_DAMAGE)
 
     // Feedback: kick + shot sound; brighter "ding" + hitmarker on a tag.
-    triggerCameraShake(80, 0.04)
+    triggerCameraShake(90, 0.08)
     sfx.play('shoot')
     if (bestId) {
       sfx.play('hitConfirm')
