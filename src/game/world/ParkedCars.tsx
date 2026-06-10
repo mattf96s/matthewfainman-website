@@ -89,12 +89,12 @@ function ParkedCar({ side, z, color, facing = 1 }: ParkedCarSpec) {
       position={[x, CAR_H / 2 + 0.05, z]}
       rotation={[0, yRot + wobble, 0]}
     >
-      <mesh castShadow receiveShadow>
+      <mesh receiveShadow>
         <boxGeometry args={[CAR_W, CAR_H * 0.55, CAR_L]} />
         <meshStandardMaterial color={color} roughness={0.6} metalness={0.25} />
       </mesh>
 
-      <mesh castShadow position={[0, CAR_H * 0.4, -0.1]}>
+      <mesh position={[0, CAR_H * 0.4, -0.1]}>
         <boxGeometry args={[CAR_W * 0.92, CAR_H * 0.45, CAR_L * 0.55]} />
         <meshStandardMaterial color={color} roughness={0.65} metalness={0.2} />
       </mesh>
@@ -133,7 +133,7 @@ function ParkedCar({ side, z, color, facing = 1 }: ParkedCarSpec) {
       ].map(([wx, wz]) => (
         <mesh
           key={`${wx},${wz}`}
-          castShadow
+         
           position={[wx, -CAR_H * 0.25, wz]}
           rotation={[0, 0, Math.PI / 2]}
         >

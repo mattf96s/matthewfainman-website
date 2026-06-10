@@ -37,7 +37,7 @@ export function BikeRacks() {
   return (
     <group>
       {/* horizontal bar (top of the U) */}
-      <Instances limit={positions.length} castShadow>
+      <Instances limit={positions.length}>
         <cylinderGeometry args={[STAPLE_RADIUS, STAPLE_RADIUS, STAPLE_WIDTH, 8]} />
         <meshStandardMaterial color="#1a1a1a" roughness={0.6} metalness={0.4} />
         {positions.map((p, i) => (
@@ -50,7 +50,7 @@ export function BikeRacks() {
       </Instances>
 
       {/* left leg */}
-      <Instances limit={positions.length} castShadow>
+      <Instances limit={positions.length}>
         <cylinderGeometry args={[STAPLE_RADIUS, STAPLE_RADIUS, STAPLE_HEIGHT, 8]} />
         <meshStandardMaterial color="#1a1a1a" roughness={0.6} metalness={0.4} />
         {positions.map((p, i) => (
@@ -62,7 +62,7 @@ export function BikeRacks() {
       </Instances>
 
       {/* right leg */}
-      <Instances limit={positions.length} castShadow>
+      <Instances limit={positions.length}>
         <cylinderGeometry args={[STAPLE_RADIUS, STAPLE_RADIUS, STAPLE_HEIGHT, 8]} />
         <meshStandardMaterial color="#1a1a1a" roughness={0.6} metalness={0.4} />
         {positions.map((p, i) => (

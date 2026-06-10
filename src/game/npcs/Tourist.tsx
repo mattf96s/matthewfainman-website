@@ -92,12 +92,12 @@ export function Tourist({
           <meshStandardMaterial color={trousers} roughness={0.8} />
         </mesh>
         {/* shirt */}
-        <mesh castShadow position={[0, 1.1, 0]}>
+        <mesh position={[0, 1.1, 0]}>
           <capsuleGeometry args={[0.24, 0.45, 4, 8]} />
           <meshStandardMaterial color={shirt} roughness={0.85} />
         </mesh>
         {/* head */}
-        <mesh castShadow position={[0, 1.6, 0]}>
+        <mesh position={[0, 1.6, 0]}>
           <sphereGeometry args={[0.2, 12, 10]} />
           <meshStandardMaterial color={skin} roughness={0.7} />
         </mesh>

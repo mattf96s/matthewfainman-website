@@ -76,6 +76,14 @@ This is well past a prototype. What works today:
 - **Audio** — procedural sfx engine + looping Leidsestraat street ambience
   (CC0 field recording, gapless Web Audio loop), one shared mute toggle.
   (`src/lib/sfx.ts`, `public/audio/`)
+- **Perf** — shadow casters limited to large/identity objects; touch
+  devices skip the shadow pass and MSAA entirely and render at lower
+  dpr (phones were running hot). Budgets enforced in CI. (`src/game/Game.tsx`)
+- **Tests** — vitest for pure logic (`src/lib/*.test.ts`); Playwright
+  E2E + perf budgets against the production build via a `?e2e` test API
+  (draw calls / triangles / geometry plateaus — deterministic metrics,
+  not fps). `?room=` isolates test rooms from real visitors.
+  (`e2e/`, `src/game/TestApiBridge.tsx`, `.github/workflows/ci.yml`)
 - **Shell** — TanStack Start app, game is the homepage, HUD, PostHog wired.
 
 ## What to absolutely nail (in priority order)

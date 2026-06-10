@@ -33,6 +33,14 @@ const RESPAWN_DELAY_MS = 1800
 const ROOM_CODE = 'amsterdam-canal'
 const MAX_PLAYERS = 12
 
+/** `?room=foo` overrides the shared room — E2E tests need isolation
+ * from real visitors (and from each other), and it doubles as a way to
+ * play a private match. */
+function resolveRoomCode(): string {
+  if (typeof window === 'undefined') return ROOM_CODE
+  return new URLSearchParams(window.location.search).get('room') ?? ROOM_CODE
+}
+
 /**
  * Push our snapshot immediately, outside the 20Hz frame-loop cadence.
  * The frame loop pauses with rAF when the tab is backgrounded, but RPCs
@@ -106,7 +114,7 @@ export function PlayroomProvider() {
     insertCoin(
       {
         gameId,
-        roomCode: ROOM_CODE,
+        roomCode: resolveRoomCode(),
         maxPlayersPerRoom: MAX_PLAYERS,
         skipLobby: true,
         defaultPlayerStates: {

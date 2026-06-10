@@ -112,14 +112,14 @@ export function Flag({
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       {/* mounting bracket against the wall */}
-      <mesh castShadow position={[0.06, 0, 0]}>
+      <mesh position={[0.06, 0, 0]}>
         <boxGeometry args={[0.12, 0.22, 0.22]} />
         <meshStandardMaterial color="#161616" roughness={0.7} />
       </mesh>
 
       {/* horizontal pole along local +X */}
       <mesh
-        castShadow
+       
         position={[poleLength / 2, 0, 0]}
         rotation={[0, 0, Math.PI / 2]}
       >
@@ -128,7 +128,7 @@ export function Flag({
       </mesh>
 
       {/* finial — small gold ball at the far end */}
-      <mesh castShadow position={[poleLength + 0.06, 0, 0]}>
+      <mesh position={[poleLength + 0.06, 0, 0]}>
         <sphereGeometry args={[0.08, 10, 8]} />
         <meshStandardMaterial color="#f4c84d" metalness={0.6} roughness={0.3} />
       </mesh>
@@ -138,7 +138,7 @@ export function Flag({
         ref={flag}
         position={[flagAnchorX - FLAG_W / 2, -FLAG_H / 2 - 0.05, 0]}
       >
-        <mesh castShadow>
+        <mesh>
           <planeGeometry args={[FLAG_W, FLAG_H, 6, 6]} />
           <meshStandardMaterial
             map={texture}

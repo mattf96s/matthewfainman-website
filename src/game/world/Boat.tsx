@@ -126,7 +126,7 @@ export function Boat({
     <group ref={group} position={[x, waterY, z]} rotation={[0, rotationY, 0]}>
       {/* hull — extruded shape rotated so depth becomes downward y */}
       <mesh
-        castShadow
+       
         receiveShadow
         geometry={hullGeometry}
         rotation={[-Math.PI / 2, 0, 0]}
@@ -160,7 +160,7 @@ export function Boat({
         <>
           {/* rolled tarp / boat cover stretched over the middle */}
           <mesh
-            castShadow
+           
             position={[0, rimY + COVER_HEIGHT / 2, 0]}
           >
             <boxGeometry
@@ -184,7 +184,7 @@ export function Boat({
       {variant === 'cabin' && (
         <>
           <mesh
-            castShadow
+           
             position={[0, rimY + CABIN_HEIGHT / 2, -length * 0.18]}
           >
             <boxGeometry
@@ -261,7 +261,7 @@ export function Boat({
           <>
             {/* main cabin / living quarters */}
             <mesh
-              castShadow
+             
               receiveShadow
               position={[0, rimY + HOUSEBOAT_CABIN_HEIGHT / 2, cabinZ]}
             >

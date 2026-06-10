@@ -12,3 +12,7 @@ dist-ssr
 __unconfig*
 todos.json
 .vercel
+
+# test artifacts
+test-results/
+playwright-report/

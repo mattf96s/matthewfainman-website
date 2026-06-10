@@ -18,13 +18,13 @@ export function Bin({ position: [x, z] }: BinProps) {
       />
 
       {/* post */}
-      <mesh castShadow position={[0, 0.2, 0]}>
+      <mesh position={[0, 0.2, 0]}>
         <cylinderGeometry args={[0.04, 0.04, 0.4, 8]} />
         <meshStandardMaterial color="#1c1c1c" />
       </mesh>
 
       {/* bin body */}
-      <mesh castShadow position={[0, 0.2 + BIN_H / 2, 0]}>
+      <mesh position={[0, 0.2 + BIN_H / 2, 0]}>
         <boxGeometry args={[BIN_W, BIN_H, BIN_D]} />
         <meshStandardMaterial color="#2e3f33" roughness={0.85} />
       </mesh>

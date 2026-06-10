@@ -95,13 +95,13 @@ export function RemotePlayer({ id, name, color }: RemotePlayerProps) {
         <meshStandardMaterial color={color} />
       </mesh>
       {/* small "nose" — facing indicator, matches local player style */}
-      <mesh castShadow position={[0, 0.3, PLAYER_RADIUS + 0.05]}>
+      <mesh position={[0, 0.3, PLAYER_RADIUS + 0.05]}>
         <boxGeometry args={[0.12, 0.12, 0.12]} />
         <meshStandardMaterial color="#1a1a1a" />
       </mesh>
       {/* gun in the right hand — extends in front of the avatar */}
       <group position={[0.32, 0.55, PLAYER_RADIUS + 0.05]}>
-        <mesh castShadow>
+        <mesh>
           <boxGeometry args={[0.12, 0.14, 0.55]} />
           <meshStandardMaterial color="#2a2a2a" roughness={0.6} metalness={0.4} />
         </mesh>

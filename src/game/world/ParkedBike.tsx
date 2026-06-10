@@ -37,7 +37,7 @@ export function ParkedBike({
       <CuboidCollider args={[0.4, 0.55, LENGTH / 2]} position={[0, 0.55, 0]} />
 
       {/* frame top bar */}
-      <mesh castShadow position={[0, 0.55, 0]}>
+      <mesh position={[0, 0.55, 0]}>
         <boxGeometry args={[FRAME_W, 0.5, LENGTH * 0.7]} />
         <meshStandardMaterial color={frameColor} roughness={0.8} />
       </mesh>
@@ -46,7 +46,7 @@ export function ParkedBike({
       {[-LENGTH / 2 + 0.25, LENGTH / 2 - 0.25].map((zOffset) => (
         <mesh
           key={zOffset}
-          castShadow
+         
           position={[0, WHEEL_R, zOffset]}
           rotation={[0, 0, Math.PI / 2]}
         >
@@ -56,13 +56,13 @@ export function ParkedBike({
       ))}
 
       {/* handlebars */}
-      <mesh castShadow position={[0, 0.95, LENGTH / 2 - 0.25]}>
+      <mesh position={[0, 0.95, LENGTH / 2 - 0.25]}>
         <boxGeometry args={[0.6, 0.05, 0.05]} />
         <meshStandardMaterial color="#222" />
       </mesh>
 
       {/* saddle */}
-      <mesh castShadow position={[0, 0.95, -LENGTH / 2 + 0.35]}>
+      <mesh position={[0, 0.95, -LENGTH / 2 + 0.35]}>
         <boxGeometry args={[0.18, 0.06, 0.3]} />
         <meshStandardMaterial color={frameColor} />
       </mesh>

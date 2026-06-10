@@ -123,7 +123,7 @@ function BankFace({ side, z, length }: BankFaceProps) {
   const totalH = CANAL_DEPTH + BANK_TOP_Y + BANK_BELOW_WATER
   const cy = (BANK_TOP_Y - CANAL_DEPTH - BANK_BELOW_WATER) / 2
   return (
-    <mesh receiveShadow castShadow position={[x, cy, z]}>
+    <mesh receiveShadow position={[x, cy, z]}>
       <boxGeometry args={[BANK_FACE_THICKNESS, totalH, length]} />
       <meshStandardMaterial color="#605a52" roughness={0.95} />
     </mesh>
