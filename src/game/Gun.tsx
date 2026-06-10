@@ -24,9 +24,11 @@ const CAP = new THREE.Vector3()
 const HIT_PADDING = 0.25
 
 /**
- * CS-style shooting: ray from the camera through screen-centre. The gun
- * mesh hangs off the player's right shoulder so others see where we're
- * aiming.
+ * Third-person shooting: the hit ray leaves the camera through screen
+ * centre, so the crosshair is the ground truth for where shots land
+ * (FollowCamera aims the view past the player for the same reason).
+ * The gun mesh hangs off the player's right shoulder so others see
+ * where we're aiming.
  *
  * Two input paths share one `fire()`:
  *   - Desktop: left mouse, but only once pointer-locked.
@@ -57,15 +59,22 @@ export function Gun() {
     lastFire.current = now
     recoilUntil.current = now + 80
 
-    // Origin: a hand's-length in front of the player, eye-height.
-    ORIGIN.set(
-      playerPosition.x,
-      playerPosition.y + PLAYER_HEIGHT * 0.6,
-      playerPosition.z,
-    )
-
-    // Forward = camera forward (matches the on-screen crosshair).
+    // Crosshair-true ray: from the camera through screen centre, so
+    // whatever sits under the crosshair is what gets hit.
+    camera.getWorldPosition(ORIGIN)
     camera.getWorldDirection(FORWARD)
+
+    // The camera floats ~6m behind the player, so the first stretch of
+    // the ray is *behind* the avatar. Project the player onto the ray
+    // and ignore anything meaningfully closer — you can't shoot what's
+    // behind your own back. Small slack keeps body-hugging targets
+    // shootable, and range is measured from the player, not the camera.
+    const tPlayer =
+      (playerPosition.x - ORIGIN.x) * FORWARD.x +
+      (playerPosition.y + PLAYER_HEIGHT * 0.6 - ORIGIN.y) * FORWARD.y +
+      (playerPosition.z - ORIGIN.z) * FORWARD.z
+    const tMin = Math.max(0, tPlayer - 1)
+    const tMax = tPlayer + GUN_RANGE
 
     // Find the closest remote-player hit. The snapshot y is the capsule
     // centre, so the test capsule spans the whole avatar — head to feet.
@@ -84,14 +93,14 @@ export function Gun() {
         PLAYER_HEIGHT / 2,
         hitRadius,
       )
-      if (t !== null && t < bestT && t <= GUN_RANGE) {
+      if (t !== null && t >= tMin && t < bestT && t <= tMax) {
         bestT = t
         bestId = id
       }
     }
 
-    // Endpoint: hit point if we hit someone, else GUN_RANGE down the ray.
-    const dist = bestId ? bestT : GUN_RANGE
+    // Endpoint: hit point if we hit someone, else max range down the ray.
+    const dist = bestId ? bestT : tMax
     HIT.copy(FORWARD).multiplyScalar(dist).add(ORIGIN)
 
     // Visual tracer starts at the gun muzzle (right shoulder, nudged forward),

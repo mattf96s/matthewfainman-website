@@ -7,12 +7,14 @@ import {
   CAMERA_DISTANCE,
   CAMERA_HEIGHT,
   CAMERA_LERP,
+  CAMERA_LOOK_AHEAD,
 } from './constants'
 
 export function FollowCamera() {
   const { camera, scene } = useThree()
   const target = useRef(new THREE.Vector3())
   const desired = useRef(new THREE.Vector3())
+  const lookTarget = useRef(new THREE.Vector3())
 
   useFrame(() => {
     const player = scene.getObjectByName('player')
@@ -49,7 +51,18 @@ export function FollowCamera() {
       camera.position.z += (Math.random() - 0.5) * k * 2
     }
 
-    camera.lookAt(target.current)
+    // Look along the aim direction, past the player, instead of at the
+    // player. Screen centre (= the crosshair) then sits on the world
+    // ahead and tracks the mouse 1:1, with the player at lower-centre —
+    // standard third-person-shooter framing. The Gun's hit ray goes from
+    // the camera through screen centre, so crosshair and hits agree.
+    const cosP = Math.cos(pitch)
+    lookTarget.current.set(
+      target.current.x - Math.sin(yaw) * cosP * CAMERA_LOOK_AHEAD,
+      target.current.y - Math.sin(pitch) * CAMERA_LOOK_AHEAD,
+      target.current.z - Math.cos(yaw) * cosP * CAMERA_LOOK_AHEAD,
+    )
+    camera.lookAt(lookTarget.current)
   })
 
   return null

@@ -5,8 +5,12 @@ export const PLAYER_JUMP_SPEED = 9
 export const GRAVITY = 25
 
 export const CAMERA_DISTANCE = 6
-export const CAMERA_HEIGHT = 3
+export const CAMERA_HEIGHT = 2.2
 export const CAMERA_LERP = 0.12
+/** How far ahead of the player the camera's look-at point sits. Aiming
+ * the view past the player (instead of at them) is what lets the
+ * crosshair float over the world and track the mouse 1:1. */
+export const CAMERA_LOOK_AHEAD = 10
 export const MOUSE_SENSITIVITY = 0.0025
 /** Radians per second when yawing via Q/E. */
 export const KEYBOARD_YAW_SPEED = 2.2
