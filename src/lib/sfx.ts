@@ -22,9 +22,19 @@ export type SfxName =
 const MUTE_KEY = 'ae:sfx-muted'
 const MASTER_VOLUME = 0.32
 
+/** Looping Amsterdam street ambience — CC0 field recording
+ * (freesound.org #792486 by hz37), pre-processed into a seamless
+ * loudness-normalised ~128s loop. The one sampled asset in an otherwise
+ * procedural soundscape. */
+const AMBIENCE_URL = '/audio/amsterdam-ambience.m4a'
+/** Relative to the master gain — keeps the ambience under the sfx. */
+const AMBIENCE_VOLUME = 0.9
+
 let ctx: AudioContext | null = null
 let master: GainNode | null = null
 let noiseBuffer: AudioBuffer | null = null
+let ambienceGain: GainNode | null = null
+let ambienceStarted = false
 let muted = false
 
 if (typeof window !== 'undefined') {
@@ -173,12 +183,64 @@ export function resume(): void {
   }
 }
 
+/**
+ * Start the looping street ambience. Idempotent; call from a
+ * user-gesture handler so the context is allowed to run. Web Audio
+ * (not an `<audio loop>` element) because AudioBufferSourceNode loops
+ * are gapless. Muting keeps the loop running at zero gain so unmuting
+ * doesn't restart it; the context suspends while the tab is hidden.
+ */
+export function startAmbience(): void {
+  if (ambienceStarted) return
+  const context = ensureContext()
+  const dest = master
+  if (!context || !dest) return
+  ambienceStarted = true
+
+  void fetch(AMBIENCE_URL)
+    .then((res) => {
+      if (!res.ok) throw new Error(`ambience fetch ${res.status}`)
+      return res.arrayBuffer()
+    })
+    .then((data) => context.decodeAudioData(data))
+    .then((buffer) => {
+      const src = context.createBufferSource()
+      src.buffer = buffer
+      src.loop = true
+      ambienceGain = context.createGain()
+      ambienceGain.gain.value = muted ? 0 : AMBIENCE_VOLUME
+      src.connect(ambienceGain)
+      ambienceGain.connect(dest)
+      src.start()
+    })
+    .catch(() => {
+      // network/decode failure — the game just stays quiet
+      ambienceStarted = false
+    })
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      void context.suspend().catch(() => {})
+    } else {
+      void context.resume().catch(() => {})
+    }
+  })
+}
+
 export function isMuted(): boolean {
   return muted
 }
 
 export function setMuted(value: boolean): void {
   muted = value
+  if (ambienceGain && ctx) {
+    // short ramp instead of a hard set so the loop doesn't click
+    ambienceGain.gain.setTargetAtTime(
+      value ? 0 : AMBIENCE_VOLUME,
+      ctx.currentTime,
+      0.05,
+    )
+  }
   if (typeof window !== 'undefined') {
     window.localStorage.setItem(MUTE_KEY, value ? '1' : '0')
   }

@@ -22,10 +22,7 @@ import {
   PLAYER_RADIUS,
   PLAYER_SPEED,
 } from './constants'
-import { X_NEAR_SIDEWALK } from './world/constants'
-
-// offset off the lamp posts (which sit at X_NEAR_SIDEWALK, z = 0, 12, ...)
-const SPAWN: [number, number, number] = [X_NEAR_SIDEWALK + 1.0, 2, 4]
+import { INITIAL_SPAWN, randomSpawn } from './spawnPoints'
 /** If the player drops below this Y, the fall-off timer starts. */
 const FALL_THRESHOLD_Y = -8
 /** How long to keep falling before respawning at the title overlay. */
@@ -71,16 +68,16 @@ export function Player() {
     }
   }, [world])
 
-  // teleport back to spawn whenever the respawn tick bumps (solo and
-  // multiplayer both respawn by incrementing it after a death).
+  // teleport to a fresh spawn whenever the respawn tick bumps (solo and
+  // multiplayer both respawn by incrementing it after a death). Random,
+  // away from the death spot, so deaths don't replay the same ambush.
   useEffect(() => {
     let prevTick = useGameStore.getState().respawnTick
     return useGameStore.subscribe((state) => {
       if (state.respawnTick !== prevTick && body.current) {
-        body.current.setTranslation(
-          { x: SPAWN[0], y: SPAWN[1], z: SPAWN[2] },
-          true,
-        )
+        const pos = body.current.translation()
+        const [x, y, z] = randomSpawn(pos.x, pos.z)
+        body.current.setTranslation({ x, y, z }, true)
         yVelocity.current = 0
       }
       prevTick = state.respawnTick
@@ -204,13 +201,11 @@ export function Player() {
       if (fallingSince.current === null) {
         fallingSince.current = now
       } else if (now - fallingSince.current >= FALL_RESET_MS) {
-        // Fell off the world — just pop back at spawn. Death is never
-        // terminal and there's no title screen to return to, so don't
-        // reset score or freeze the player.
-        rb.setTranslation(
-          { x: SPAWN[0], y: SPAWN[1], z: SPAWN[2] },
-          true,
-        )
+        // Fell off the world — just pop back at a spawn point. Death is
+        // never terminal and there's no title screen to return to, so
+        // don't reset score or freeze the player.
+        const [x, y, z] = randomSpawn(newX, newZ)
+        rb.setTranslation({ x, y, z }, true)
         yVelocity.current = 0
         fallingSince.current = null
       }
@@ -255,7 +250,7 @@ export function Player() {
       name="player"
       type="kinematicPosition"
       colliders={false}
-      position={SPAWN}
+      position={INITIAL_SPAWN}
       enabledRotations={[false, false, false]}
     >
       <CapsuleCollider args={[PLAYER_HEIGHT / 2, PLAYER_RADIUS]} />

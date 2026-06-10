@@ -54,7 +54,8 @@ This is well past a prototype. What works today:
   houses, shops (incl. red-light windows), tram tracks, fietspad, parked
   bikes/cars, props, ambient boats & ducks. (`src/game/world/`)
 - **Player** — kinematic character controller, third-person follow camera,
-  pointer-lock, jump, knockback. (`src/game/Player.tsx`, `FollowCamera.tsx`)
+  pointer-lock, jump, knockback, randomised respawn points spread over both
+  banks. (`src/game/Player.tsx`, `FollowCamera.tsx`, `spawnPoints.ts`)
 - **Hazards** — trams, cars, bikes on splines that damage/knock-back the
   player, with near-miss bonus scoring. (`src/game/hazards/`)
 - **Combat** — hitscan gun, tracers, recoil, camera shake. (`src/game/Gun.tsx`)
@@ -66,6 +67,9 @@ This is well past a prototype. What works today:
 - **Pickups** — Panado bottle = health. (`src/game/pickups/`)
 - **Minimap** — top-right HUD map: street layout, peers, active health drop. (`src/ui/Minimap.tsx`)
 - **Ambient NPCs** — rats, tourists, statiegeld collector. (`src/game/npcs/`)
+- **Audio** — procedural sfx engine + looping Leidsestraat street ambience
+  (CC0 field recording, gapless Web Audio loop), one shared mute toggle.
+  (`src/lib/sfx.ts`, `public/audio/`)
 - **Shell** — TanStack Start app, game is the homepage, HUD, PostHog wired.
 
 ## What to absolutely nail (in priority order)
