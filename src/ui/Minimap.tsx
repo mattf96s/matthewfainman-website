@@ -7,70 +7,93 @@ import {
   BLOCK_LENGTH,
   CANAL_WIDTH,
   CAR_LANE_WIDTH,
-  COLOR_BRIDGE,
-  COLOR_CANAL,
-  COLOR_CANAL_PAVEMENT,
-  COLOR_FIETSPAD,
-  COLOR_MEDIAN,
-  COLOR_ROAD,
-  COLOR_SIDEWALK,
-  CROSS_STREET_WIDTH,
-  CROSS_STREET_X_HALF,
   CROSS_STREET_Z,
   FAR_SIDEWALK_WIDTH,
   FIETSPAD_WIDTH,
-  HOUSE_SIDEWALK_WIDTH,
   MEDIAN_WIDTH,
-  NEAR_SIDEWALK_WIDTH,
   X_CANAL,
   X_CAR_EAST,
   X_CAR_WEST,
   X_FAR_SIDEWALK,
   X_FIETSPAD,
   X_HOUSE_FRONT,
-  X_HOUSE_SIDEWALK,
   X_MEDIAN_EAST,
   X_MEDIAN_WEST,
-  X_NEAR_SIDEWALK,
+  X_ROAD,
 } from '../game/world/constants'
 import { remoteSnapshots } from '../multiplayer/playroomState'
 import { useGameStore } from '../state/useGameStore'
 
 interface MinimapProps {
-  /** Smaller rendering for touch devices, where the bottom-right thumb
-   * cluster needs the vertical room in landscape. */
+  /** Smaller rendering for touch devices. */
   compact?: boolean
 }
 
-// World window the map shows: full street width plus the cross-street up
-// north. North (+z) is up, so map-y = Z_MAX - z.
-const X_MIN = -21
-const X_MAX = 21
-const Z_MIN = -52
-const Z_MAX = 64
+// World window the map shows. Wide enough to include the canal houses on
+// both banks (their bodies reach ±27) so the street is framed by blocks
+// rather than floating as bare stripes. North (+z) is up: map-y = Z_MAX - z.
+const X_MIN = -27
+const X_MAX = 27
+const Z_MIN = -50
+const Z_MAX = 62
 const MAP_W = X_MAX - X_MIN
 const MAP_H = Z_MAX - Z_MIN
 
 const mx = (x: number) => x - X_MIN
 const mz = (z: number) => Z_MAX - z
-const clampX = (x: number) => Math.min(X_MAX - 1, Math.max(X_MIN + 1, x))
-const clampZ = (z: number) => Math.min(Z_MAX - 1, Math.max(Z_MIN + 1, z))
+const clampX = (x: number) => Math.min(X_MAX - 1.5, Math.max(X_MIN + 1.5, x))
+const clampZ = (z: number) => Math.min(Z_MAX - 1.5, Math.max(Z_MIN + 1.5, z))
 
-// The lane strips span the built block; the canal runs the full window.
-const STRIP_Y = mz(BLOCK_LENGTH / 2)
+// Canal-house footprints, matching HouseRow's spacing so the building
+// rows on the map line up with the ones in the world.
+const HOUSE_STRIDE = 5.4
+const HOUSE_COUNT = Math.floor(BLOCK_LENGTH / HOUSE_STRIDE)
+const HOUSE_START_Z = -((HOUSE_COUNT - 1) * HOUSE_STRIDE) / 2
+const HOUSE_BODY = HOUSE_STRIDE * 0.66 // exaggerate the gap so blocks read
+const houseZs = Array.from(
+  { length: HOUSE_COUNT },
+  (_, i) => HOUSE_START_Z + i * HOUSE_STRIDE,
+)
+
+// West facade mirrors the east one across the canal.
+const WEST_FACADE_X = X_FAR_SIDEWALK - FAR_SIDEWALK_WIDTH / 2
+
+// Bridges across the gracht (z, span along z).
+const BRIDGES = [
+  { z: 0, w: 4 },
+  { z: CROSS_STREET_Z, w: 14 },
+]
+
+// Flat map palette — tuned for legibility on the dark HUD, not lit 3D.
+const C = {
+  land: '#9c937f',
+  water: '#4f7d92',
+  road: '#3b3b40',
+  building: '#6d4634',
+  buildingEdge: 'rgba(0,0,0,0.25)',
+  median: '#c2b9a4',
+  fiets: '#b5503a',
+  bridge: '#c8b083',
+  dash: 'rgba(255,255,255,0.75)',
+}
+
+const ROAD_X0 = X_CAR_WEST - CAR_LANE_WIDTH / 2
+const ROAD_X1 = X_CAR_EAST + CAR_LANE_WIDTH / 2
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
 
 /**
- * Top-right overhead map: the street layout (straight from the world
- * constants, so it can't drift), you as an arrow, peers as their
- * profile-coloured dots, and the active Panado drop as a green cross.
- * Markers update imperatively in a rAF loop — per-frame positions never
- * touch React state.
+ * Top-right overhead street map drawn from the world constants (so it
+ * can't drift): gracht, road with centre line, the cross-street, canal
+ * houses framing both banks, and bridges. On top: you as a heading
+ * arrow, peers as their profile-coloured dots, and the active Panado
+ * health drop as a pulsing green cross. Markers update imperatively in a
+ * rAF loop — per-frame positions never touch React state.
  */
 export function Minimap({ compact }: MinimapProps) {
-  const playerRef = useRef<SVGPolygonElement>(null)
+  const playerRef = useRef<SVGGElement>(null)
   const pickupRef = useRef<SVGGElement>(null)
+  const pickupPulseRef = useRef<SVGCircleElement>(null)
   const peersRef = useRef<SVGGElement>(null)
 
   useEffect(() => {
@@ -80,21 +103,21 @@ export function Minimap({ compact }: MinimapProps) {
     const tick = () => {
       raf = requestAnimationFrame(tick)
 
-      const arrow = playerRef.current
-      if (arrow) {
+      const player = playerRef.current
+      if (player) {
         if (playerPosition.ready) {
           const yaw = cameraState.yaw
           // map view is y-down, so the facing vector (-sin, -cos) on XZ
           // becomes a clockwise rotation of atan2(-sin, -cos)
           const deg =
             Math.atan2(-Math.sin(yaw), -Math.cos(yaw)) * (180 / Math.PI)
-          arrow.setAttribute(
+          player.setAttribute(
             'transform',
             `translate(${mx(clampX(playerPosition.x))} ${mz(clampZ(playerPosition.z))}) rotate(${deg})`,
           )
-          arrow.style.display = ''
+          player.style.display = ''
         } else {
-          arrow.style.display = 'none'
+          player.style.display = 'none'
         }
       }
 
@@ -103,9 +126,16 @@ export function Minimap({ compact }: MinimapProps) {
         if (pickupState.active) {
           pickup.setAttribute(
             'transform',
-            `translate(${mx(pickupState.x)} ${mz(pickupState.z)})`,
+            `translate(${mx(clampX(pickupState.x))} ${mz(clampZ(pickupState.z))})`,
           )
           pickup.style.display = ''
+          const ring = pickupPulseRef.current
+          if (ring) {
+            // soft outward pulse so the drop draws the eye
+            const phase = (performance.now() / 950) % 1
+            ring.setAttribute('r', String(3.2 + phase * 4))
+            ring.setAttribute('opacity', String(0.55 * (1 - phase)))
+          }
         } else {
           pickup.style.display = 'none'
         }
@@ -120,9 +150,9 @@ export function Minimap({ compact }: MinimapProps) {
           let dot = peerDots.get(id)
           if (!dot) {
             dot = document.createElementNS(SVG_NS, 'circle')
-            dot.setAttribute('r', '1.6')
-            dot.setAttribute('stroke', 'rgba(0,0,0,0.55)')
-            dot.setAttribute('stroke-width', '0.4')
+            dot.setAttribute('r', '2.1')
+            dot.setAttribute('stroke', '#fff')
+            dot.setAttribute('stroke-width', '0.7')
             peerDots.set(id, dot)
             host.appendChild(dot)
           }
@@ -147,7 +177,7 @@ export function Minimap({ compact }: MinimapProps) {
     return () => cancelAnimationFrame(raf)
   }, [])
 
-  const width = compact ? 46 : 62
+  const width = compact ? 58 : 76
   const height = Math.round((width * MAP_H) / MAP_W)
 
   return (
@@ -156,10 +186,11 @@ export function Minimap({ compact }: MinimapProps) {
         position: 'absolute',
         top: 108,
         right: 12,
-        padding: 5,
-        borderRadius: 10,
-        background: 'rgba(15,20,24,0.5)',
-        border: '1px solid rgba(255,255,255,0.12)',
+        padding: 4,
+        borderRadius: 12,
+        background: 'rgba(15,20,24,0.55)',
+        border: '1px solid rgba(255,255,255,0.18)',
+        boxShadow: '0 4px 14px rgba(0,0,0,0.35)',
         backdropFilter: 'blur(6px)',
         pointerEvents: 'none',
       }}
@@ -168,101 +199,175 @@ export function Minimap({ compact }: MinimapProps) {
         width={width}
         height={height}
         viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-        style={{ display: 'block', borderRadius: 6, overflow: 'hidden' }}
+        style={{ display: 'block' }}
       >
-        {/* --- static world, west → east --- */}
-        <rect x={0} y={0} width={MAP_W} height={MAP_H} fill="#232b32" />
-        <rect
-          x={mx(X_CANAL - CANAL_WIDTH / 2)}
-          y={0}
-          width={CANAL_WIDTH}
-          height={MAP_H}
-          fill={COLOR_CANAL}
-        />
-        <rect
-          x={mx(X_FAR_SIDEWALK - FAR_SIDEWALK_WIDTH / 2)}
-          y={STRIP_Y}
-          width={FAR_SIDEWALK_WIDTH}
-          height={BLOCK_LENGTH}
-          fill={COLOR_SIDEWALK}
-        />
-        <rect
-          x={mx(X_NEAR_SIDEWALK - NEAR_SIDEWALK_WIDTH / 2)}
-          y={STRIP_Y}
-          width={NEAR_SIDEWALK_WIDTH}
-          height={BLOCK_LENGTH}
-          fill={COLOR_CANAL_PAVEMENT}
-        />
-        <rect
-          x={mx(X_CAR_WEST - CAR_LANE_WIDTH / 2)}
-          y={STRIP_Y}
-          width={X_CAR_EAST - X_CAR_WEST + CAR_LANE_WIDTH}
-          height={BLOCK_LENGTH}
-          fill={COLOR_ROAD}
-        />
-        <rect
-          x={mx(X_MEDIAN_WEST - MEDIAN_WIDTH / 2)}
-          y={STRIP_Y}
-          width={MEDIAN_WIDTH}
-          height={BLOCK_LENGTH}
-          fill={COLOR_MEDIAN}
-        />
-        <rect
-          x={mx(X_MEDIAN_EAST - MEDIAN_WIDTH / 2)}
-          y={STRIP_Y}
-          width={MEDIAN_WIDTH}
-          height={BLOCK_LENGTH}
-          fill={COLOR_MEDIAN}
-        />
-        <rect
-          x={mx(X_FIETSPAD - FIETSPAD_WIDTH / 2)}
-          y={STRIP_Y}
-          width={FIETSPAD_WIDTH}
-          height={BLOCK_LENGTH}
-          fill={COLOR_FIETSPAD}
-        />
-        <rect
-          x={mx(X_HOUSE_SIDEWALK - HOUSE_SIDEWALK_WIDTH / 2)}
-          y={STRIP_Y}
-          width={HOUSE_SIDEWALK_WIDTH}
-          height={BLOCK_LENGTH}
-          fill={COLOR_SIDEWALK}
-        />
-        <rect
-          x={mx(X_HOUSE_FRONT)}
-          y={STRIP_Y}
-          width={X_MAX - X_HOUSE_FRONT}
-          height={BLOCK_LENGTH}
-          fill="#7a4434"
-        />
-        <rect
-          x={mx(-CROSS_STREET_X_HALF)}
-          y={mz(CROSS_STREET_Z + CROSS_STREET_WIDTH / 2)}
-          width={CROSS_STREET_X_HALF * 2}
-          height={CROSS_STREET_WIDTH}
-          fill={COLOR_ROAD}
-        />
-        <rect
-          x={mx(X_CANAL - CANAL_WIDTH / 2)}
-          y={mz(2.2)}
-          width={CANAL_WIDTH}
-          height={4.4}
-          fill={COLOR_BRIDGE}
-        />
+        <defs>
+          <clipPath id="mm-clip">
+            <rect x={0} y={0} width={MAP_W} height={MAP_H} rx={5} ry={5} />
+          </clipPath>
+        </defs>
 
-        {/* --- live markers, driven from the rAF loop above --- */}
-        <g ref={peersRef} />
-        <g ref={pickupRef} style={{ display: 'none' }}>
-          <rect x={-1.8} y={-0.6} width={3.6} height={1.2} fill="#3ad06a" />
-          <rect x={-0.6} y={-1.8} width={1.2} height={3.6} fill="#3ad06a" />
+        <g clipPath="url(#mm-clip)">
+          {/* land base */}
+          <rect x={0} y={0} width={MAP_W} height={MAP_H} fill={C.land} />
+
+          {/* gracht — full height, it runs past the block ends */}
+          <rect
+            x={mx(X_CANAL - CANAL_WIDTH / 2)}
+            y={0}
+            width={CANAL_WIDTH}
+            height={MAP_H}
+            fill={C.water}
+          />
+
+          {/* canal houses, both banks — a comb of blocks frames the street */}
+          {houseZs.map((z) => (
+            <g key={`h${z}`}>
+              <rect
+                x={0}
+                y={mz(z + HOUSE_BODY / 2)}
+                width={mx(WEST_FACADE_X)}
+                height={HOUSE_BODY}
+                fill={C.building}
+                stroke={C.buildingEdge}
+                strokeWidth={0.3}
+              />
+              <rect
+                x={mx(X_HOUSE_FRONT)}
+                y={mz(z + HOUSE_BODY / 2)}
+                width={MAP_W - mx(X_HOUSE_FRONT)}
+                height={HOUSE_BODY}
+                fill={C.building}
+                stroke={C.buildingEdge}
+                strokeWidth={0.3}
+              />
+            </g>
+          ))}
+
+          {/* main road, extended north to meet the cross-street */}
+          <rect
+            x={mx(ROAD_X0)}
+            y={mz(CROSS_STREET_Z)}
+            width={ROAD_X1 - ROAD_X0}
+            height={CROSS_STREET_Z - Z_MIN}
+            fill={C.road}
+          />
+          {/* tram-stop medians sitting in the road */}
+          <rect
+            x={mx(X_MEDIAN_WEST - MEDIAN_WIDTH / 2)}
+            y={mz(BLOCK_LENGTH / 2)}
+            width={MEDIAN_WIDTH}
+            height={BLOCK_LENGTH}
+            fill={C.median}
+          />
+          <rect
+            x={mx(X_MEDIAN_EAST - MEDIAN_WIDTH / 2)}
+            y={mz(BLOCK_LENGTH / 2)}
+            width={MEDIAN_WIDTH}
+            height={BLOCK_LENGTH}
+            fill={C.median}
+          />
+          {/* fietspad (bike path) — Amsterdam terracotta */}
+          <rect
+            x={mx(X_FIETSPAD - FIETSPAD_WIDTH / 2)}
+            y={mz(BLOCK_LENGTH / 2)}
+            width={FIETSPAD_WIDTH}
+            height={BLOCK_LENGTH}
+            fill={C.fiets}
+          />
+
+          {/* cross-street running east–west */}
+          <rect
+            x={0}
+            y={mz(CROSS_STREET_Z + 7)}
+            width={MAP_W}
+            height={14}
+            fill={C.road}
+          />
+
+          {/* bridges over the gracht */}
+          {BRIDGES.map((b) => (
+            <rect
+              key={`b${b.z}`}
+              x={mx(X_CANAL - CANAL_WIDTH / 2 - 1)}
+              y={mz(b.z + b.w / 2)}
+              width={CANAL_WIDTH + 2}
+              height={b.w}
+              fill={C.bridge}
+            />
+          ))}
+
+          {/* lane markings — the dashes are what make it read as a road */}
+          <line
+            x1={mx(X_ROAD)}
+            y1={mz(BLOCK_LENGTH / 2)}
+            x2={mx(X_ROAD)}
+            y2={mz(-BLOCK_LENGTH / 2)}
+            stroke={C.dash}
+            strokeWidth={0.5}
+            strokeDasharray="3 3"
+          />
+          <line
+            x1={mx(-18)}
+            y1={mz(CROSS_STREET_Z)}
+            x2={mx(18)}
+            y2={mz(CROSS_STREET_Z)}
+            stroke={C.dash}
+            strokeWidth={0.5}
+            strokeDasharray="3 3"
+          />
+
+          {/* --- live markers, driven from the rAF loop above --- */}
+          <g ref={peersRef} />
+          <g ref={pickupRef} style={{ display: 'none' }}>
+            <circle
+              ref={pickupPulseRef}
+              r={3.2}
+              fill="none"
+              stroke="#3ad06a"
+              strokeWidth={0.8}
+            />
+            <circle r={3} fill="#1f7a3f" stroke="#eafff0" strokeWidth={0.7} />
+            <rect x={-1.9} y={-0.65} width={3.8} height={1.3} fill="#eafff0" />
+            <rect x={-0.65} y={-1.9} width={1.3} height={3.8} fill="#eafff0" />
+          </g>
+          <g ref={playerRef} style={{ display: 'none' }}>
+            <circle r={4} fill="rgba(255,255,255,0.22)" />
+            <polygon
+              points="0,-3.4 2.3,2.8 0,1.5 -2.3,2.8"
+              fill="#ffffff"
+              stroke="rgba(0,0,0,0.65)"
+              strokeWidth={0.5}
+              strokeLinejoin="round"
+            />
+          </g>
         </g>
+
+        {/* frame + compass sit above the clip so they're always crisp */}
+        <rect
+          x={0.5}
+          y={0.5}
+          width={MAP_W - 1}
+          height={MAP_H - 1}
+          rx={5}
+          ry={5}
+          fill="none"
+          stroke="rgba(255,255,255,0.28)"
+          strokeWidth={1}
+        />
+        <text
+          x={4}
+          y={7.5}
+          fill="rgba(255,255,255,0.85)"
+          fontSize={6}
+          fontWeight={700}
+          fontFamily="ui-sans-serif, system-ui, sans-serif"
+        >
+          N
+        </text>
         <polygon
-          ref={playerRef}
-          points="0,-2.6 1.8,2.2 0,1.2 -1.8,2.2"
-          fill="#ffffff"
-          stroke="rgba(0,0,0,0.6)"
-          strokeWidth={0.4}
-          style={{ display: 'none' }}
+          points={`${MAP_W - 5},2.5 ${MAP_W - 3},6 ${MAP_W - 7},6`}
+          fill="rgba(255,255,255,0.7)"
         />
       </svg>
     </div>

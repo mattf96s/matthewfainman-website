@@ -648,7 +648,7 @@ function KillFeed({ entries }: { entries: KillFeedEntry[] }) {
         position: 'absolute',
         top: 92,
         // clear of the minimap column on the right edge
-        right: 96,
+        right: 104,
         fontSize: 13,
         display: 'flex',
         flexDirection: 'column',
