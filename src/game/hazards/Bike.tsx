@@ -170,7 +170,7 @@ export function Bike({
       position={[x, PARKED_Y, 0]}
       enabledRotations={[false, false, false]}
     >
-      <mesh castShadow position={[0, 0, 0]}>
+      <mesh position={[0, 0, 0]}>
         <boxGeometry args={[0.1, 0.5, BIKE_BODY_LENGTH * 0.7]} />
         <meshStandardMaterial color="#2a2a2a" />
       </mesh>
@@ -198,7 +198,7 @@ export function Bike({
         <meshStandardMaterial color="#3b6e85" />
       </mesh>
 
-      <mesh castShadow position={[0, 1.3, 0]}>
+      <mesh position={[0, 1.3, 0]}>
         <sphereGeometry args={[0.18, 12, 8]} />
         <meshStandardMaterial color="#d8a37a" />
       </mesh>

@@ -53,7 +53,7 @@ export function Amsterdammertjes({ bridges = [] }: AmsterdammertjesProps) {
 
   return (
     <>
-      <Instances limit={positions.length} castShadow receiveShadow>
+      <Instances limit={positions.length} receiveShadow>
         <cylinderGeometry args={[POST_RADIUS, POST_RADIUS, POST_HEIGHT, 10]} />
         <meshStandardMaterial
           color={POST_COLOR}
@@ -65,7 +65,7 @@ export function Amsterdammertjes({ bridges = [] }: AmsterdammertjesProps) {
         ))}
       </Instances>
 
-      <Instances limit={positions.length} castShadow>
+      <Instances limit={positions.length}>
         <sphereGeometry args={[HEAD_RADIUS, 10, 8]} />
         <meshStandardMaterial
           color={POST_COLOR}

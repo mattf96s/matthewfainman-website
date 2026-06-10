@@ -103,7 +103,7 @@ export function Car({
       </mesh>
 
       {/* cabin / roof — smaller box on top, set back slightly */}
-      <mesh castShadow position={[0, CAR_H * 0.4, -0.1]}>
+      <mesh position={[0, CAR_H * 0.4, -0.1]}>
         <boxGeometry args={[CAR_W * 0.92, CAR_H * 0.45, CAR_L * 0.55]} />
         <meshStandardMaterial color={color} roughness={0.6} metalness={0.25} />
       </mesh>
@@ -143,7 +143,6 @@ export function Car({
       ].map(([wx, wz]) => (
         <mesh
           key={`${wx},${wz}`}
-          castShadow
           position={[wx, -CAR_H * 0.25, wz]}
           rotation={[0, 0, Math.PI / 2]}
         >

@@ -264,7 +264,7 @@ export function Player() {
           <meshStandardMaterial color={LOCAL_PLAYER_COLOR} />
         </mesh>
         {/* small "nose" pointing forward (+Z in local space) — helps see facing */}
-        <mesh castShadow position={[0, 0.3, PLAYER_RADIUS + 0.05]}>
+        <mesh position={[0, 0.3, PLAYER_RADIUS + 0.05]}>
           <boxGeometry args={[0.12, 0.12, 0.12]} />
           <meshStandardMaterial color="#3c2f29" />
         </mesh>

@@ -61,7 +61,7 @@ export function TramBody({ length, width, height }: TramBodyProps) {
   return (
     <group>
       {/* dark skirt at the bottom */}
-      <mesh castShadow receiveShadow position={[0, ySkirt, 0]}>
+      <mesh receiveShadow position={[0, ySkirt, 0]}>
         <boxGeometry args={[width - 2 * skirtInset, skirtH, length]} />
         <meshStandardMaterial color={COLOR_SKIRT} roughness={0.85} />
       </mesh>
@@ -83,7 +83,7 @@ export function TramBody({ length, width, height }: TramBodyProps) {
       </mesh>
 
       {/* continuous window strip (also forms the front + rear windshields) */}
-      <mesh castShadow receiveShadow position={[0, yWindow, 0]}>
+      <mesh receiveShadow position={[0, yWindow, 0]}>
         <boxGeometry args={[width, windowH, length]} />
         <meshStandardMaterial
           color={COLOR_GLASS}
@@ -95,7 +95,7 @@ export function TramBody({ length, width, height }: TramBodyProps) {
       </mesh>
 
       {/* white upper / roof */}
-      <mesh castShadow receiveShadow position={[0, yRoof, 0]}>
+      <mesh receiveShadow position={[0, yRoof, 0]}>
         <boxGeometry args={[width - 2 * roofInset, roofH, length]} />
         <meshStandardMaterial color={COLOR_WHITE} roughness={0.6} />
       </mesh>
@@ -149,7 +149,6 @@ export function TramBody({ length, width, height }: TramBodyProps) {
       {accordionPositions.map((z) => (
         <mesh
           key={z}
-          castShadow
           position={[0, (yBlue + yRoof) / 2 + 0.05, z]}
         >
           <boxGeometry
@@ -161,7 +160,7 @@ export function TramBody({ length, width, height }: TramBodyProps) {
 
       {/* bogies — dark wheel housings under each section */}
       {bogieZs.map((z) => (
-        <mesh key={z} castShadow position={[0, bogieY, z]}>
+        <mesh key={z} position={[0, bogieY, z]}>
           <boxGeometry args={[width - 0.4, bogieH, 1.9]} />
           <meshStandardMaterial color={COLOR_BOGIE} roughness={0.9} />
         </mesh>
@@ -222,7 +221,7 @@ function Pantograph({ y }: { y: number }) {
   return (
     <group position={[0, y, 0]}>
       {/* base plate */}
-      <mesh castShadow position={[0, 0.05, 0]}>
+      <mesh position={[0, 0.05, 0]}>
         <boxGeometry args={[1.6, 0.06, 2.4]} />
         <meshStandardMaterial color="#262626" roughness={0.8} />
       </mesh>
@@ -230,7 +229,6 @@ function Pantograph({ y }: { y: number }) {
       {[-1, 1].map((s) => (
         <mesh
           key={s}
-          castShadow
           position={[0, 0.45, s * 0.55]}
           rotation={[s * 0.75, 0, 0]}
         >
@@ -239,7 +237,7 @@ function Pantograph({ y }: { y: number }) {
         </mesh>
       ))}
       {/* horizontal pickup bar */}
-      <mesh castShadow position={[0, 0.85, 0]}>
+      <mesh position={[0, 0.85, 0]}>
         <boxGeometry args={[1.5, 0.04, 0.08]} />
         <meshStandardMaterial color="#8a8a8a" metalness={0.8} roughness={0.3} />
       </mesh>

@@ -128,7 +128,7 @@ export function Statiegeld() {
 
         {/* coat — slightly stooped (rotated forward) */}
         <group position={[0, 1.0, 0.1]} rotation={[0.18, 0, 0]}>
-          <mesh castShadow>
+          <mesh>
             <capsuleGeometry args={[0.27, 0.5, 4, 8]} />
             <meshStandardMaterial color="#3a3328" roughness={0.9} />
           </mesh>
@@ -136,19 +136,19 @@ export function Statiegeld() {
 
         {/* head */}
         <group ref={head} position={[0, 1.55, 0.18]}>
-          <mesh castShadow>
+          <mesh>
             <sphereGeometry args={[0.2, 12, 10]} />
             <meshStandardMaterial color="#b9876a" roughness={0.75} />
           </mesh>
           {/* beanie */}
-          <mesh castShadow position={[0, 0.12, -0.02]}>
+          <mesh position={[0, 0.12, -0.02]}>
             <cylinderGeometry args={[0.21, 0.21, 0.18, 12]} />
             <meshStandardMaterial color="#1a1a1a" roughness={0.9} />
           </mesh>
         </group>
 
         {/* black bin-bag — slung over shoulder */}
-        <mesh castShadow position={[0.34, 1.0, -0.05]} rotation={[0, 0, 0.2]}>
+        <mesh position={[0.34, 1.0, -0.05]} rotation={[0, 0, 0.2]}>
           <sphereGeometry args={[0.32, 12, 10]} />
           <meshStandardMaterial color="#0a0a0a" roughness={0.95} />
         </mesh>

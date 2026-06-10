@@ -6,6 +6,7 @@ import { Physics } from '@react-three/rapier'
 import { FollowCamera } from './FollowCamera'
 import { FpsTracker } from './FpsTracker'
 import { Gun } from './Gun'
+import { isTouchDevice } from './mobileInput'
 import { MobileControlsBridge } from './MobileControlsBridge'
 import { Player } from './Player'
 import { PointerLockBridge } from './PointerLockBridge'
@@ -14,6 +15,7 @@ import { Cars } from './hazards/Cars'
 import { PathTram, type TramPath } from './hazards/PathTram'
 import { Tram } from './hazards/Tram'
 import { PlayerStateSync } from './multiplayer/PlayerStateSync'
+import { TestApiBridge } from './TestApiBridge'
 import { RemotePlayers } from './multiplayer/RemotePlayers'
 import { Tracers } from './multiplayer/Tracers'
 import { Rats } from './npcs/Rats'
@@ -73,12 +75,17 @@ const L_PATH: TramPath = [
 ]
 
 export function Game() {
+  // Phones run hot: skip the whole shadow pass (its own render of every
+  // caster, every frame), skip MSAA, and cap the render resolution a
+  // little lower. Desktop keeps the full look.
+  const touch = isTouchDevice()
   return (
     <KeyboardControls map={keyMap}>
       <Canvas
-        shadows
+        shadows={!touch}
         camera={{ position: [0, 5, 12], fov: 60 }}
-        dpr={[1, 1.5]}
+        dpr={touch ? [1, 1.25] : [1, 1.5]}
+        gl={{ antialias: !touch }}
       >
         <color attach="background" args={['#cdd9d5']} />
         <fog attach="fog" args={['#cdd9d5', 60, 140]} />
@@ -131,6 +138,7 @@ export function Game() {
             <FpsTracker />
             <PointerLockBridge />
             <MobileControlsBridge />
+            <TestApiBridge />
           </Physics>
         </Suspense>
       </Canvas>
