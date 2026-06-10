@@ -38,6 +38,20 @@ async function respawnTour(page: Page, hops: number) {
   await page.waitForTimeout(500)
 }
 
+/** Wait until the geometry count holds still across consecutive samples.
+ * Ambient NPCs/hazards keep registering geometry for the first ~10s as
+ * they wander into the frustum; baselining before that background growth
+ * settles reads as a fake leak in the plateau tests below. */
+async function waitForGeometryPlateau(page: Page) {
+  let prev = await geometries(page)
+  for (let stable = 0, tries = 0; stable < 2 && tries < 15; tries++) {
+    await page.waitForTimeout(700)
+    const now = await geometries(page)
+    stable = now === prev ? stable + 1 : 0
+    prev = now
+  }
+}
+
 test.describe('perf budget', () => {
   test('renderer stays within draw-call/triangle/memory budgets', async ({
     page,
@@ -80,12 +94,14 @@ test.describe('perf budget', () => {
   test('respawn churn plateaus — no per-respawn geometry leak', async ({
     page,
   }) => {
+    test.setTimeout(60_000)
     await page.goto(gameUrl(randomRoom()))
     await waitForGameReady(page)
     await page.waitForTimeout(2_000)
 
     // first tour registers every part of the map the camera can see
     await respawnTour(page, 15)
+    await waitForGeometryPlateau(page)
     const afterFirstTour = await geometries(page)
 
     // a second tour over the same spawn pool must add ~nothing; a real
@@ -108,21 +124,11 @@ test.describe('perf budget', () => {
     await waitForGameReady(page)
     await page.waitForTimeout(2_000)
 
-    // Settle the world before baselining: ambient NPCs/hazards keep
-    // registering geometry for the first ~10s as they wander into the
-    // frustum, and that background growth reads as a fake churn leak.
-    // (It's what the old "avatars leak ~2.4 geometries" TODO actually
-    // measured — avatar disposal, nametag included, is clean.) Tour the
-    // map to register everything camera-reachable, then wait for the
-    // count to hold still across consecutive samples.
+    // Settle the world before baselining — unsettled background growth
+    // is what the old "avatars leak ~2.4 geometries" TODO actually
+    // measured; avatar disposal, nametag included, is clean.
     await respawnTour(page, 10)
-    let prev = await geometries(page)
-    for (let stable = 0, tries = 0; stable < 2 && tries < 15; tries++) {
-      await page.waitForTimeout(700)
-      const now = await geometries(page)
-      stable = now === prev ? stable + 1 : 0
-      prev = now
-    }
+    await waitForGeometryPlateau(page)
 
     const churn = async () => {
       await page.evaluate(() => {
