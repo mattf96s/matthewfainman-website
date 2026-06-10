@@ -86,6 +86,12 @@ export function Player() {
         const pos = body.current.translation()
         const [x, y, z] = randomSpawn(pos.x, pos.z)
         body.current.setTranslation({ x, y, z }, true)
+        // publish immediately — the frame loop normally does this, but
+        // it's paused while the tab is hidden, and the multiplayer
+        // bridge pushes a respawn snapshot right after this subscriber
+        playerPosition.x = x
+        playerPosition.y = y
+        playerPosition.z = z
         yVelocity.current = 0
       }
       prevTick = state.respawnTick

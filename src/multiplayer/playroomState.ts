@@ -18,13 +18,26 @@ export interface RemoteSnapshot {
   yaw: number
   hp: number
   dead: boolean
-  /** performance.now() when this snapshot was received — used to ignore
-   * stale joiners that haven't sent state yet. */
+  /** Sender-side performance.now() stamp. Only used as a change counter:
+   * if it stops changing, the sender's frame loop is paused (hidden tab,
+   * locked phone) and their snapshot is going stale. */
+  t?: number
+  /** Local performance.now() when a *new* snapshot last arrived — the
+   * basis for staleness. Not refreshed by re-reading unchanged state. */
   receivedAt: number
 }
 
 /** Snapshot of every other player, keyed by Playroom player id. */
 export const remoteSnapshots = new Map<string, RemoteSnapshot>()
+
+/** A player whose snapshot hasn't changed for this long has a paused
+ * frame loop (backgrounded tab / locked phone). Their avatar hides and
+ * stops being shootable instead of freezing as a statue. */
+export const SNAPSHOT_STALE_MS = 5000
+
+export function isSnapshotStale(snap: RemoteSnapshot, now: number): boolean {
+  return now - snap.receivedAt > SNAPSHOT_STALE_MS
+}
 
 export interface RenderedPose {
   x: number

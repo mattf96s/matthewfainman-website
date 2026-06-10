@@ -7,10 +7,17 @@ import {
   type PlayerState,
 } from 'playroomkit'
 
+import { cameraState } from '../game/cameraState'
+import { playerPosition } from '../game/playerPosition'
 import { track } from '../lib/analytics'
 import { colorForId } from '../lib/playerColor'
 import { useGameStore } from '../state/useGameStore'
-import { lastLocalFireAt, registerNet, unregisterNet } from './netBridge'
+import {
+  broadcastSnapshot,
+  lastLocalFireAt,
+  registerNet,
+  unregisterNet,
+} from './netBridge'
 import { pushShot } from './shots'
 import {
   playroom,
@@ -25,6 +32,26 @@ const RESPAWN_DELAY_MS = 1800
  * anyone else is around you can immediately see and shoot them. */
 const ROOM_CODE = 'amsterdam-canal'
 const MAX_PLAYERS = 12
+
+/**
+ * Push our snapshot immediately, outside the 20Hz frame-loop cadence.
+ * The frame loop pauses with rAF when the tab is backgrounded, but RPCs
+ * and timers still run — so deaths and respawns that happen while hidden
+ * must be pushed from here or other players see a frozen statue.
+ */
+function pushSnapshotNow(): void {
+  if (!playroom.joined || !playerPosition.ready) return
+  const store = useGameStore.getState()
+  broadcastSnapshot({
+    x: playerPosition.x,
+    y: playerPosition.y,
+    z: playerPosition.z,
+    yaw: cameraState.yaw,
+    hp: store.health,
+    dead: store.health <= 0,
+    receivedAt: performance.now(),
+  })
+}
 
 /** A player's display name: their self-chosen name (synced as state 'n',
  * since skipLobby precludes Playroom's own profile editor) falling back
@@ -171,6 +198,9 @@ export function PlayroomProvider() {
           const store = useGameStore.getState()
           store.takeDamage(data.damage, 'shot')
           if (useGameStore.getState().health <= 0) {
+            // tell everyone we're down right away — the frame-loop
+            // broadcast is paused if this tab is backgrounded
+            pushSnapshotNow()
             store.addDeath(nameOf(sender))
             try {
               RPC.call(
@@ -214,6 +244,9 @@ export function PlayroomProvider() {
       ) {
         respawnTimerRef.current = window.setTimeout(() => {
           useGameStore.getState().respawn()
+          // respawn() already teleported us (synchronous subscriber in
+          // Player.tsx) — push the new spot now in case rAF is paused
+          pushSnapshotNow()
           respawnTimerRef.current = null
         }, RESPAWN_DELAY_MS)
       }

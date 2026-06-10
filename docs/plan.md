@@ -62,8 +62,10 @@ This is well past a prototype. What works today:
 - **Multiplayer** — Playroom Kit, up to 8 players, position/health sync at
   ~20Hz, p2p shot RPCs, kill/death tracking, kill-feed,
   custom player names (localStorage-persisted), id-derived avatar colours
-  consistent across clients. (`src/multiplayer/`,
-  `src/game/multiplayer/`)
+  consistent across clients. Players whose snapshot stream stalls
+  (backgrounded tab) hide after 5s instead of freezing as shootable
+  statues; deaths/respawns push event-driven snapshots that work while
+  hidden. (`src/multiplayer/`, `src/game/multiplayer/`)
 - **Mobile** — virtual joystick, gyro tilt, touch-look. (`src/game/mobileInput.ts`)
 - **Pickups** — Panado bottle = health. (`src/game/pickups/`)
 - **Minimap** — top-right HUD map: street layout, peers, active health drop. (`src/ui/Minimap.tsx`)

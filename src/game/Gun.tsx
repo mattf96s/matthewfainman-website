@@ -3,7 +3,11 @@ import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 
 import { broadcastShot } from '../multiplayer/netBridge'
-import { remoteRendered, remoteSnapshots } from '../multiplayer/playroomState'
+import {
+  isSnapshotStale,
+  remoteRendered,
+  remoteSnapshots,
+} from '../multiplayer/playroomState'
 import { FIRE_INTERVAL_MS, GUN_DAMAGE, GUN_RANGE } from '../multiplayer/shots'
 import * as sfx from '../lib/sfx'
 import { emitHit } from '../ui/hitmarker'
@@ -82,7 +86,9 @@ export function Gun() {
     let bestT = Infinity
     const hitRadius = PLAYER_RADIUS + HIT_PADDING
     for (const [id, snap] of remoteSnapshots) {
-      if (snap.dead) continue
+      // stale = their tab is backgrounded; the avatar is hidden, so it
+      // must not be hittable either
+      if (snap.dead || isSnapshotStale(snap, now)) continue
       const pose = remoteRendered.get(id) ?? snap
       const t = rayCapsuleT(
         ORIGIN,
