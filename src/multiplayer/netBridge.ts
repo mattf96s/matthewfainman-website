@@ -60,7 +60,9 @@ export function broadcastShot(
   shotSender?.({ ox, oy, oz, hx, hy, hz, victimId, damage })
 }
 
-/** Push our latest pose/health snapshot to the network, if connected. */
+/** Push our latest pose/health snapshot to the network, if connected.
+ * Stamps the sender-side change counter `t` so receivers can tell a
+ * live stream from a frozen one (see SNAPSHOT_STALE_MS). */
 export function broadcastSnapshot(snapshot: RemoteSnapshot): void {
-  snapshotSender?.(snapshot)
+  snapshotSender?.({ ...snapshot, t: performance.now() })
 }

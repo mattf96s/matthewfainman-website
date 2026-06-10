@@ -22,7 +22,11 @@ import {
   X_ROAD,
 } from '../game/world/constants'
 import { colorForId, DEFAULT_PLAYER_COLOR } from '../lib/playerColor'
-import { playroom, remoteSnapshots } from '../multiplayer/playroomState'
+import {
+  isSnapshotStale,
+  playroom,
+  remoteSnapshots,
+} from '../multiplayer/playroomState'
 import { useGameStore } from '../state/useGameStore'
 
 interface MinimapProps {
@@ -168,7 +172,9 @@ export function Minimap({ compact }: MinimapProps) {
           )
           dot.setAttribute('cx', String(mx(clampX(snap.x))))
           dot.setAttribute('cy', String(mz(clampZ(snap.z))))
-          dot.style.display = snap.dead ? 'none' : ''
+          // hidden while dead or stale, matching the in-world avatar
+          dot.style.display =
+            snap.dead || isSnapshotStale(snap, performance.now()) ? 'none' : ''
         }
         for (const [id, dot] of peerDots) {
           if (!remoteSnapshots.has(id)) {

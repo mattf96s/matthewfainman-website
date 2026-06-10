@@ -32,6 +32,13 @@ export function PlayerStateSync() {
       if (id === playroom.myId) continue
       const s = player.getState('s')
       if (!s) continue
+      // `receivedAt` only advances when the sender's stamp changed —
+      // re-reading an unchanged state must not look like fresh data, or
+      // a player with a paused tab would never read as stale. Snapshots
+      // without a stamp (older clients) keep the always-fresh behaviour.
+      const prev = remoteSnapshots.get(id)
+      const fresh =
+        typeof s.t !== 'number' || prev === undefined || prev.t !== s.t
       remoteSnapshots.set(id, {
         x: s.x,
         y: s.y,
@@ -39,7 +46,8 @@ export function PlayerStateSync() {
         yaw: s.yaw,
         hp: s.hp,
         dead: s.dead,
-        receivedAt: now,
+        t: s.t,
+        receivedAt: fresh || !prev ? now : prev.receivedAt,
       })
       // custom display names arrive (and change) out of band of the join
       // event; renamePeer no-ops without notifying while unchanged

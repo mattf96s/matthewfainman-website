@@ -3,7 +3,11 @@ import { useFrame } from '@react-three/fiber'
 import { Billboard, Text } from '@react-three/drei'
 import * as THREE from 'three'
 
-import { remoteRendered, remoteSnapshots } from '../../multiplayer/playroomState'
+import {
+  isSnapshotStale,
+  remoteRendered,
+  remoteSnapshots,
+} from '../../multiplayer/playroomState'
 import { PLAYER_HEIGHT, PLAYER_RADIUS } from '../constants'
 
 interface RemotePlayerProps {
@@ -13,6 +17,10 @@ interface RemotePlayerProps {
 }
 
 const LERP = 0.25
+/** Jumps larger than this (squared metres) are teleports — respawns are
+ * ≥18m apart — so snap instead of ghost-sliding across the map. Normal
+ * movement covers <0.5m between snapshots. */
+const SNAP_DISTANCE_SQ = 25
 
 /**
  * Renders one remote player. Reads the shared snapshot map each frame
@@ -26,6 +34,10 @@ export function RemotePlayer({ id, name, color }: RemotePlayerProps) {
   const targetYaw = useRef(0)
   // Last interpolated values, so we know where to draw a gun from.
   const currentYaw = useRef(0)
+  /** True while the avatar is hidden (dead/stale/no data) — the next
+   * shown frame snaps to the snapshot instead of lerping from the old
+   * spot. */
+  const wasHidden = useRef(true)
 
   // Drop our rendered-pose entry when this avatar unmounts so the gun
   // never tests against a ghost.
@@ -35,20 +47,34 @@ export function RemotePlayer({ id, name, color }: RemotePlayerProps) {
     const g = group.current
     if (!g) return
     const snap = remoteSnapshots.get(id)
-    if (!snap) {
-      // Hide until first snapshot arrives.
+    // Hide until the first snapshot arrives, while dead, and when the
+    // snapshot stream has gone stale (their tab is backgrounded — the
+    // player isn't really *there*, so don't render a shootable statue).
+    if (!snap || snap.dead || isSnapshotStale(snap, performance.now())) {
       g.visible = false
+      remoteRendered.delete(id)
+      wasHidden.current = true
       return
     }
-    g.visible = !snap.dead
+    g.visible = true
 
     targetPos.current.set(snap.x, snap.y, snap.z)
     targetYaw.current = snap.yaw + Math.PI // remote faces away from their own camera
-    g.position.lerp(targetPos.current, LERP)
 
-    // angle lerp on shortest arc
-    const dy = wrapPi(targetYaw.current - currentYaw.current)
-    currentYaw.current += dy * LERP
+    if (
+      wasHidden.current ||
+      g.position.distanceToSquared(targetPos.current) > SNAP_DISTANCE_SQ
+    ) {
+      // reappearing or teleporting (respawn) — snap, don't slide
+      g.position.copy(targetPos.current)
+      currentYaw.current = targetYaw.current
+    } else {
+      g.position.lerp(targetPos.current, LERP)
+      // angle lerp on shortest arc
+      const dy = wrapPi(targetYaw.current - currentYaw.current)
+      currentYaw.current += dy * LERP
+    }
+    wasHidden.current = false
     g.rotation.y = currentYaw.current
 
     // Publish where this avatar is actually drawn for hit detection.
