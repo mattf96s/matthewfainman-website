@@ -52,7 +52,7 @@ src/
     hazards/      — bikes, trams, cars (spline-driven, damage the player)
     world/        — canal, houses, streets, bridges, props
     npcs/         — ambient life (rats, tourists, statiegeld collector)
-    pickups/      — stroopwafel (health) pickups
+    pickups/      — Panado bottle (health) pickups
     systems/      — scoring, canal damage, auto-respawn
     multiplayer/  — in-Canvas remote players, tracers, state sync
   multiplayer/    — Playroom provider, lobby, shared netcode state (NON-Canvas)
@@ -61,7 +61,7 @@ src/
   components/     — site shell (Header, Footer, ThemeToggle)
   state/          — Zustand stores (useGameStore)
   hooks/          — shared React hooks (input, pointer lock, keybinds)
-  lib/            — pure utilities (seo, profile)
+  lib/            — pure utilities (seo, profile, playerName)
   integrations/   — third-party providers (PostHog)
 public/           — static assets (favicons, og-image, manifest)
 docs/

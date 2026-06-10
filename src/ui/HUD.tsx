@@ -14,6 +14,8 @@ import {
 import { FeedbackSystem } from './FeedbackSystem'
 import { onFloat, type FloatTextEvent } from './floatText'
 import { onHit } from './hitmarker'
+import { Minimap } from './Minimap'
+import { NameEditor } from './NameEditor'
 import { VirtualJoystick } from './VirtualJoystick'
 
 const hudFont: CSSProperties = {
@@ -100,6 +102,7 @@ export function HUD() {
 
       <HealthBar />
       <Scoreboard />
+      {active && <Minimap compact={touch} />}
       <Credit />
       <FloatingTexts />
 
@@ -109,6 +112,13 @@ export function HUD() {
 
       {touch && active && <VirtualJoystick />}
       {touch && active && <TouchControls />}
+      {/* touch has no start overlay to host the name input, so it gets a
+        * persistent tap-to-edit chip next to the mute button instead */}
+      {touch && active && (
+        <div style={{ position: 'absolute', top: 8, left: 102 }}>
+          <NameEditor compact />
+        </div>
+      )}
     </>
   )
 }
@@ -402,23 +412,39 @@ function ControlsPrompt({ touch, locked }: { touch: boolean; locked: boolean }) 
           <Kbd>WASD</Kbd> move · <Kbd>Q</Kbd>/<Kbd>E</Kbd> turn ·{' '}
           <Kbd>Space</Kbd> jump · <Kbd>Esc</Kbd> release
         </div>
+        <div
+          style={{
+            marginTop: 14,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            fontSize: 13,
+          }}
+        >
+          <span style={{ opacity: 0.85 }}>playing as</span>
+          <NameEditor />
+        </div>
       </div>
     </div>
   )
 }
 
 /** Bottom-right thumb cluster on touch devices: JUMP + FIRE. A dedicated
- * FIRE button (vs tap-to-shoot) avoids fighting the drag-to-look gesture. */
+ * FIRE button (vs tap-to-shoot) avoids fighting the drag-to-look gesture.
+ * Fixed-positioned with safe-area insets, like the joystick — anchoring
+ * inside the (100vh-tall) page container put it under Safari's toolbar. */
 function TouchControls() {
   return (
     <div
       style={{
-        position: 'absolute',
-        right: 22,
-        bottom: 28,
+        position: 'fixed',
+        right: 'max(20px, env(safe-area-inset-right))',
+        bottom: 'max(24px, env(safe-area-inset-bottom))',
         display: 'flex',
         alignItems: 'flex-end',
         gap: 14,
+        zIndex: 20,
         pointerEvents: 'none',
       }}
     >
@@ -434,7 +460,7 @@ function TouchControls() {
       />
       <ActionButton
         label="FIRE"
-        size={92}
+        size={96}
         accent
         onDown={() => {
           mobileInput.firePressed = true
@@ -464,6 +490,14 @@ function ActionButton({
     <button
       onPointerDown={(e) => {
         e.preventDefault()
+        // Capture so a thumb sliding off the button still delivers the
+        // pointerup here instead of stranding the input "held".
+        e.currentTarget.setPointerCapture(e.pointerId)
+        // First tap might land here before the canvas ever sees a touch —
+        // mirror the canvas handler so the button works immediately.
+        const store = useGameStore.getState()
+        if (!store.started) store.setStarted(true)
+        else if (store.paused) store.setPaused(false)
         onDown()
       }}
       onPointerUp={(e) => {
@@ -471,23 +505,30 @@ function ActionButton({
         onUp()
       }}
       onPointerCancel={onUp}
-      onPointerLeave={onUp}
+      onLostPointerCapture={onUp}
       onContextMenu={(e) => e.preventDefault()}
       style={{
         pointerEvents: 'auto',
         width: size,
         height: size,
         borderRadius: '50%',
-        border: '1px solid rgba(255,255,255,0.3)',
-        background: accent ? 'rgba(232,122,122,0.4)' : 'rgba(255,255,255,0.14)',
+        border: accent
+          ? '2px solid rgba(255,255,255,0.6)'
+          : '1px solid rgba(255,255,255,0.3)',
+        background: accent ? 'rgba(226,58,58,0.62)' : 'rgba(255,255,255,0.14)',
+        boxShadow: accent
+          ? '0 0 18px rgba(226,58,58,0.45), 0 4px 14px rgba(0,0,0,0.3)'
+          : '0 2px 10px rgba(0,0,0,0.25)',
         color: '#fff',
         fontWeight: 800,
-        fontSize: 13,
+        fontSize: accent ? 15 : 13,
         letterSpacing: '0.06em',
         backdropFilter: 'blur(6px)',
         touchAction: 'none',
         userSelect: 'none',
         WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+        WebkitTapHighlightColor: 'transparent',
       }}
     >
       {label}
@@ -606,7 +647,8 @@ function KillFeed({ entries }: { entries: KillFeedEntry[] }) {
         ...hudFont,
         position: 'absolute',
         top: 92,
-        right: 16,
+        // clear of the minimap column on the right edge
+        right: 96,
         fontSize: 13,
         display: 'flex',
         flexDirection: 'column',

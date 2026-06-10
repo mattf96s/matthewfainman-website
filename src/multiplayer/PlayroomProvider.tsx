@@ -14,6 +14,7 @@ import { pushShot } from './shots'
 import {
   playroom,
   remotePlayerHandles,
+  remoteRendered,
   remoteSnapshots,
 } from './playroomState'
 
@@ -23,6 +24,15 @@ const RESPAWN_DELAY_MS = 1800
  * anyone else is around you can immediately see and shoot them. */
 const ROOM_CODE = 'amsterdam-canal'
 const MAX_PLAYERS = 12
+
+/** A player's display name: their self-chosen name (synced as state 'n',
+ * since skipLobby precludes Playroom's own profile editor) falling back
+ * to the Playroom-generated profile name. */
+function nameOf(player: PlayerState): string {
+  const n: unknown = player.getState('n')
+  if (typeof n === 'string' && n) return n
+  return player.getProfile().name ?? 'stranger'
+}
 
 /**
  * Multiplayer lifecycle, lazy-loaded and mounted once at the route level
@@ -79,12 +89,31 @@ export function PlayroomProvider() {
         playroom.joined = true
         playroom.myId = myPlayer().id
         useGameStore.getState().setMultiplayerJoined(true)
+        // share the locally chosen name (if any) with the room
+        const name = useGameStore.getState().playerName
+        if (name) {
+          try {
+            myPlayer().setState('n', name, true)
+          } catch (e) {
+            console.warn('[playroom] name setState failed', e)
+          }
+        }
         track('multiplayer_connected')
       },
       (err) => {
         console.error('[playroom] failed to connect', err)
       },
     )
+
+    // Keep the synced name current when the player edits it mid-session.
+    const unsubName = useGameStore.subscribe((state, prev) => {
+      if (!playroom.joined || state.playerName === prev.playerName) return
+      try {
+        myPlayer().setState('n', state.playerName, true)
+      } catch (e) {
+        console.warn('[playroom] name setState failed', e)
+      }
+    })
 
     // Track joins & quits — keep the handle map (for per-frame state
     // reads) and the store peer list (for presence + avatars) in sync.
@@ -94,7 +123,7 @@ export function PlayroomProvider() {
         const profile = player.getProfile()
         useGameStore.getState().addPeer({
           id: player.id,
-          name: profile.name ?? 'stranger',
+          name: nameOf(player),
           color: profile.color?.hexString ?? '#e07a5f',
         })
         track('peer_joined', { peers: useGameStore.getState().peers.length })
@@ -102,6 +131,7 @@ export function PlayroomProvider() {
       player.onQuit(() => {
         remotePlayerHandles.delete(player.id)
         remoteSnapshots.delete(player.id)
+        remoteRendered.delete(player.id)
         useGameStore.getState().removePeer(player.id)
         track('peer_left', { peers: useGameStore.getState().peers.length })
       })
@@ -109,6 +139,7 @@ export function PlayroomProvider() {
 
     return () => {
       unsub()
+      unsubName()
       unregisterNet()
     }
   }, [])
@@ -139,12 +170,11 @@ export function PlayroomProvider() {
           const store = useGameStore.getState()
           store.takeDamage(data.damage, 'shot')
           if (useGameStore.getState().health <= 0) {
-            const killerName = sender.getProfile().name ?? 'someone'
-            store.addDeath(killerName)
+            store.addDeath(nameOf(sender))
             try {
               RPC.call(
                 'killed-by',
-                { victimName: myPlayer().getProfile().name },
+                { victimName: nameOf(myPlayer()) },
                 RPC.Mode.ALL,
               )
             } catch (e) {

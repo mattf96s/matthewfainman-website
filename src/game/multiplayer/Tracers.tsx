@@ -120,21 +120,21 @@ export function Tracers() {
       Q.setFromUnitVectors(UP, DIR)
 
       // beam
-      const radius = 0.6 + fade * 0.5 // thins slightly as it fades
+      const radius = 0.45 + fade * 0.4 // thins slightly as it fades
       p.beam.visible = true
       p.beam.position.copy(A)
       p.beam.quaternion.copy(Q)
       p.beam.scale.set(radius, len, radius)
-      p.beamMat.opacity = 0.85 * fade
+      p.beamMat.opacity = 0.7 * fade
 
-      // muzzle flash — bright, brief, soft round pop at the origin
-      const flashFade = Math.max(0, 1 - age * 2.6)
+      // muzzle flash — a quick, soft round pop at the origin (kept subtle)
+      const flashFade = Math.max(0, 1 - age * 3.2)
       if (flashFade > 0) {
-        const sc = 0.5 + 1.1 * flashFade
+        const sc = 0.3 + 0.55 * flashFade
         p.flash.visible = true
         p.flash.position.copy(A)
         p.flash.scale.set(sc, sc, 1)
-        p.flashMat.opacity = flashFade
+        p.flashMat.opacity = 0.75 * flashFade
       } else {
         p.flash.visible = false
       }

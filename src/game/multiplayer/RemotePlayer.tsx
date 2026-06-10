@@ -1,9 +1,9 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Billboard, Text } from '@react-three/drei'
 import * as THREE from 'three'
 
-import { remoteSnapshots } from '../../multiplayer/playroomState'
+import { remoteRendered, remoteSnapshots } from '../../multiplayer/playroomState'
 import { PLAYER_HEIGHT, PLAYER_RADIUS } from '../constants'
 
 interface RemotePlayerProps {
@@ -27,6 +27,10 @@ export function RemotePlayer({ id, name, color }: RemotePlayerProps) {
   // Last interpolated values, so we know where to draw a gun from.
   const currentYaw = useRef(0)
 
+  // Drop our rendered-pose entry when this avatar unmounts so the gun
+  // never tests against a ghost.
+  useEffect(() => () => void remoteRendered.delete(id), [id])
+
   useFrame(() => {
     const g = group.current
     if (!g) return
@@ -46,6 +50,16 @@ export function RemotePlayer({ id, name, color }: RemotePlayerProps) {
     const dy = wrapPi(targetYaw.current - currentYaw.current)
     currentYaw.current += dy * LERP
     g.rotation.y = currentYaw.current
+
+    // Publish where this avatar is actually drawn for hit detection.
+    let pose = remoteRendered.get(id)
+    if (!pose) {
+      pose = { x: 0, y: 0, z: 0 }
+      remoteRendered.set(id, pose)
+    }
+    pose.x = g.position.x
+    pose.y = g.position.y
+    pose.z = g.position.z
   })
 
   return (

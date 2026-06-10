@@ -56,7 +56,7 @@ export function FeedbackSystem() {
         sfx.play(s.deathReason === 'water' ? 'splash' : 'death')
         track('player_died', { reason: s.deathReason ?? 'unknown' })
       }
-      // healed (e.g. stroopwafel) — guard against the respawn 0→full jump
+      // healed (e.g. Panado) — guard against the respawn 0→full jump
       if (prev.health > 0 && s.health > prev.health) {
         sfx.play('pickup')
         emitFloat(`+${s.health - prev.health}`, '#9be38b')

@@ -41,6 +41,12 @@ export function PlayerStateSync() {
         dead: s.dead,
         receivedAt: now,
       })
+      // custom display names arrive (and change) out of band of the join
+      // event; renamePeer no-ops without notifying while unchanged
+      const n: unknown = player.getState('n')
+      if (typeof n === 'string' && n) {
+        useGameStore.getState().renamePeer(id, n)
+      }
     }
 
     // push our own state at most every BROADCAST_INTERVAL_MS

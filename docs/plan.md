@@ -14,7 +14,7 @@ Built as a personal website / portfolio piece.
 **"Amsterdam, the toy."** A playful, meme-y interpretation of Amsterdam — not
 a serious game, not a competitive shooter, not a realistic sim. The *place* is
 the star: trams that will flatten you, swarms of bikes, canals to fall in, the
-red-light district, stroopwafels, the statiegeld bottle-collector, rats.
+red-light district, Panado health drops, the statiegeld bottle-collector, rats.
 Shooting other players is the **chaos bonus** that kicks in when friends join —
 it is not the point and is never meant to be balanced or fair.
 
@@ -59,10 +59,12 @@ This is well past a prototype. What works today:
   player, with near-miss bonus scoring. (`src/game/hazards/`)
 - **Combat** — hitscan gun, tracers, recoil, camera shake. (`src/game/Gun.tsx`)
 - **Multiplayer** — Playroom Kit, up to 8 players, position/health sync at
-  ~20Hz, p2p shot RPCs, kill/death tracking, kill-feed. (`src/multiplayer/`,
+  ~20Hz, p2p shot RPCs, kill/death tracking, kill-feed,
+  custom player names (localStorage-persisted). (`src/multiplayer/`,
   `src/game/multiplayer/`)
 - **Mobile** — virtual joystick, gyro tilt, touch-look. (`src/game/mobileInput.ts`)
-- **Pickups** — stroopwafel = health. (`src/game/pickups/`)
+- **Pickups** — Panado bottle = health. (`src/game/pickups/`)
+- **Minimap** — top-right HUD map: street layout, peers, active health drop. (`src/ui/Minimap.tsx`)
 - **Ambient NPCs** — rats, tourists, statiegeld collector. (`src/game/npcs/`)
 - **Shell** — TanStack Start app, game is the homepage, HUD, PostHog wired.
 
@@ -75,7 +77,7 @@ This is well past a prototype. What works today:
    shooting at you" must be one frictionless path. This is the viral loop.
    Shareable room URL, no accounts.
 3. **Density of Amsterdam gags.** The "I see what they did there" hits: tram
-   terror, bike swarms, falling in the canal, red-light neon, stroopwafels,
+   terror, bike swarms, falling in the canal, red-light neon, Panado drops,
    the statiegeld guy, coffeeshop signage, Amsterdammertje bollards. More
    recognisable detail = more meme.
 4. **Toy-like forgiveness.** No punishing game-over. Die → respawn instantly →
@@ -108,7 +110,7 @@ This is well past a prototype. What works today:
   delete or lazy-load off the game bundle
 
 **Repurpose (optional, later):**
-- Stroopwafel pickup → add ammo / fun power-up variants
+- Panado pickup → add ammo / fun power-up variants
 - PostHog → instrument the fun (joins, kills, falls-in-canal, session length)
 
 ---
