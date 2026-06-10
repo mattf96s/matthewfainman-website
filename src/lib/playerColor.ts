@@ -1,12 +1,15 @@
 /**
- * Shared avatar palette. Each player's colour derives from their
- * Playroom id, so every client computes the same colour for the same
- * player without syncing anything — and your own avatar matches what
- * everyone else sees. Collisions are possible past 8 players; for a
- * meme toy that's fine.
+ * Avatar colours. On your own screen you are always the terracotta
+ * "hotdog" — that's the player identity. Every OTHER player gets a
+ * colour hashed from their Playroom id out of a palette that
+ * deliberately excludes terracotta, so nobody on screen ever looks
+ * like you. Remote colours are deterministic from the id, so any two
+ * observers still see the same player in the same colour.
  */
-export const PLAYER_COLORS = [
-  '#e07a5f', // terracotta — also the solo/pre-join default
+export const LOCAL_PLAYER_COLOR = '#e07a5f' // the hotdog
+
+/** Remote-player palette — terracotta excluded on purpose. */
+export const PEER_COLORS = [
   '#5b8dd9', // cornflower
   '#66b96a', // green
   '#e0b341', // amber
@@ -16,14 +19,11 @@ export const PLAYER_COLORS = [
   '#a3b138', // olive
 ] as const
 
-/** Body colour before multiplayer connects (and in solo play). */
-export const DEFAULT_PLAYER_COLOR: string = PLAYER_COLORS[0]
-
 /** Deterministic palette pick — djb2 hash of the player id. */
 export function colorForId(id: string): string {
   let h = 5381
   for (let i = 0; i < id.length; i++) {
     h = ((h << 5) + h + id.charCodeAt(i)) | 0
   }
-  return PLAYER_COLORS[Math.abs(h) % PLAYER_COLORS.length]!
+  return PEER_COLORS[Math.abs(h) % PEER_COLORS.length]!
 }

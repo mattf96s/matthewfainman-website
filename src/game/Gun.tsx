@@ -14,7 +14,7 @@ import { emitHit } from '../ui/hitmarker'
 import { useGameStore } from '../state/useGameStore'
 import { cameraState, triggerCameraShake } from './cameraState'
 import { PLAYER_HEIGHT, PLAYER_RADIUS } from './constants'
-import { mobileInput } from './mobileInput'
+import { isTouchDevice, mobileInput } from './mobileInput'
 import { playerPosition } from './playerPosition'
 
 const FORWARD = new THREE.Vector3()
@@ -26,6 +26,9 @@ const CAP = new THREE.Vector3()
 /** Extra hit-capsule radius beyond the visual body. This is a meme toy,
  * not a competitive shooter — err well on the side of "that counted". */
 const HIT_PADDING = 0.25
+/** Thumb-drag aiming is far coarser than a mouse — touch devices get a
+ * fatter capsule, the mobile-shooter "aim assist" in its simplest form. */
+const TOUCH_HIT_PADDING = 0.55
 
 /**
  * Third-person shooting: the hit ray leaves the camera through screen
@@ -84,7 +87,8 @@ export function Gun() {
     // centre, so the test capsule spans the whole avatar — head to feet.
     let bestId: string | null = null
     let bestT = Infinity
-    const hitRadius = PLAYER_RADIUS + HIT_PADDING
+    const hitRadius =
+      PLAYER_RADIUS + (isTouchDevice() ? TOUCH_HIT_PADDING : HIT_PADDING)
     for (const [id, snap] of remoteSnapshots) {
       // stale = their tab is backgrounded; the avatar is hidden, so it
       // must not be hittable either

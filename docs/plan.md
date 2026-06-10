@@ -61,12 +61,15 @@ This is well past a prototype. What works today:
 - **Combat** — hitscan gun, tracers, recoil, camera shake. (`src/game/Gun.tsx`)
 - **Multiplayer** — Playroom Kit, up to 8 players, position/health sync at
   ~20Hz, p2p shot RPCs, kill/death tracking, kill-feed,
-  custom player names (localStorage-persisted), id-derived avatar colours
-  consistent across clients. Players whose snapshot stream stalls
+  custom player names (localStorage-persisted). You're always the
+  terracotta hotdog on your own screen; other players get id-derived
+  colours from a palette that excludes it. Players whose snapshot stream stalls
   (backgrounded tab) hide after 5s instead of freezing as shootable
   statues; deaths/respawns push event-driven snapshots that work while
   hidden. (`src/multiplayer/`, `src/game/multiplayer/`)
-- **Mobile** — virtual joystick, gyro tilt, touch-look. (`src/game/mobileInput.ts`)
+- **Mobile** — virtual joystick (move), touch-look, drag-to-aim FIRE
+  button (hold to shoot, drag the same thumb to aim — the standard
+  mobile-shooter scheme), fatter touch hitboxes. (`src/game/mobileInput.ts`)
 - **Pickups** — Panado bottle = health. (`src/game/pickups/`)
 - **Minimap** — top-right HUD map: street layout, peers, active health drop. (`src/ui/Minimap.tsx`)
 - **Ambient NPCs** — rats, tourists, statiegeld collector. (`src/game/npcs/`)

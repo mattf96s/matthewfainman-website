@@ -3,6 +3,12 @@ import type { CSSProperties } from 'react'
 import { Link } from '@tanstack/react-router'
 import { Github, Linkedin, Volume2, VolumeX } from 'lucide-react'
 
+import { cameraState } from '../game/cameraState'
+import {
+  CAMERA_PITCH_MAX,
+  CAMERA_PITCH_MIN,
+  TOUCH_LOOK_SENSITIVITY,
+} from '../game/constants'
 import { isTouchDevice, mobileInput } from '../game/mobileInput'
 import { profile } from '../lib/profile'
 import * as sfx from '../lib/sfx'
@@ -382,8 +388,8 @@ function ControlsPrompt({ touch, locked }: { touch: boolean; locked: boolean }) 
         }}
       >
         <div style={{ ...panel, fontSize: 13, whiteSpace: 'nowrap' }}>
-          Left stick to move · drag to look ·{' '}
-          <b style={{ color: '#ffb4a0' }}>FIRE</b> to shoot
+          Left stick to move · hold{' '}
+          <b style={{ color: '#ffb4a0' }}>FIRE</b> &amp; drag to aim
         </div>
       </div>
     )
@@ -430,8 +436,7 @@ function ControlsPrompt({ touch, locked }: { touch: boolean; locked: boolean }) 
   )
 }
 
-/** Bottom-right thumb cluster on touch devices: JUMP + FIRE. A dedicated
- * FIRE button (vs tap-to-shoot) avoids fighting the drag-to-look gesture.
+/** Bottom-right thumb cluster on touch devices: JUMP + FIRE.
  * Fixed-positioned with safe-area insets, like the joystick — anchoring
  * inside the (100vh-tall) page container put it under Safari's toolbar. */
 function TouchControls() {
@@ -468,6 +473,19 @@ function TouchControls() {
         onUp={() => {
           mobileInput.firePressed = false
         }}
+        // The CoD-mobile trick: the held FIRE thumb also steers the aim,
+        // so move (left thumb) + aim + shoot (right thumb) works with
+        // just two thumbs. Same sensitivity as the canvas look-drag.
+        onDrag={(dx, dy) => {
+          cameraState.yaw -= dx * TOUCH_LOOK_SENSITIVITY
+          cameraState.pitch = Math.max(
+            CAMERA_PITCH_MIN,
+            Math.min(
+              CAMERA_PITCH_MAX,
+              cameraState.pitch + dy * TOUCH_LOOK_SENSITIVITY,
+            ),
+          )
+        }}
       />
     </div>
   )
@@ -479,13 +497,18 @@ function ActionButton({
   accent,
   onDown,
   onUp,
+  onDrag,
 }: {
   label: string
   size: number
   accent?: boolean
   onDown: () => void
   onUp: () => void
+  /** Pointer movement (CSS px) while the button is held — pointer
+   * capture keeps the drag alive well outside the button's bounds. */
+  onDrag?: (dx: number, dy: number) => void
 }) {
+  const last = useRef<{ x: number; y: number } | null>(null)
   return (
     <button
       onPointerDown={(e) => {
@@ -493,6 +516,7 @@ function ActionButton({
         // Capture so a thumb sliding off the button still delivers the
         // pointerup here instead of stranding the input "held".
         e.currentTarget.setPointerCapture(e.pointerId)
+        last.current = { x: e.clientX, y: e.clientY }
         // First tap might land here before the canvas ever sees a touch —
         // mirror the canvas handler so the button works immediately.
         const store = useGameStore.getState()
@@ -500,12 +524,25 @@ function ActionButton({
         else if (store.paused) store.setPaused(false)
         onDown()
       }}
+      onPointerMove={(e) => {
+        if (!onDrag || !last.current) return
+        if (!e.currentTarget.hasPointerCapture(e.pointerId)) return
+        onDrag(e.clientX - last.current.x, e.clientY - last.current.y)
+        last.current = { x: e.clientX, y: e.clientY }
+      }}
       onPointerUp={(e) => {
         e.preventDefault()
+        last.current = null
         onUp()
       }}
-      onPointerCancel={onUp}
-      onLostPointerCapture={onUp}
+      onPointerCancel={() => {
+        last.current = null
+        onUp()
+      }}
+      onLostPointerCapture={() => {
+        last.current = null
+        onUp()
+      }}
       onContextMenu={(e) => e.preventDefault()}
       style={{
         pointerEvents: 'auto',
