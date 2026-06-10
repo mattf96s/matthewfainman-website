@@ -18,12 +18,14 @@ export function FeedbackSystem() {
     track('game_loaded')
 
     // First user gesture: unlock the audio context (browser autoplay
-    // policy) and record activation for the funnel. Once only.
+    // policy), start the street-ambience loop, and record activation
+    // for the funnel. Once only.
     let activated = false
     const onFirstInput = () => {
       if (activated) return
       activated = true
       sfx.resume()
+      sfx.startAmbience()
       track('first_interaction')
       window.removeEventListener('pointerdown', onFirstInput)
       window.removeEventListener('keydown', onFirstInput)

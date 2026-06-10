@@ -8,6 +8,7 @@ import {
 } from 'playroomkit'
 
 import { track } from '../lib/analytics'
+import { colorForId } from '../lib/playerColor'
 import { useGameStore } from '../state/useGameStore'
 import { lastLocalFireAt, registerNet, unregisterNet } from './netBridge'
 import { pushShot } from './shots'
@@ -120,11 +121,11 @@ export function PlayroomProvider() {
     const unsub = onPlayerJoin((player: PlayerState) => {
       remotePlayerHandles.set(player.id, player)
       if (player.id !== myPlayer().id) {
-        const profile = player.getProfile()
         useGameStore.getState().addPeer({
           id: player.id,
           name: nameOf(player),
-          color: profile.color?.hexString ?? '#e07a5f',
+          // id-derived so every client renders this player identically
+          color: colorForId(player.id),
         })
         track('peer_joined', { peers: useGameStore.getState().peers.length })
       }

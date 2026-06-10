@@ -63,7 +63,7 @@ src/
   hooks/          — shared React hooks (input, pointer lock, keybinds)
   lib/            — pure utilities (seo, profile, playerName)
   integrations/   — third-party providers (PostHog)
-public/           — static assets (favicons, og-image, manifest)
+public/           — static assets (favicons, og-image, manifest, audio loops)
 docs/
   plan.md         — concept, current systems, keep/cut list
 ```

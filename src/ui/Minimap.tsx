@@ -21,7 +21,8 @@ import {
   X_MEDIAN_WEST,
   X_ROAD,
 } from '../game/world/constants'
-import { remoteSnapshots } from '../multiplayer/playroomState'
+import { colorForId, DEFAULT_PLAYER_COLOR } from '../lib/playerColor'
+import { playroom, remoteSnapshots } from '../multiplayer/playroomState'
 import { useGameStore } from '../state/useGameStore'
 
 interface MinimapProps {
@@ -86,7 +87,7 @@ const SVG_NS = 'http://www.w3.org/2000/svg'
  * Top-right overhead street map drawn from the world constants (so it
  * can't drift): gracht, road with centre line, the cross-street, canal
  * houses framing both banks, and bridges. On top: you as a heading
- * arrow, peers as their profile-coloured dots, and the active Panado
+ * arrow, peers as their avatar-coloured dots, and the active Panado
  * health drop as a pulsing green cross. Markers update imperatively in a
  * rAF loop — per-frame positions never touch React state.
  */
@@ -95,6 +96,11 @@ export function Minimap({ compact }: MinimapProps) {
   const pickupRef = useRef<SVGGElement>(null)
   const pickupPulseRef = useRef<SVGCircleElement>(null)
   const peersRef = useRef<SVGGElement>(null)
+  // arrow takes our avatar colour so "me on the map" = "me in the world"
+  const multiplayerJoined = useGameStore((s) => s.multiplayerJoined)
+  const myColor = multiplayerJoined
+    ? colorForId(playroom.myId)
+    : DEFAULT_PLAYER_COLOR
 
   useEffect(() => {
     const peerDots = new Map<string, SVGCircleElement>()
@@ -335,8 +341,8 @@ export function Minimap({ compact }: MinimapProps) {
             <circle r={4} fill="rgba(255,255,255,0.22)" />
             <polygon
               points="0,-3.4 2.3,2.8 0,1.5 -2.3,2.8"
-              fill="#ffffff"
-              stroke="rgba(0,0,0,0.65)"
+              fill={myColor}
+              stroke="rgba(255,255,255,0.9)"
               strokeWidth={0.5}
               strokeLinejoin="round"
             />
