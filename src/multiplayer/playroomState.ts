@@ -26,6 +26,18 @@ export interface RemoteSnapshot {
 /** Snapshot of every other player, keyed by Playroom player id. */
 export const remoteSnapshots = new Map<string, RemoteSnapshot>()
 
+export interface RenderedPose {
+  x: number
+  y: number
+  z: number
+}
+
+/** Where each remote avatar is actually *drawn* this frame. The visuals
+ * lerp toward the latest snapshot, so they trail it by ~100ms — players
+ * aim at what they see, so hit detection must test against this, not the
+ * raw snapshot. Written by RemotePlayer each frame. */
+export const remoteRendered = new Map<string, RenderedPose>()
+
 /** PlayerState handles, kept so we can call .getProfile() for names/colours. */
 export const remotePlayerHandles = new Map<string, PlayerState>()
 

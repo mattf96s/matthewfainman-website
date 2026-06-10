@@ -19,7 +19,7 @@ import { Tracers } from './multiplayer/Tracers'
 import { Rats } from './npcs/Rats'
 import { Statiegeld } from './npcs/Statiegeld'
 import { Tourists } from './npcs/Tourists'
-import { Stroopwafels } from './pickups/Stroopwafels'
+import { Panados } from './pickups/Panados'
 import { AutoRespawn } from './systems/AutoRespawn'
 import { CanalWater } from './systems/CanalWater'
 import { Block } from './world/Block'
@@ -118,7 +118,7 @@ export function Game() {
             <Tourists />
             <Statiegeld />
             <Rats />
-            <Stroopwafels />
+            <Panados />
             <Rain />
             <Player />
             <Gun />

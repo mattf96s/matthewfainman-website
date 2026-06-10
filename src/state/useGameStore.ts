@@ -1,5 +1,11 @@
 import { create } from 'zustand'
 
+import {
+  loadPlayerName,
+  sanitizePlayerName,
+  savePlayerName,
+} from '../lib/playerName'
+
 interface GameState {
   fps: number
   setFps: (fps: number) => void
@@ -40,11 +46,19 @@ interface GameState {
   multiplayerJoined: boolean
   setMultiplayerJoined: (joined: boolean) => void
 
+  /** The local player's chosen display name, persisted to localStorage
+   * and synced to other players in multiplayer. '' = unset, in which
+   * case others see the Playroom-generated profile name. */
+  playerName: string
+  setPlayerName: (name: string) => void
+
   /** Other connected players, for presence UI + remote avatars. Updated
    * on join/leave only — never per frame. */
   peers: Peer[]
   addPeer: (peer: Peer) => void
   removePeer: (id: string) => void
+  /** Apply a peer's custom display name once it arrives over the network. */
+  renamePeer: (id: string, name: string) => void
 
   /** Bumped each time the Player controller should teleport to spawn —
    * used by the multiplayer bridge to respawn the player after death. */
@@ -131,6 +145,13 @@ export const useGameStore = create<GameState>((set) => ({
   multiplayerJoined: false,
   setMultiplayerJoined: (multiplayerJoined) => set({ multiplayerJoined }),
 
+  playerName: loadPlayerName(),
+  setPlayerName: (name) => {
+    const clean = sanitizePlayerName(name)
+    savePlayerName(clean)
+    set({ playerName: clean })
+  },
+
   peers: [],
   addPeer: (peer) =>
     set((s) =>
@@ -140,6 +161,16 @@ export const useGameStore = create<GameState>((set) => ({
     ),
   removePeer: (id) =>
     set((s) => ({ peers: s.peers.filter((p) => p.id !== id) })),
+  renamePeer: (id, name) =>
+    set((s) => {
+      const peer = s.peers.find((p) => p.id === id)
+      // returning the same state object skips the notify, so the per-frame
+      // caller in PlayerStateSync costs nothing while names are unchanged
+      if (!peer || peer.name === name) return s
+      return {
+        peers: s.peers.map((p) => (p.id === id ? { ...p, name } : p)),
+      }
+    }),
 
   /** Increments when the local player should be teleported back to spawn.
    * Player.tsx subscribes to it; both the solo AutoRespawn system and the

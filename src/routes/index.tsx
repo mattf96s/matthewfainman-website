@@ -25,10 +25,11 @@ function App() {
   return (
     <div
       style={{
+        // Sized by inset alone (no 100vh): on mobile Safari 100vh is the
+        // *large* viewport and pushes bottom-anchored HUD under the
+        // browser toolbar. inset: 0 tracks the visible layout viewport.
         position: 'fixed',
         inset: 0,
-        width: '100vw',
-        height: '100vh',
         background: '#111',
         zIndex: 100,
       }}

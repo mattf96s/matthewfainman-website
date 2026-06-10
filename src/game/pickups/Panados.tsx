@@ -6,7 +6,8 @@ import {
   X_MEDIAN_EAST,
   X_MEDIAN_WEST,
 } from '../world/constants'
-import { Stroopwafel } from './Stroopwafel'
+import { Panado } from './Panado'
+import { pickupState } from './pickupState'
 
 interface SpawnSpot {
   x: number
@@ -55,15 +56,15 @@ const pickSpot = (avoid: SpawnSpot | null): SpawnSpot => {
 }
 
 /**
- * Spawns one stroopwafel at a time in a random place. After each is
- * eaten or expires, a fresh one appears after a short cool-down. One
+ * Spawns one Panado bottle at a time in a random place. After each is
+ * taken or expires, a fresh one appears after a short cool-down. One
  * at a time keeps the reward feeling like a moment, not a litter.
  */
-export function Stroopwafels() {
+export function Panados() {
   const [current, setCurrent] = useState<ActiveSpawn | null>(null)
 
   // schedule the first spawn after mount, and re-schedule whenever
-  // `current` clears (because the wafel resolved or timed out)
+  // `current` clears (because the bottle resolved or timed out)
   useEffect(() => {
     if (current) return
     const cooldownMs =
@@ -80,9 +81,23 @@ export function Stroopwafels() {
     return () => window.clearTimeout(id)
   }, [current])
 
+  // mirror the active spawn for the HUD minimap
+  useEffect(() => {
+    if (current) {
+      pickupState.x = current.spot.x
+      pickupState.z = current.spot.z
+      pickupState.active = true
+    } else {
+      pickupState.active = false
+    }
+    return () => {
+      pickupState.active = false
+    }
+  }, [current])
+
   if (!current) return null
   return (
-    <Stroopwafel
+    <Panado
       key={current.id}
       x={current.spot.x}
       z={current.spot.z}

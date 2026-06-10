@@ -3,7 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 
 import { broadcastShot } from '../multiplayer/netBridge'
-import { remoteSnapshots } from '../multiplayer/playroomState'
+import { remoteRendered, remoteSnapshots } from '../multiplayer/playroomState'
 import { FIRE_INTERVAL_MS, GUN_DAMAGE, GUN_RANGE } from '../multiplayer/shots'
 import * as sfx from '../lib/sfx'
 import { emitHit } from '../ui/hitmarker'
@@ -17,7 +17,11 @@ const FORWARD = new THREE.Vector3()
 const ORIGIN = new THREE.Vector3()
 const MUZZLE = new THREE.Vector3()
 const HIT = new THREE.Vector3()
-const REMOTE_CENTRE = new THREE.Vector3()
+const CAP = new THREE.Vector3()
+
+/** Extra hit-capsule radius beyond the visual body. This is a meme toy,
+ * not a competitive shooter — err well on the side of "that counted". */
+const HIT_PADDING = 0.25
 
 /**
  * CS-style shooting: ray from the camera through screen-centre. The gun
@@ -28,9 +32,11 @@ const REMOTE_CENTRE = new THREE.Vector3()
  *   - Desktop: left mouse, but only once pointer-locked.
  *   - Mobile: the on-screen FIRE button (held → auto-repeat).
  *
- * We pick the closest remote player whose head/torso sphere the ray
- * intersects within GUN_RANGE. No environment hits (cheaper; avoids
- * tracers "landing" mid-wall).
+ * We pick the closest remote player whose full-body capsule the ray
+ * intersects within GUN_RANGE — tested against the *rendered* avatar
+ * (which lerps behind the network snapshot), because players aim at what
+ * they see. No environment hits (cheaper; avoids tracers "landing"
+ * mid-wall).
  */
 export function Gun() {
   const { camera } = useThree()
@@ -61,14 +67,23 @@ export function Gun() {
     // Forward = camera forward (matches the on-screen crosshair).
     camera.getWorldDirection(FORWARD)
 
-    // Find the closest remote-player hit.
+    // Find the closest remote-player hit. The snapshot y is the capsule
+    // centre, so the test capsule spans the whole avatar — head to feet.
     let bestId: string | null = null
     let bestT = Infinity
-    const hitRadius = PLAYER_RADIUS + 0.15
+    const hitRadius = PLAYER_RADIUS + HIT_PADDING
     for (const [id, snap] of remoteSnapshots) {
       if (snap.dead) continue
-      REMOTE_CENTRE.set(snap.x, snap.y + PLAYER_HEIGHT * 0.5, snap.z)
-      const t = raySphereT(ORIGIN, FORWARD, REMOTE_CENTRE, hitRadius)
+      const pose = remoteRendered.get(id) ?? snap
+      const t = rayCapsuleT(
+        ORIGIN,
+        FORWARD,
+        pose.x,
+        pose.y,
+        pose.z,
+        PLAYER_HEIGHT / 2,
+        hitRadius,
+      )
       if (t !== null && t < bestT && t <= GUN_RANGE) {
         bestT = t
         bestId = id
@@ -168,6 +183,49 @@ export function Gun() {
       </mesh>
     </group>
   )
+}
+
+/**
+ * Returns the t along (origin + t*dir) where the ray first enters an
+ * upright capsule — vertical segment cy±halfSeg at (cx, cz), radius `r` —
+ * or null if it misses. `dir` must be unit length.
+ *
+ * A capsule's surface is the side of a cylinder plus two cap spheres, so
+ * testing cylinder entry (with the entry height clamped to the segment)
+ * plus both caps covers every way in.
+ */
+function rayCapsuleT(
+  origin: THREE.Vector3,
+  dir: THREE.Vector3,
+  cx: number,
+  cy: number,
+  cz: number,
+  halfSeg: number,
+  r: number,
+): number | null {
+  // Side wall: the ray-circle problem on the XZ plane.
+  const a = dir.x * dir.x + dir.z * dir.z
+  if (a > 1e-8) {
+    const ox = origin.x - cx
+    const oz = origin.z - cz
+    const b = ox * dir.x + oz * dir.z
+    const c = ox * ox + oz * oz - r * r
+    const disc = b * b - a * c
+    if (disc >= 0) {
+      const t = (-b - Math.sqrt(disc)) / a
+      if (t >= 0) {
+        const y = origin.y + dir.y * t
+        if (y >= cy - halfSeg && y <= cy + halfSeg) return t
+      }
+    }
+  }
+  // Cap spheres (also handles near-vertical rays, where a ≈ 0).
+  CAP.set(cx, cy + halfSeg, cz)
+  const tTop = raySphereT(origin, dir, CAP, r)
+  CAP.set(cx, cy - halfSeg, cz)
+  const tBot = raySphereT(origin, dir, CAP, r)
+  if (tTop !== null && tBot !== null) return Math.min(tTop, tBot)
+  return tTop ?? tBot
 }
 
 /**
