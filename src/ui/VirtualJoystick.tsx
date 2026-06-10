@@ -10,7 +10,7 @@ const MAX_RADIUS = (PAD_DIAMETER - KNOB_DIAMETER) / 2
  * Bottom-left thumb stick for touch devices. Touch and drag inside (or
  * out from) the pad to set an analog forward/right axis pair. Writes
  * to `mobileInput.joystick*`; the player controller sums these with
- * the gyro and keyboard inputs.
+ * the keyboard inputs.
  */
 export function VirtualJoystick() {
   const pad = useRef<HTMLDivElement>(null)

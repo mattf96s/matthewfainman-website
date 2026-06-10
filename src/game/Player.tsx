@@ -9,8 +9,7 @@ import {
 } from '@react-three/rapier'
 import * as THREE from 'three'
 
-import { colorForId, DEFAULT_PLAYER_COLOR } from '../lib/playerColor'
-import { playroom } from '../multiplayer/playroomState'
+import { LOCAL_PLAYER_COLOR } from '../lib/playerColor'
 import { useGameStore } from '../state/useGameStore'
 import { cameraState } from './cameraState'
 import { mobileInput } from './mobileInput'
@@ -43,12 +42,6 @@ export function Player() {
   const mesh = useRef<THREE.Group>(null)
   const [, getKeys] = useKeyboardControls()
   const { world } = useRapier()
-  // own body colour matches what other clients render for our id —
-  // re-renders once when the room connection comes up
-  const multiplayerJoined = useGameStore((s) => s.multiplayerJoined)
-  const bodyColor = multiplayerJoined
-    ? colorForId(playroom.myId)
-    : DEFAULT_PLAYER_COLOR
 
   const controllerRef = useRef<ReturnType<typeof world.createCharacterController> | null>(null)
   const yVelocity = useRef(0)
@@ -143,18 +136,14 @@ export function Player() {
       planar.current.multiplyScalar(delta)
     } else {
       // axis values: +forward = into the scene (camera-forward), +right = camera-right.
-      // Keyboard contributes ±1; gyro and on-screen joystick contribute
-      // analog [-1, 1] and sum together. The combined vector clamps to
-      // the unit disc so diagonals stay unit length and a small tilt /
-      // small thumb-stick deflection produces a proportionally slow walk.
+      // Keyboard contributes ±1; the on-screen joystick contributes
+      // analog [-1, 1]. The combined vector clamps to the unit disc so
+      // diagonals stay unit length and a small thumb-stick deflection
+      // produces a proportionally slow walk.
       const fKey = Number(forward) - Number(backward)
       const rKey = Number(right) - Number(left)
-      const fMob = frozen
-        ? 0
-        : mobileInput.gyroForward + mobileInput.joystickForward
-      const rMob = frozen
-        ? 0
-        : mobileInput.gyroRight + mobileInput.joystickRight
+      const fMob = frozen ? 0 : mobileInput.joystickForward
+      const rMob = frozen ? 0 : mobileInput.joystickRight
       const fRaw = fKey + fMob
       const rRaw = rKey + rMob
       const len = Math.hypot(fRaw, rRaw)
@@ -271,7 +260,8 @@ export function Player() {
       <group ref={mesh}>
         <mesh castShadow>
           <capsuleGeometry args={[PLAYER_RADIUS, PLAYER_HEIGHT, 4, 8]} />
-          <meshStandardMaterial color={bodyColor} />
+          {/* always the terracotta hotdog — remote palettes exclude it */}
+          <meshStandardMaterial color={LOCAL_PLAYER_COLOR} />
         </mesh>
         {/* small "nose" pointing forward (+Z in local space) — helps see facing */}
         <mesh castShadow position={[0, 0.3, PLAYER_RADIUS + 0.05]}>

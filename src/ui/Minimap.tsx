@@ -21,12 +21,8 @@ import {
   X_MEDIAN_WEST,
   X_ROAD,
 } from '../game/world/constants'
-import { colorForId, DEFAULT_PLAYER_COLOR } from '../lib/playerColor'
-import {
-  isSnapshotStale,
-  playroom,
-  remoteSnapshots,
-} from '../multiplayer/playroomState'
+import { colorForId, LOCAL_PLAYER_COLOR } from '../lib/playerColor'
+import { isSnapshotStale, remoteSnapshots } from '../multiplayer/playroomState'
 import { useGameStore } from '../state/useGameStore'
 
 interface MinimapProps {
@@ -100,11 +96,6 @@ export function Minimap({ compact }: MinimapProps) {
   const pickupRef = useRef<SVGGElement>(null)
   const pickupPulseRef = useRef<SVGCircleElement>(null)
   const peersRef = useRef<SVGGElement>(null)
-  // arrow takes our avatar colour so "me on the map" = "me in the world"
-  const multiplayerJoined = useGameStore((s) => s.multiplayerJoined)
-  const myColor = multiplayerJoined
-    ? colorForId(playroom.myId)
-    : DEFAULT_PLAYER_COLOR
 
   useEffect(() => {
     const peerDots = new Map<string, SVGCircleElement>()
@@ -168,7 +159,8 @@ export function Minimap({ compact }: MinimapProps) {
           }
           dot.setAttribute(
             'fill',
-            peers.find((p) => p.id === id)?.color ?? '#e07a5f',
+            // fallback derives from the id too — never the hotdog colour
+            peers.find((p) => p.id === id)?.color ?? colorForId(id),
           )
           dot.setAttribute('cx', String(mx(clampX(snap.x))))
           dot.setAttribute('cy', String(mz(clampZ(snap.z))))
@@ -345,9 +337,10 @@ export function Minimap({ compact }: MinimapProps) {
           </g>
           <g ref={playerRef} style={{ display: 'none' }}>
             <circle r={4} fill="rgba(255,255,255,0.22)" />
+            {/* the hotdog's arrow — peer dots never use this colour */}
             <polygon
               points="0,-3.4 2.3,2.8 0,1.5 -2.3,2.8"
-              fill={myColor}
+              fill={LOCAL_PLAYER_COLOR}
               stroke="rgba(255,255,255,0.9)"
               strokeWidth={0.5}
               strokeLinejoin="round"
