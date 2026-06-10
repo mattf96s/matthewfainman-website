@@ -25,8 +25,10 @@ const SPAWN_POINTS: readonly SpawnPoint[] = [
   [X_HOUSE_SIDEWALK - 1.0, 2, -2],
   [X_HOUSE_SIDEWALK - 1.0, 2, 12],
   [X_HOUSE_SIDEWALK - 1.0, 2, 34],
-  [X_FAR_SIDEWALK - 0.9, 2, -24],
-  [X_FAR_SIDEWALK - 0.9, 2, 24],
+  // keep ~2m off the west facades so the follow camera doesn't start
+  // buried inside a canal house on spawn
+  [X_FAR_SIDEWALK + 0.15, 2, -24],
+  [X_FAR_SIDEWALK + 0.15, 2, 24],
   // mid-bridge over the canal
   [X_CANAL, 2, 0],
 ]

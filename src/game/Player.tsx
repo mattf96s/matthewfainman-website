@@ -9,6 +9,8 @@ import {
 } from '@react-three/rapier'
 import * as THREE from 'three'
 
+import { colorForId, DEFAULT_PLAYER_COLOR } from '../lib/playerColor'
+import { playroom } from '../multiplayer/playroomState'
 import { useGameStore } from '../state/useGameStore'
 import { cameraState } from './cameraState'
 import { mobileInput } from './mobileInput'
@@ -41,6 +43,12 @@ export function Player() {
   const mesh = useRef<THREE.Group>(null)
   const [, getKeys] = useKeyboardControls()
   const { world } = useRapier()
+  // own body colour matches what other clients render for our id —
+  // re-renders once when the room connection comes up
+  const multiplayerJoined = useGameStore((s) => s.multiplayerJoined)
+  const bodyColor = multiplayerJoined
+    ? colorForId(playroom.myId)
+    : DEFAULT_PLAYER_COLOR
 
   const controllerRef = useRef<ReturnType<typeof world.createCharacterController> | null>(null)
   const yVelocity = useRef(0)
@@ -257,7 +265,7 @@ export function Player() {
       <group ref={mesh}>
         <mesh castShadow>
           <capsuleGeometry args={[PLAYER_RADIUS, PLAYER_HEIGHT, 4, 8]} />
-          <meshStandardMaterial color="#e07a5f" />
+          <meshStandardMaterial color={bodyColor} />
         </mesh>
         {/* small "nose" pointing forward (+Z in local space) — helps see facing */}
         <mesh castShadow position={[0, 0.3, PLAYER_RADIUS + 0.05]}>
