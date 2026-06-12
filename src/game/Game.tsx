@@ -84,7 +84,11 @@ export function Game() {
   return (
     <KeyboardControls map={keyMap}>
       <Canvas
-        shadows={!touch}
+        // 'percentage' = PCFShadowMap. R3F's bare `shadows` flag asks for
+        // PCFSoftShadowMap, which three r184 deprecated — it logs a
+        // warning and falls back to PCFShadowMap anyway, so this renders
+        // identically minus the console noise.
+        shadows={touch ? false : 'percentage'}
         camera={{ position: [0, 5, 12], fov: 60 }}
         dpr={touch ? [1, 1.25] : [1, 1.5]}
         gl={{ antialias: !touch }}

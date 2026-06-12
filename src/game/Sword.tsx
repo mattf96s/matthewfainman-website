@@ -27,9 +27,20 @@ import { SwordModel } from './SwordModel'
 /** Targets more than this far above/below the player are out of swing
  * reach — generous on purpose, it only rules out someone on a bridge. */
 const MELEE_Y_TOLERANCE = 2
-/** How long the chop animation plays (ms). Shorter than the swing
- * cooldown so the blade visibly resets between swings. */
-const SWING_ANIM_MS = 220
+
+/* Swing animation — an overhead vertical chop, not a stab. Pitch is
+ * rotation about the local X axis: negative = blade raised, positive =
+ * buried down-forward. The windup throws the blade up past vertical,
+ * the chop accelerates it through ~160°, and the remainder of the swing
+ * cooldown eases back to a slightly-raised idle. */
+const SWING_ANIM_MS = 280
+/** Fraction of the animation spent raising the blade overhead. */
+const WINDUP_END = 0.25
+const IDLE_PITCH = -0.35
+const WINDUP_PITCH = -2.0
+const FOLLOW_PITCH = 0.85
+/** How far the whole sword lifts (m) at the top of the windup. */
+const SWING_LIFT = 0.15
 
 /**
  * Close-combat counterpart to the Gun, active while the store says
@@ -139,22 +150,39 @@ export function Sword() {
     const ox = rx * cos + fz * -sin
     const oz = rx * -sin + fz * -cos
 
-    g.position.set(
-      playerPosition.x + ox,
-      playerPosition.y + 0.55,
-      playerPosition.z + oz,
-    )
     g.rotation.y = yaw + Math.PI
 
-    // Chop: blade snaps up then sweeps down-forward over SWING_ANIM_MS,
-    // easing back to a slightly raised idle.
+    // Overhead chop: ease the blade up past vertical, accelerate it
+    // down through the arc, then recover to idle across the rest of the
+    // swing cooldown. The grip also lifts during the windup so the
+    // whole sword visibly rises before the strike.
     const sinceSwing = performance.now() - swingStartedAt.current
+    let lift = 0
     if (sinceSwing < SWING_ANIM_MS) {
       const p = sinceSwing / SWING_ANIM_MS
-      g.rotation.x = -1.1 + p * 1.55
+      if (p < WINDUP_END) {
+        const w = p / WINDUP_END
+        // ease-out raise — fast off idle, settling at the top
+        g.rotation.x = IDLE_PITCH + (WINDUP_PITCH - IDLE_PITCH) * w * (2 - w)
+        lift = SWING_LIFT * w
+      } else {
+        const s = (p - WINDUP_END) / (1 - WINDUP_END)
+        // ease-in chop — the blade accelerates as it falls
+        g.rotation.x = WINDUP_PITCH + (FOLLOW_PITCH - WINDUP_PITCH) * s * s
+        lift = SWING_LIFT * (1 - s)
+      }
+    } else if (sinceSwing < SWING_INTERVAL_MS) {
+      const r = (sinceSwing - SWING_ANIM_MS) / (SWING_INTERVAL_MS - SWING_ANIM_MS)
+      g.rotation.x = FOLLOW_PITCH + (IDLE_PITCH - FOLLOW_PITCH) * r
     } else {
-      g.rotation.x = -0.25
+      g.rotation.x = IDLE_PITCH
     }
+
+    g.position.set(
+      playerPosition.x + ox,
+      playerPosition.y + 0.55 + lift,
+      playerPosition.z + oz,
+    )
   })
 
   return (

@@ -68,6 +68,7 @@ export function HUD() {
   const multiplayerJoined = useGameStore((s) => s.multiplayerJoined)
   const killFeed = useGameStore((s) => s.killFeed)
   const health = useGameStore((s) => s.health)
+  const weapon = useGameStore((s) => s.weapon)
   const dead = health <= 0
 
   const [touch, setTouch] = useState(false)
@@ -77,8 +78,10 @@ export function HUD() {
 
   const active = !dead && !paused
   // Crosshair only when you can actually shoot: on desktop that's once
-  // pointer-locked, so its appearance teaches the lock step.
-  const showCrosshair = active && (touch || locked)
+  // pointer-locked, so its appearance teaches the lock step. The sword
+  // doesn't aim down the crosshair (it's a body-centred arc), so showing
+  // one would wrongly suggest you can stab at range.
+  const showCrosshair = active && weapon === 'gun' && (touch || locked)
 
   return (
     <>
