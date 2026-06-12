@@ -10,6 +10,7 @@ import { isTouchDevice } from './mobileInput'
 import { MobileControlsBridge } from './MobileControlsBridge'
 import { Player } from './Player'
 import { PointerLockBridge } from './PointerLockBridge'
+import { Sword } from './Sword'
 import { Bikes } from './hazards/Bikes'
 import { Cars } from './hazards/Cars'
 import { PathTram, type TramPath } from './hazards/PathTram'
@@ -24,6 +25,7 @@ import { Tourists } from './npcs/Tourists'
 import { Panados } from './pickups/Panados'
 import { AutoRespawn } from './systems/AutoRespawn'
 import { CanalWater } from './systems/CanalWater'
+import { HealthRegen } from './systems/HealthRegen'
 import { Block } from './world/Block'
 import { CanalLife } from './world/CanalLife'
 import { Rain } from './world/Rain'
@@ -129,11 +131,13 @@ export function Game() {
             <Rain />
             <Player />
             <Gun />
+            <Sword />
             <RemotePlayers />
             <Tracers />
             <PlayerStateSync />
             <FollowCamera />
             <CanalWater />
+            <HealthRegen />
             <AutoRespawn />
             <FpsTracker />
             <PointerLockBridge />

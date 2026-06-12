@@ -10,9 +10,19 @@ export interface TestApiShape {
     textures: number
   }
   playerPosition: { x: number; y: number; z: number; ready: boolean }
+  cameraState: { yaw: number; pitch: number }
+  mobileInput: { firePressed: boolean }
   spawnPeer: (id: string, x: number, y: number, z: number) => void
   despawnPeer: (id: string) => void
-  store: { getState: () => { respawn: () => void } }
+  store: {
+    getState: () => {
+      respawn: () => void
+      health: number
+      weapon: 'gun' | 'sword'
+      setWeapon: (weapon: 'gun' | 'sword') => void
+      takeDamage: (amount: number, reason: string) => void
+    }
+  }
 }
 
 declare global {

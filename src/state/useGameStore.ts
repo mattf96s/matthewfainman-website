@@ -6,6 +6,9 @@ import {
   savePlayerName,
 } from '../lib/playerName'
 
+export type WeaponKind = 'gun' | 'sword'
+export type HealSource = 'pickup' | 'regen'
+
 interface GameState {
   fps: number
   setFps: (fps: number) => void
@@ -35,8 +38,19 @@ interface GameState {
   health: number
   /** Subtract `amount` from health; record what did it. No-op if already dead. */
   takeDamage: (amount: number, reason: string) => void
-  /** Restore `amount` of health, clamped to MAX_HEALTH. No-op if dead. */
-  heal: (amount: number) => void
+  /** Restore `amount` of health, clamped to MAX_HEALTH. No-op if dead.
+   * `source` lets FeedbackSystem tell a Panado pickup (sound + float
+   * text) from a quiet regen tick. */
+  heal: (amount: number, source?: HealSource) => void
+  /** What produced the most recent heal — read by FeedbackSystem in the
+   * same store notification, so it's always in sync with `health`. */
+  lastHealSource: HealSource
+
+  /** The currently held weapon. Loadout, not progress — survives both
+   * respawn and reset. */
+  weapon: WeaponKind
+  setWeapon: (weapon: WeaponKind) => void
+  toggleWeapon: () => void
 
   /** What killed the player this death (`'tram'`, `'water'`, …), shown on
    * the respawn overlay. Null while alive. */
@@ -133,12 +147,19 @@ export const useGameStore = create<GameState>((set) => ({
       return { health: next }
     }),
 
-  heal: (amount) =>
+  heal: (amount, source = 'pickup') =>
     set((s) => {
       if (s.health <= 0) return s
       const next = Math.min(MAX_HEALTH, s.health + amount)
-      return { health: next }
+      if (next === s.health) return s
+      return { health: next, lastHealSource: source }
     }),
+  lastHealSource: 'pickup',
+
+  weapon: 'gun',
+  setWeapon: (weapon) => set({ weapon }),
+  toggleWeapon: () =>
+    set((s) => ({ weapon: s.weapon === 'gun' ? 'sword' : 'gun' })),
 
   deathReason: null,
 

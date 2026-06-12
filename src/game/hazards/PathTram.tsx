@@ -4,7 +4,7 @@ import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
 import * as THREE from 'three'
 
 import { triggerCameraShake } from '../cameraState'
-import { PLAYER_RADIUS } from '../constants'
+import { PLAYER_RADIUS, TRAM_DAMAGE } from '../constants'
 import { triggerKnockback } from '../playerImpulse'
 import { playerPosition } from '../playerPosition'
 import { useGameStore } from '../../state/useGameStore'
@@ -202,7 +202,7 @@ export function PathTram({
         // shove the player off the tracks, away from the tram centre
         const pushLen = Math.hypot(dx, dz) || 1
         triggerKnockback(1000, (dx / pushLen) * 22, 7, (dz / pushLen) * 22)
-        takeDamage(80, 'tram')
+        takeDamage(TRAM_DAMAGE, 'tram')
       }
     } else {
       hitInside.current = false

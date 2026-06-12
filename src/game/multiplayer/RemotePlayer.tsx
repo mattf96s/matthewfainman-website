@@ -9,6 +9,7 @@ import {
   remoteSnapshots,
 } from '../../multiplayer/playroomState'
 import { PLAYER_HEIGHT, PLAYER_RADIUS } from '../constants'
+import { SwordModel } from '../SwordModel'
 
 interface RemotePlayerProps {
   id: string
@@ -30,6 +31,8 @@ const SNAP_DISTANCE_SQ = 25
  */
 export function RemotePlayer({ id, name, color }: RemotePlayerProps) {
   const group = useRef<THREE.Group>(null)
+  const gunGroup = useRef<THREE.Group>(null)
+  const swordGroup = useRef<THREE.Group>(null)
   const targetPos = useRef(new THREE.Vector3())
   const targetYaw = useRef(0)
   // Last interpolated values, so we know where to draw a gun from.
@@ -57,6 +60,12 @@ export function RemotePlayer({ id, name, color }: RemotePlayerProps) {
       return
     }
     g.visible = true
+
+    // show whichever weapon their snapshot says they're holding —
+    // imperative visibility flips, so a swap never re-renders the avatar
+    const holdingSword = snap.w === 1
+    if (gunGroup.current) gunGroup.current.visible = !holdingSword
+    if (swordGroup.current) swordGroup.current.visible = holdingSword
 
     targetPos.current.set(snap.x, snap.y, snap.z)
     targetYaw.current = snap.yaw + Math.PI // remote faces away from their own camera
@@ -100,11 +109,15 @@ export function RemotePlayer({ id, name, color }: RemotePlayerProps) {
         <meshStandardMaterial color="#1a1a1a" />
       </mesh>
       {/* gun in the right hand — extends in front of the avatar */}
-      <group position={[0.32, 0.55, PLAYER_RADIUS + 0.05]}>
+      <group ref={gunGroup} position={[0.32, 0.55, PLAYER_RADIUS + 0.05]}>
         <mesh>
           <boxGeometry args={[0.12, 0.14, 0.55]} />
           <meshStandardMaterial color="#2a2a2a" roughness={0.6} metalness={0.4} />
         </mesh>
+      </group>
+      {/* sword, same hand — visibility swapped per snapshot weapon */}
+      <group ref={swordGroup} position={[0.32, 0.55, PLAYER_RADIUS + 0.05]} visible={false}>
+        <SwordModel />
       </group>
       {/* floating nametag */}
       <Billboard position={[0, PLAYER_HEIGHT + 0.6, 0]}>

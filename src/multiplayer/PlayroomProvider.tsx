@@ -57,6 +57,7 @@ function pushSnapshotNow(): void {
     yaw: cameraState.yaw,
     hp: store.health,
     dead: store.health <= 0,
+    w: store.weapon === 'sword' ? 1 : 0,
     receivedAt: performance.now(),
   })
 }
@@ -118,7 +119,7 @@ export function PlayroomProvider() {
         maxPlayersPerRoom: MAX_PLAYERS,
         skipLobby: true,
         defaultPlayerStates: {
-          s: { x: 0, y: 1, z: 0, yaw: 0, hp: 100, dead: false, receivedAt: 0 },
+          s: { x: 0, y: 1, z: 0, yaw: 0, hp: 100, dead: false, w: 0, receivedAt: 0 },
         },
       },
       () => {
@@ -182,7 +183,8 @@ export function PlayroomProvider() {
 
   // RPC handlers — incoming shots and kill credit.
   useEffect(() => {
-    // Other players announce they shot. Render the tracer locally; if
+    // Other players announce they attacked. Gun shots render a tracer
+    // locally; sword hits don't (the swing is the attacker's visual). If
     // we're the named victim, apply damage and (if it kills us) tell the
     // shooter via 'killed-by' so they can score the kill.
     const unshot = RPC.register(
@@ -197,14 +199,16 @@ export function PlayroomProvider() {
           hz: number
           victimId: string | null
           damage: number
+          kind?: 'gun' | 'sword'
         },
         sender: PlayerState,
       ) => {
-        pushShot(data.ox, data.oy, data.oz, data.hx, data.hy, data.hz)
+        const sword = data.kind === 'sword'
+        if (!sword) pushShot(data.ox, data.oy, data.oz, data.hx, data.hy, data.hz)
 
         if (data.victimId && data.victimId === playroom.myId) {
           const store = useGameStore.getState()
-          store.takeDamage(data.damage, 'shot')
+          store.takeDamage(data.damage, sword ? 'sword' : 'shot')
           if (useGameStore.getState().health <= 0) {
             // tell everyone we're down right away — the frame-loop
             // broadcast is paused if this tab is backgrounded

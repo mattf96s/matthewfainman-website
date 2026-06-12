@@ -19,3 +19,15 @@ export const TOUCH_LOOK_SENSITIVITY = 0.006
 export const KEYBOARD_YAW_SPEED = 2.2
 export const CAMERA_PITCH_MIN = -0.5
 export const CAMERA_PITCH_MAX = 1.2
+
+/* Hazard damage tuning — kept together so the overall lethality story
+ * is visible in one place. The toy should feel chaotic, not punishing:
+ * with passive regen (src/lib/healthRegen.ts) a careless stroll should
+ * rough you up, while only sustained bad luck actually drops you.
+ * Weapon damage lives with the other weapon tuning in
+ * src/multiplayer/shots.ts. */
+export const TRAM_DAMAGE = 55
+export const CAR_DAMAGE = 25
+export const BIKE_DAMAGE = 10
+/** Drowning, hp per second while submerged in the gracht. */
+export const DROWN_DAMAGE_PER_S = 6

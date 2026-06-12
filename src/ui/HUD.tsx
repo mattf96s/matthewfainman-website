@@ -137,10 +137,12 @@ function HealthBar() {
   const prev = useRef(health)
 
   useEffect(() => {
-    if (health !== prev.current) {
-      prev.current = health
+    // flash on damage only — regen ticks every fraction of a second and
+    // a constantly-pulsing bar would read as taking damage
+    if (health < prev.current) {
       setFlashKey((k) => k + 1)
     }
+    prev.current = health
   }, [health])
 
   return (
@@ -418,6 +420,9 @@ function ControlsPrompt({ touch, locked }: { touch: boolean; locked: boolean }) 
           <Kbd>WASD</Kbd> move · <Kbd>Q</Kbd>/<Kbd>E</Kbd> turn ·{' '}
           <Kbd>Space</Kbd> jump · <Kbd>Esc</Kbd> release
         </div>
+        <div style={{ fontSize: 13, opacity: 0.85, marginTop: 6 }}>
+          <Kbd>1</Kbd> gun · <Kbd>2</Kbd> sword · <Kbd>Tab</Kbd>/scroll swap
+        </div>
         <div
           style={{
             marginTop: 14,
@@ -436,7 +441,9 @@ function ControlsPrompt({ touch, locked }: { touch: boolean; locked: boolean }) 
   )
 }
 
-/** Bottom-right thumb cluster on touch devices: JUMP + FIRE.
+/** Bottom-right thumb cluster on touch devices: JUMP + FIRE, with the
+ * weapon-swap chip stacked above FIRE (the mobile-shooter convention:
+ * weapon slot lives by the trigger thumb).
  * Fixed-positioned with safe-area insets, like the joystick — anchoring
  * inside the (100vh-tall) page container put it under Safari's toolbar. */
 function TouchControls() {
@@ -463,31 +470,76 @@ function TouchControls() {
           mobileInput.jumpPressed = false
         }}
       />
-      <ActionButton
-        label="FIRE"
-        size={96}
-        accent
-        onDown={() => {
-          mobileInput.firePressed = true
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 12,
         }}
-        onUp={() => {
-          mobileInput.firePressed = false
-        }}
-        // The CoD-mobile trick: the held FIRE thumb also steers the aim,
-        // so move (left thumb) + aim + shoot (right thumb) works with
-        // just two thumbs. Same sensitivity as the canvas look-drag.
-        onDrag={(dx, dy) => {
-          cameraState.yaw -= dx * TOUCH_LOOK_SENSITIVITY
-          cameraState.pitch = Math.max(
-            CAMERA_PITCH_MIN,
-            Math.min(
-              CAMERA_PITCH_MAX,
-              cameraState.pitch + dy * TOUCH_LOOK_SENSITIVITY,
-            ),
-          )
-        }}
-      />
+      >
+        <WeaponSwapButton />
+        <ActionButton
+          label="FIRE"
+          size={96}
+          accent
+          onDown={() => {
+            mobileInput.firePressed = true
+          }}
+          onUp={() => {
+            mobileInput.firePressed = false
+          }}
+          // The CoD-mobile trick: the held FIRE thumb also steers the aim,
+          // so move (left thumb) + aim + shoot (right thumb) works with
+          // just two thumbs. Same sensitivity as the canvas look-drag.
+          onDrag={(dx, dy) => {
+            cameraState.yaw -= dx * TOUCH_LOOK_SENSITIVITY
+            cameraState.pitch = Math.max(
+              CAMERA_PITCH_MIN,
+              Math.min(
+                CAMERA_PITCH_MAX,
+                cameraState.pitch + dy * TOUCH_LOOK_SENSITIVITY,
+              ),
+            )
+          }}
+        />
+      </div>
     </div>
+  )
+}
+
+/** Tap to swap between gun and sword. Shows the weapon currently held —
+ * the FIRE button below it always attacks with whatever this shows. */
+function WeaponSwapButton() {
+  const weapon = useGameStore((s) => s.weapon)
+  return (
+    <button
+      onPointerDown={(e) => {
+        e.preventDefault()
+        useGameStore.getState().toggleWeapon()
+      }}
+      onContextMenu={(e) => e.preventDefault()}
+      aria-label={`Holding ${weapon} — tap to swap`}
+      style={{
+        pointerEvents: 'auto',
+        width: 52,
+        height: 52,
+        borderRadius: '50%',
+        border: '1px solid rgba(255,255,255,0.4)',
+        background: 'rgba(255,255,255,0.16)',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.25)',
+        fontSize: 24,
+        lineHeight: 1,
+        backdropFilter: 'blur(6px)',
+        touchAction: 'none',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+        WebkitTapHighlightColor: 'transparent',
+      }}
+    >
+      {weapon === 'gun' ? '🔫' : '🗡️'}
+    </button>
   )
 }
 
@@ -810,6 +862,8 @@ function deathReasonText(reason: string | null): string {
       return 'You drowned in the gracht'
     case 'shot':
       return 'You got gunned down'
+    case 'sword':
+      return 'You got skewered'
     default:
       return 'You went down'
   }

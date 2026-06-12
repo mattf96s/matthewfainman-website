@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 
+import { DROWN_DAMAGE_PER_S } from '../constants'
 import { playerPosition } from '../playerPosition'
 import {
   CANAL_LENGTH,
@@ -8,10 +9,6 @@ import {
   X_CANAL,
 } from '../world/constants'
 import { useGameStore } from '../../state/useGameStore'
-
-/** Damage per second while the player is submerged. ~10s from full
- * health to drowning at MAX_HEALTH = 100. */
-const DAMAGE_PER_SECOND = 10
 /** Y below which the player is considered to be in the water — the
  * canal water surface sits at -CANAL_DEPTH = -1.2, sidewalk top at 0,
  * so anything below -0.2 means they've gone over the bank. */
@@ -42,7 +39,7 @@ export function CanalWater() {
       return
     }
 
-    accumulator.current += DAMAGE_PER_SECOND * delta
+    accumulator.current += DROWN_DAMAGE_PER_S * delta
     if (accumulator.current >= 1) {
       const whole = Math.floor(accumulator.current)
       accumulator.current -= whole

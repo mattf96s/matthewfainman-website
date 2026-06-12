@@ -58,8 +58,14 @@ export function FeedbackSystem() {
         sfx.play(s.deathReason === 'water' ? 'splash' : 'death')
         track('player_died', { reason: s.deathReason ?? 'unknown' })
       }
-      // healed (e.g. Panado) — guard against the respawn 0→full jump
-      if (prev.health > 0 && s.health > prev.health) {
+      // healed by a pickup — guard against the respawn 0→full jump.
+      // Regen heals are deliberately silent: at a couple of points per
+      // second they'd turn the pickup jingle into a metronome.
+      if (
+        prev.health > 0 &&
+        s.health > prev.health &&
+        s.lastHealSource === 'pickup'
+      ) {
         sfx.play('pickup')
         emitFloat(`+${s.health - prev.health}`, '#9be38b')
         track('pickup_collected', { amount: s.health - prev.health })

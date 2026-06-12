@@ -46,6 +46,7 @@ export function PlayerStateSync() {
         yaw: s.yaw,
         hp: s.hp,
         dead: s.dead,
+        w: s.w,
         t: s.t,
         receivedAt: fresh || !prev ? now : prev.receivedAt,
       })
@@ -69,6 +70,7 @@ export function PlayerStateSync() {
       yaw: cameraState.yaw,
       hp: store.health,
       dead: store.health <= 0,
+      w: store.weapon === 'sword' ? 1 : 0,
       receivedAt: now,
     })
   })

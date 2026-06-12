@@ -9,6 +9,8 @@
 import { pushShot } from './shots'
 import type { RemoteSnapshot } from './playroomState'
 
+export type AttackKind = 'gun' | 'sword'
+
 export interface ShotPayload {
   ox: number
   oy: number
@@ -18,6 +20,10 @@ export interface ShotPayload {
   hz: number
   victimId: string | null
   damage: number
+  /** What dealt the hit. Sword hits draw no tracer and report a
+   * different death reason. Absent on payloads from older clients —
+   * treat as 'gun'. */
+  kind?: AttackKind
 }
 
 type ShotSender = (payload: ShotPayload) => void
@@ -57,7 +63,24 @@ export function broadcastShot(
 ): void {
   pushShot(ox, oy, oz, hx, hy, hz)
   lastLocalFireAt.value = performance.now()
-  shotSender?.({ ox, oy, oz, hx, hy, hz, victimId, damage })
+  shotSender?.({ ox, oy, oz, hx, hy, hz, victimId, damage, kind: 'gun' })
+}
+
+/** Land a sword hit on one victim. No tracer — the swing animation is
+ * the visual — so unlike shots, misses never reach the network. */
+export function broadcastMelee(victimId: string, damage: number): void {
+  lastLocalFireAt.value = performance.now()
+  shotSender?.({
+    ox: 0,
+    oy: 0,
+    oz: 0,
+    hx: 0,
+    hy: 0,
+    hz: 0,
+    victimId,
+    damage,
+    kind: 'sword',
+  })
 }
 
 /** Push our latest pose/health snapshot to the network, if connected.

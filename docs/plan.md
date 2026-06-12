@@ -58,7 +58,13 @@ This is well past a prototype. What works today:
   banks. (`src/game/Player.tsx`, `FollowCamera.tsx`, `spawnPoints.ts`)
 - **Hazards** — trams, cars, bikes on splines that damage/knock-back the
   player, with near-miss bonus scoring. (`src/game/hazards/`)
-- **Combat** — hitscan gun, tracers, recoil, camera shake. (`src/game/Gun.tsx`)
+- **Combat** — two weapons: hitscan gun (tracers, recoil, camera shake) and
+  a melee sword (frontal-arc swing, hits everyone in reach, harder-hitting
+  because you must close distance). Switch with `1`/`2`, Tab or mouse wheel
+  on desktop, the weapon chip above FIRE on touch; remote avatars show
+  whichever weapon a player holds. Lethality is tuned forgiving — passive
+  regen (3 hp/s after 5 s without damage) means only sustained bad luck
+  kills. (`src/game/Gun.tsx`, `Sword.tsx`, `src/game/systems/HealthRegen.tsx`)
 - **Multiplayer** — Playroom Kit, up to 8 players, position/health sync at
   ~20Hz, p2p shot RPCs, kill/death tracking, kill-feed,
   custom player names (localStorage-persisted). You're always the
@@ -69,7 +75,8 @@ This is well past a prototype. What works today:
   hidden. (`src/multiplayer/`, `src/game/multiplayer/`)
 - **Mobile** — virtual joystick (move), touch-look, drag-to-aim FIRE
   button (hold to shoot, drag the same thumb to aim — the standard
-  mobile-shooter scheme), fatter touch hitboxes. (`src/game/mobileInput.ts`)
+  mobile-shooter scheme), tap-to-swap weapon chip above FIRE, fatter
+  touch hitboxes. (`src/game/mobileInput.ts`)
 - **Pickups** — Panado bottle = health. (`src/game/pickups/`)
 - **Minimap** — top-right HUD map: street layout, peers, active health drop. (`src/ui/Minimap.tsx`)
 - **Ambient NPCs** — rats, tourists, statiegeld collector. (`src/game/npcs/`)

@@ -18,6 +18,9 @@ export interface RemoteSnapshot {
   yaw: number
   hp: number
   dead: boolean
+  /** Held weapon: 0 = gun, 1 = sword. A number (not a string) to keep
+   * the 20Hz snapshot payload lean. Absent from older clients → gun. */
+  w?: number
   /** Sender-side performance.now() stamp. Only used as a change counter:
    * if it stops changing, the sender's frame loop is paused (hidden tab,
    * locked phone) and their snapshot is going stale. */

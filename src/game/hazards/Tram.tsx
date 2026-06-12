@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
 
 import { triggerCameraShake } from '../cameraState'
-import { PLAYER_RADIUS } from '../constants'
+import { PLAYER_RADIUS, TRAM_DAMAGE } from '../constants'
 import { triggerKnockback } from '../playerImpulse'
 import { playerPosition } from '../playerPosition'
 import { useGameStore } from '../../state/useGameStore'
@@ -93,7 +93,7 @@ export function Tram({
         wasHit.current = true
         triggerCameraShake(800, 0.7)
         triggerKnockback(1000, 0, 7, direction.current * 22)
-        takeDamage(80, 'tram')
+        takeDamage(TRAM_DAMAGE, 'tram')
       }
     } else {
       hitInside.current = false

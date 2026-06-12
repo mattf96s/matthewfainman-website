@@ -11,6 +11,7 @@
 
 export type SfxName =
   | 'shoot'
+  | 'swing'
   | 'hitConfirm'
   | 'kill'
   | 'hurt'
@@ -145,6 +146,11 @@ export function play(name: SfxName): void {
     case 'shoot':
       noiseHit(context, master, { peak: 0.5, attack: 0.001, release: 0.1, startAt: t, filterType: 'lowpass', freq: 1600, q: 1 })
       tone(context, master, { type: 'square', from: 220, to: 60, peak: 0.25, attack: 0.001, release: 0.09, startAt: t })
+      break
+    case 'swing':
+      // air whoosh: a falling band of filtered noise, no tonal body
+      noiseHit(context, master, { peak: 0.35, attack: 0.015, release: 0.16, startAt: t, filterType: 'bandpass', freq: 700, q: 1.6 })
+      noiseHit(context, master, { peak: 0.2, attack: 0.01, release: 0.1, startAt: t + 0.03, filterType: 'bandpass', freq: 450, q: 2 })
       break
     case 'hitConfirm':
       tone(context, master, { type: 'sine', from: 900, to: 1300, peak: 0.3, attack: 0.001, release: 0.07, startAt: t })

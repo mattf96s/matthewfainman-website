@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
 
 import { triggerCameraShake } from '../cameraState'
-import { PLAYER_RADIUS } from '../constants'
+import { CAR_DAMAGE, PLAYER_RADIUS } from '../constants'
 import { triggerKnockback } from '../playerImpulse'
 import { playerPosition } from '../playerPosition'
 import { useGameStore } from '../../state/useGameStore'
@@ -75,7 +75,7 @@ export function Car({
         cooldown.current = now
         triggerCameraShake(500, 0.4)
         triggerKnockback(700, 0, 4, direction * 12)
-        takeDamage(40, 'car')
+        takeDamage(CAR_DAMAGE, 'car')
       }
     } else {
       hitInside.current = false

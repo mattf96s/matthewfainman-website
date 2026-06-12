@@ -59,6 +59,7 @@ export function Gun() {
   // lock (mobile has none) — the desktop handler adds that gate.
   const fire = useCallback(() => {
     const store = useGameStore.getState()
+    if (store.weapon !== 'gun') return
     if (!store.started || store.paused || store.health <= 0) return
 
     const now = performance.now()
@@ -160,13 +161,15 @@ export function Gun() {
     const g = gunMesh.current
     if (!g) return
 
-    // Hide the gun until we know where the player is OR if we're dead.
+    // Hide the gun until we know where the player is, while dead, and
+    // while the sword is out.
     if (!playerPosition.ready) {
       g.visible = false
       return
     }
-    const hp = useGameStore.getState().health
-    g.visible = hp > 0
+    const store = useGameStore.getState()
+    g.visible = store.health > 0 && store.weapon === 'gun'
+    if (!g.visible) return
 
     const yaw = cameraState.yaw
     const sin = Math.sin(yaw)

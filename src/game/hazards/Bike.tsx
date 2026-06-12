@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
 
 import { triggerCameraShake } from '../cameraState'
-import { PLAYER_RADIUS } from '../constants'
+import { BIKE_DAMAGE, PLAYER_RADIUS } from '../constants'
 import { triggerKnockback } from '../playerImpulse'
 import { playerPosition } from '../playerPosition'
 import { useGameStore } from '../../state/useGameStore'
@@ -143,7 +143,7 @@ export function Bike({
         wasHitWhileNear.current = true
         triggerCameraShake(300, 0.25)
         triggerKnockback(500, 0, 2, direction.current * 6)
-        takeDamage(20, 'bike')
+        takeDamage(BIKE_DAMAGE, 'bike')
       }
     } else {
       hitInside.current = false
