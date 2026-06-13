@@ -26,13 +26,16 @@ export const FIRE_INTERVAL_MS = 220
  * have to get within hugging distance of someone who can shoot back. */
 export const SWORD_DAMAGE = 25
 /** Reach measured from the player centre; the target's capsule radius
- * is added on top by the caller. */
-export const SWORD_RANGE = 2.2
-/** cos of the half-angle of the frontal swing arc (100° total — this is
- * a meme toy, err on the side of "that counted"). */
-export const SWORD_COS_HALF_ARC = Math.cos((50 * Math.PI) / 180)
+ * (~0.3) is added on top by the caller, giving ~1.3m edge-to-edge. Kept
+ * to genuine hugging distance so the blade visibly reaches whoever it
+ * hits — a longer reach reads as a phantom stab from across the street. */
+export const SWORD_RANGE = 1.0
+/** cos of the half-angle of the frontal swing arc (80° total). Forgiving
+ * enough for a meme toy, narrow enough that you can't tag someone off to
+ * the side just by turning the camera. */
+export const SWORD_COS_HALF_ARC = Math.cos((40 * Math.PI) / 180)
 /** Cooldown between swings (ms). */
-export const SWING_INTERVAL_MS = 400
+export const SWING_INTERVAL_MS = 420
 
 let nextId = 1
 

@@ -41,19 +41,20 @@ test.describe('combat', () => {
     await page.goto(gameUrl(randomRoom()))
     await waitForGameReady(page)
 
-    // Plant a fake peer 1.5m dead ahead of wherever the player spawned
-    // and facing whichever way the camera does, then hold FIRE with the
-    // sword out. The swing auto-repeats while held, so the 200ms
-    // hitmarker keeps reappearing for the visibility poll to catch.
+    // Plant a fake peer 1m dead ahead of wherever the player spawned
+    // (inside the sword's ~1.3m reach) facing whichever way the camera
+    // does, then hold FIRE with the sword out. The swing auto-repeats
+    // while held, so the 200ms hitmarker keeps reappearing for the
+    // visibility poll to catch.
     await page.evaluate(() => {
       const api = window.__testApi!
       const { x, y, z } = api.playerPosition
       const yaw = api.cameraState.yaw
       api.spawnPeer(
         'sword-target',
-        x + -Math.sin(yaw) * 1.5,
+        x + -Math.sin(yaw) * 1.0,
         y,
-        z + -Math.cos(yaw) * 1.5,
+        z + -Math.cos(yaw) * 1.0,
       )
       api.store.getState().setWeapon('sword')
       api.mobileInput.firePressed = true
@@ -67,6 +68,39 @@ test.describe('combat', () => {
     })
   })
 
+  test('sword does not reach a peer beyond hugging distance', async ({
+    page,
+  }) => {
+    await page.goto(gameUrl(randomRoom()))
+    await waitForGameReady(page)
+
+    // 2.2m dead ahead: inside the camera's view and the swing arc, but
+    // well past the sword's ~1.3m reach. This is the "stab from across
+    // the street" case — it must NOT connect, regardless of where the
+    // camera is aimed.
+    await page.evaluate(() => {
+      const api = window.__testApi!
+      const { x, y, z } = api.playerPosition
+      const yaw = api.cameraState.yaw
+      api.spawnPeer(
+        'far-target',
+        x + -Math.sin(yaw) * 2.2,
+        y,
+        z + -Math.cos(yaw) * 2.2,
+      )
+      api.store.getState().setWeapon('sword')
+      api.mobileInput.firePressed = true
+    })
+
+    await page.waitForTimeout(1_500)
+    await expect(page.getByText('✕')).not.toBeVisible()
+
+    await page.evaluate(() => {
+      window.__testApi!.mobileInput.firePressed = false
+      window.__testApi!.despawnPeer('far-target')
+    })
+  })
+
   test('sword swing misses a peer behind the player', async ({ page }) => {
     await page.goto(gameUrl(randomRoom()))
     await waitForGameReady(page)
@@ -75,12 +109,12 @@ test.describe('combat', () => {
       const api = window.__testApi!
       const { x, y, z } = api.playerPosition
       const yaw = api.cameraState.yaw
-      // directly BEHIND the facing direction, well inside sword range
+      // directly BEHIND the facing direction, inside sword range
       api.spawnPeer(
         'back-target',
-        x + Math.sin(yaw) * 1.5,
+        x + Math.sin(yaw) * 1.0,
         y,
-        z + Math.cos(yaw) * 1.5,
+        z + Math.cos(yaw) * 1.0,
       )
       api.store.getState().setWeapon('sword')
       api.mobileInput.firePressed = true

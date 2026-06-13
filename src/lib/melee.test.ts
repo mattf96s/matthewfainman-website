@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import { isInMeleeArc } from './melee'
 
-// 100° total arc, the sword's tuning at the time of writing
+// Illustrative arc/range — isInMeleeArc is tuning-agnostic, so these are
+// deliberately independent of the live SWORD_* constants in shots.ts.
 const COS_HALF = Math.cos((50 * Math.PI) / 180)
 const RANGE = 2.5
 

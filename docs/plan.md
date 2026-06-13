@@ -59,12 +59,15 @@ This is well past a prototype. What works today:
 - **Hazards** — trams, cars, bikes on splines that damage/knock-back the
   player, with near-miss bonus scoring. (`src/game/hazards/`)
 - **Combat** — two weapons: hitscan gun (tracers, recoil, camera shake) and
-  a melee sword (frontal-arc swing, hits everyone in reach, harder-hitting
-  because you must close distance). Switch with `1`/`2`, Tab or mouse wheel
-  on desktop, the weapon chip above FIRE on touch; remote avatars show
-  whichever weapon a player holds. Lethality is tuned forgiving — passive
-  regen (3 hp/s after 5 s without damage) means only sustained bad luck
-  kills. (`src/game/Gun.tsx`, `Sword.tsx`, `src/game/systems/HealthRegen.tsx`)
+  a melee sword. The sword is short-range (~1.3m, true hugging distance) so
+  the overhead chop visibly sweeps through whoever it hits — no crosshair,
+  no aiming-from-afar; it hits everyone in a tight frontal arc and lands the
+  blow at the strike frame of the swing. Hits harder than the gun because
+  you must close distance. Switch with `1`/`2`, Tab or mouse wheel on
+  desktop, the weapon chip above FIRE on touch; remote avatars show whichever
+  weapon a player holds. Lethality is tuned forgiving — passive regen
+  (3 hp/s after 5 s without damage) means only sustained bad luck kills.
+  (`src/game/Gun.tsx`, `Sword.tsx`, `src/game/systems/HealthRegen.tsx`)
 - **Multiplayer** — Playroom Kit, up to 8 players, position/health sync at
   ~20Hz, p2p shot RPCs, kill/death tracking, kill-feed,
   custom player names (localStorage-persisted). You're always the
