@@ -4,6 +4,11 @@ import * as THREE from 'three'
 
 import { RedLightWindow } from './RedLightWindow'
 
+/** The three canal-house roofline silhouettes Amsterdam is known for:
+ * a plain point gable (puntgevel), a stepped one (trapgevel) and a
+ * bell-curved one (klokgevel). Picked per-house in HouseRow. */
+export type GableShape = 'point' | 'step' | 'bell'
+
 interface CanalHouseProps {
   position: [number, number, number]
   width?: number
@@ -11,15 +16,68 @@ interface CanalHouseProps {
   height?: number
   rotationY?: number
   brick: string
+  /** Roofline silhouette. Defaults to the plain point gable. */
+  gable?: GableShape
   /** Style the ground-floor windows as red-light district windows. */
   redLight?: boolean
 }
 
+/** Builds the 2D gable profile (in the facade plane, y up from the eaves)
+ * that gets extruded through the house depth into a roof prism. */
+function makeGableShape(gable: GableShape, width: number): THREE.Shape {
+  const shape = new THREE.Shape()
+  const halfW = width / 2
+
+  if (gable === 'step') {
+    // symmetric staircase rising to a small flat crown (trapgevel)
+    const steps = 3
+    const stepW = 0.6
+    const stepH = 0.8
+    const left: [number, number][] = [[-halfW, 0]]
+    let x = -halfW
+    let y = 0
+    for (let s = 0; s < steps; s++) {
+      y += stepH
+      left.push([x, y]) // riser up
+      x += stepW
+      left.push([x, y]) // tread in
+    }
+    // mirror the left edge across the centre to descend the right side
+    const right = left.map(([px, py]): [number, number] => [-px, py]).reverse()
+    const pts = [...left, ...right]
+    shape.moveTo(pts[0]![0], pts[0]![1])
+    for (let i = 1; i < pts.length; i++) shape.lineTo(pts[i]![0], pts[i]![1])
+    shape.closePath()
+    return shape
+  }
+
+  if (gable === 'bell') {
+    // ogee curves swelling out then sweeping to a rounded crown (klokgevel)
+    const peak = 2.8
+    const topW = 0.5
+    shape.moveTo(-halfW, 0)
+    shape.lineTo(-halfW, 0.6)
+    shape.quadraticCurveTo(-halfW, 1.9, -topW, peak)
+    shape.quadraticCurveTo(0, peak + 0.25, topW, peak)
+    shape.quadraticCurveTo(halfW, 1.9, halfW, 0.6)
+    shape.lineTo(halfW, 0)
+    shape.closePath()
+    return shape
+  }
+
+  // point (puntgevel): a plain triangle
+  shape.moveTo(-halfW, 0)
+  shape.lineTo(halfW, 0)
+  shape.lineTo(0, 2.4)
+  shape.closePath()
+  return shape
+}
+
 /**
- * A narrow brick canal house with a triangular gable on top.
- * The base sits at y=0 (ground level); the gable rises above.
- * Front of the house is the +Z (local) face; pass rotationY=±π/2 to
- * rotate the facade to face the world east/west.
+ * A narrow brick canal house with a gabled roofline on top — point,
+ * stepped or bell, per the `gable` prop. The base sits at y=0 (ground
+ * level); the gable rises above. Front of the house is the +Z (local)
+ * face; pass rotationY=±π/2 to rotate the facade to face east/west.
  */
 export function CanalHouse({
   position,
@@ -28,21 +86,16 @@ export function CanalHouse({
   height = 9,
   rotationY = 0,
   brick,
+  gable = 'point',
   redLight = false,
 }: CanalHouseProps) {
   const gableGeometry = useMemo(() => {
-    const shape = new THREE.Shape()
-    const halfW = width / 2
-    const peakHeight = 2.4
-    shape.moveTo(-halfW, 0)
-    shape.lineTo(halfW, 0)
-    shape.lineTo(0, peakHeight)
-    shape.closePath()
+    const shape = makeGableShape(gable, width)
     return new THREE.ExtrudeGeometry(shape, {
       depth,
       bevelEnabled: false,
     })
-  }, [width, depth])
+  }, [width, depth, gable])
 
   return (
     <RigidBody

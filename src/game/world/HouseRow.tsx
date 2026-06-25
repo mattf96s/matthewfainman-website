@@ -1,6 +1,18 @@
-import { CanalHouse } from './CanalHouse'
+import { CanalHouse, type GableShape } from './CanalHouse'
 import { Shop, type ShopBrand } from './Shop'
 import { BLOCK_LENGTH, HOUSE_BRICKS } from './constants'
+
+// Deterministic gable mix along a row — weighted toward the plain point
+// gable, with stepped and bell gables sprinkled in for Amsterdam character.
+const GABLE_CYCLE: readonly GableShape[] = [
+  'step',
+  'point',
+  'bell',
+  'point',
+  'bell',
+  'step',
+  'point',
+]
 
 interface HouseRowProps {
   /** X of the house front line (facade). */
@@ -62,6 +74,7 @@ export function HouseRow({
         const brick = HOUSE_BRICKS[(i + seed) % HOUSE_BRICKS.length]!
         const heightJitter = 1.5 * Math.sin((i + seed) * 1.7)
         const redLight = redLightIndices?.has(i) ?? false
+        const gable = GABLE_CYCLE[(i + seed) % GABLE_CYCLE.length]!
         return (
           <CanalHouse
             key={i}
@@ -71,6 +84,7 @@ export function HouseRow({
             height={9 + heightJitter}
             rotationY={facingY}
             brick={brick}
+            gable={gable}
             redLight={redLight}
           />
         )
