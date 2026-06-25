@@ -188,7 +188,9 @@ export function Minimap({ compact }: MinimapProps) {
     <div
       style={{
         position: 'absolute',
-        top: 108,
+        // tucks under the smaller scoreboard on mobile; desktop's score
+        // panel is taller, so it sits lower there
+        top: compact ? 80 : 108,
         right: 12,
         padding: 4,
         borderRadius: 12,

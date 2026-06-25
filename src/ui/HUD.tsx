@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import type { CSSProperties } from 'react'
 import { Link } from '@tanstack/react-router'
 import { Github, Linkedin, Volume2, VolumeX } from 'lucide-react'
 
@@ -24,34 +23,12 @@ import { Minimap } from './Minimap'
 import { NameEditor } from './NameEditor'
 import { VirtualJoystick } from './VirtualJoystick'
 
-const hudFont: CSSProperties = {
-  fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
-  color: '#fff',
-  textShadow: '0 1px 2px rgba(0,0,0,0.55)',
-}
-
-const panel: CSSProperties = {
-  background: 'rgba(15,20,24,0.5)',
-  border: '1px solid rgba(255,255,255,0.12)',
-  borderRadius: 12,
-  padding: '8px 12px',
-  backdropFilter: 'blur(6px)',
-  pointerEvents: 'none',
-}
-
-const kbdStyle: CSSProperties = {
-  display: 'inline-block',
-  padding: '1px 6px',
-  margin: '0 1px',
-  borderRadius: 6,
-  background: 'rgba(255,255,255,0.16)',
-  border: '1px solid rgba(255,255,255,0.25)',
-  fontSize: 12,
-  fontWeight: 600,
-}
-
 function Kbd({ children }: { children: React.ReactNode }) {
-  return <span style={kbdStyle}>{children}</span>
+  return (
+    <kbd className="mx-px inline-block rounded-md border border-white/25 bg-white/16 px-1.5 py-px font-[inherit] text-xs font-semibold">
+      {children}
+    </kbd>
+  )
 }
 
 function healthColor(pct: number): string {
@@ -77,6 +54,12 @@ export function HUD() {
   }, [])
 
   const active = !dead && !paused
+  // While playing on a phone the thumb zones (joystick left, buttons
+  // right) must stay clear, so the social credit — which lives bottom-
+  // right and would sit under the FIRE button — is dropped during play.
+  // On desktop it stays put (incl. the start screen, where it's the
+  // bottom-right GitHub/LinkedIn corner).
+  const showMobilePlay = active && touch
   // Crosshair only when you can actually shoot: on desktop that's once
   // pointer-locked, so its appearance teaches the lock step. The sword
   // doesn't aim down the crosshair (it's a body-centred arc), so showing
@@ -88,35 +71,29 @@ export function HUD() {
       {/* gameplay → sound + combat text + analytics */}
       <FeedbackSystem />
 
-      <div
-        style={{
-          ...hudFont,
-          position: 'absolute',
-          top: 12,
-          left: 14,
-          fontSize: 13,
-          opacity: 0.6,
-          pointerEvents: 'none',
-        }}
-      >
-        {fps.toFixed(0)} fps
-      </div>
-      <MuteButton />
+      {/* FPS is dev-facing noise — desktop only, never on a phone HUD */}
+      {!touch && (
+        <div className="hud-text pointer-events-none absolute left-3.5 top-3 text-[13px] opacity-60">
+          {fps.toFixed(0)} fps
+        </div>
+      )}
+      <MuteButton compact={touch} />
 
       {showCrosshair && <Crosshair />}
       <Hitmarker />
 
-      <Presence />
+      <Presence touch={touch} />
       {multiplayerJoined && killFeed.length > 0 && <KillFeed entries={killFeed} />}
 
-      <HealthBar />
-      <Scoreboard />
+      <HealthBar compact={touch} />
+      <Scoreboard compact={touch} />
       {active && <Minimap compact={touch} />}
-      <Credit />
+      {!showMobilePlay && <Credit />}
       <FloatingTexts />
 
       {dead && <RespawnOverlay reason={deathReason} />}
-      {active && <ControlsPrompt touch={touch} locked={locked} />}
+      {active && touch && <TouchHint />}
+      {active && !touch && !locked && <StartPrompt />}
       {paused && !dead && <PauseOverlay />}
 
       {touch && active && <VirtualJoystick />}
@@ -124,7 +101,7 @@ export function HUD() {
       {/* touch has no start overlay to host the name input, so it gets a
         * persistent tap-to-edit chip next to the mute button instead */}
       {touch && active && (
-        <div style={{ position: 'absolute', top: 8, left: 102 }}>
+        <div className="absolute left-13 top-2">
           <NameEditor compact />
         </div>
       )}
@@ -132,7 +109,7 @@ export function HUD() {
   )
 }
 
-function HealthBar() {
+function HealthBar({ compact }: { compact?: boolean }) {
   const health = useGameStore((s) => s.health)
   const pct = Math.max(0, Math.min(1, health / MAX_HEALTH))
   const color = healthColor(pct)
@@ -148,48 +125,38 @@ function HealthBar() {
     prev.current = health
   }, [health])
 
+  // On a phone the bottom-left is the joystick's thumb zone, so health
+  // lives top-left (under the mute/name row) and shrinks. Desktop keeps
+  // it in the bottom-left corner where there's nothing to collide with.
   return (
     <div
-      style={{
-        ...panel,
-        position: 'absolute',
-        left: 16,
-        bottom: 16,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-      }}
+      className={`hud-panel pointer-events-none absolute flex items-center ${
+        compact
+          ? 'left-3 top-11 gap-1.75 px-2.25 py-1.25'
+          : 'bottom-4 left-4 gap-2.5 px-3 py-2'
+      }`}
     >
-      <span style={{ color, fontSize: 18, lineHeight: 1 }}>♥</span>
+      <span
+        className={`leading-none ${compact ? 'text-sm' : 'text-lg'}`}
+        style={{ color }}
+      >
+        ♥
+      </span>
       <div
-        style={{
-          width: 160,
-          height: 12,
-          borderRadius: 99,
-          background: 'rgba(255,255,255,0.16)',
-          overflow: 'hidden',
-        }}
+        className={`overflow-hidden rounded-full bg-white/16 ${
+          compact ? 'h-2 w-27' : 'h-3 w-40'
+        }`}
       >
         <div
           key={flashKey}
-          className="ae-flash"
-          style={{
-            width: `${pct * 100}%`,
-            height: '100%',
-            background: color,
-            borderRadius: 99,
-            transition: 'width 220ms ease, background 220ms ease',
-          }}
+          className="ae-flash h-full rounded-full duration-220 [transition-property:width,background]"
+          style={{ width: `${pct * 100}%`, background: color }}
         />
       </div>
       <span
-        style={{
-          ...hudFont,
-          fontSize: 13,
-          fontWeight: 700,
-          minWidth: 30,
-          textAlign: 'right',
-        }}
+        className={`hud-text text-right font-bold ${
+          compact ? 'min-w-6 text-xs' : 'min-w-7.5 text-[13px]'
+        }`}
       >
         {Math.max(0, Math.ceil(health))}
       </span>
@@ -197,36 +164,36 @@ function HealthBar() {
   )
 }
 
-function Scoreboard() {
+function Scoreboard({ compact }: { compact?: boolean }) {
   const score = useGameStore((s) => s.score)
   const nearMiss = useGameStore((s) => s.nearMissCount)
 
   return (
     <div
-      style={{
-        ...panel,
-        position: 'absolute',
-        top: 12,
-        right: 12,
-        textAlign: 'right',
-      }}
+      className={`hud-panel pointer-events-none absolute right-3 top-3 text-right ${
+        compact ? 'px-2.5 py-1.25' : 'px-3 py-2'
+      }`}
     >
       <div
-        style={{
-          ...hudFont,
-          fontSize: 11,
-          letterSpacing: '0.14em',
-          opacity: 0.7,
-          textTransform: 'uppercase',
-        }}
+        className={`hud-text uppercase tracking-[0.14em] opacity-70 ${
+          compact ? 'text-[9px]' : 'text-[11px]'
+        }`}
       >
         Score
       </div>
-      <div style={{ ...hudFont, fontSize: 26, fontWeight: 800, lineHeight: 1.05 }}>
+      <div
+        className={`hud-text font-extrabold leading-[1.05] ${
+          compact ? 'text-lg' : 'text-[26px]'
+        }`}
+      >
         {score}
       </div>
       {nearMiss > 0 && (
-        <div style={{ ...hudFont, fontSize: 12, opacity: 0.8, marginTop: 2 }}>
+        <div
+          className={`hud-text mt-0.5 opacity-80 ${
+            compact ? 'text-[11px]' : 'text-xs'
+          }`}
+        >
           🚲 {nearMiss} dodged
         </div>
       )}
@@ -234,7 +201,7 @@ function Scoreboard() {
   )
 }
 
-function Presence() {
+function Presence({ touch }: { touch?: boolean }) {
   const joined = useGameStore((s) => s.multiplayerJoined)
   const peers = useGameStore((s) => s.peers)
   const kills = useGameStore((s) => s.kills)
@@ -242,55 +209,34 @@ function Presence() {
 
   if (!joined) return null
   const others = peers.length
+  // Solo on a phone, the "1 online" pill is just clutter in the crowded
+  // top band — only surface presence once there's actually someone else.
+  if (touch && others === 0) return null
 
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 12,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 6,
-      }}
-    >
-      <div
-        style={{
-          ...hudFont,
-          ...panel,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 7,
-          fontSize: 12,
-        }}
-      >
+    <div className="absolute left-1/2 top-3 flex -translate-x-1/2 flex-col items-center gap-1.5">
+      <div className="hud-panel hud-text pointer-events-none flex items-center gap-1.75 text-xs">
         <span
-          style={{
-            width: 8,
-            height: 8,
-            borderRadius: 99,
-            background: others > 0 ? '#7bd88f' : '#9fb0b0',
-            animation: others > 0 ? 'ae-pulse 2s ease-in-out infinite' : 'none',
-          }}
+          className={`h-2 w-2 rounded-full ${
+            others > 0
+              ? 'animate-[ae-pulse_2s_ease-in-out_infinite] bg-[#7bd88f]'
+              : 'bg-[#9fb0b0]'
+          }`}
         />
         {others + 1} online
       </div>
       {others > 0 && (
-        <div
-          style={{ ...hudFont, ...panel, fontSize: 13, letterSpacing: '0.06em' }}
-        >
-          <span style={{ color: '#a4e8a4' }}>{kills} K</span>
-          <span style={{ opacity: 0.4, margin: '0 6px' }}>/</span>
-          <span style={{ color: '#e8a4a4' }}>{deaths} D</span>
+        <div className="hud-panel hud-text pointer-events-none text-[13px] tracking-[0.06em]">
+          <span className="text-[#a4e8a4]">{kills} K</span>
+          <span className="mx-1.5 opacity-40">/</span>
+          <span className="text-[#e8a4a4]">{deaths} D</span>
         </div>
       )}
     </div>
   )
 }
 
-function MuteButton() {
+function MuteButton({ compact }: { compact?: boolean }) {
   const [muted, setMuted] = useState(false)
   useEffect(() => {
     setMuted(sfx.isMuted())
@@ -301,19 +247,11 @@ function MuteButton() {
       onClick={() => setMuted(sfx.toggleMuted())}
       title={muted ? 'Unmute' : 'Mute'}
       aria-label={muted ? 'Unmute' : 'Mute'}
-      style={{
-        ...panel,
-        position: 'absolute',
-        top: 8,
-        left: 62,
-        padding: 6,
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: '#fff',
-        cursor: 'pointer',
-        pointerEvents: 'auto',
-      }}
+      // desktop sits right of the FPS readout; mobile has no FPS, so it
+      // takes the corner and the name chip sits next to it
+      className={`hud-panel pointer-events-auto absolute top-2 inline-flex cursor-pointer items-center justify-center p-1.5 text-white ${
+        compact ? 'left-3' : 'left-15.5'
+      }`}
     >
       {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
     </button>
@@ -321,44 +259,31 @@ function MuteButton() {
 }
 
 function Credit() {
-  const iconLink: CSSProperties = {
-    color: '#fff',
-    opacity: 0.85,
-    display: 'inline-flex',
-    pointerEvents: 'auto',
-  }
   return (
-    <div
-      style={{
-        ...hudFont,
-        position: 'absolute',
-        bottom: 14,
-        right: 16,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        fontSize: 12,
-        opacity: 0.82,
-        pointerEvents: 'none',
-      }}
-    >
-      <span style={{ fontWeight: 600 }}>Matthew Fainman</span>
+    <div className="hud-text pointer-events-none absolute bottom-3.5 right-4 flex items-center gap-2.5 text-xs opacity-[0.82]">
+      <span className="font-semibold">Matthew Fainman</span>
       <Link
         to="/about"
-        style={{
-          color: '#fff',
-          opacity: 0.85,
-          fontWeight: 600,
-          textDecoration: 'none',
-          pointerEvents: 'auto',
-        }}
+        className="pointer-events-auto font-semibold text-white no-underline opacity-85"
       >
         about
       </Link>
-      <a href={profile.github} target="_blank" rel="noreferrer" aria-label="GitHub" style={iconLink}>
+      <a
+        href={profile.github}
+        target="_blank"
+        rel="noreferrer"
+        aria-label="GitHub"
+        className="pointer-events-auto inline-flex text-white opacity-85"
+      >
         <Github size={15} />
       </a>
-      <a href={profile.linkedin} target="_blank" rel="noreferrer" aria-label="LinkedIn" style={iconLink}>
+      <a
+        href={profile.linkedin}
+        target="_blank"
+        rel="noreferrer"
+        aria-label="LinkedIn"
+        className="pointer-events-auto inline-flex text-white opacity-85"
+      >
         <Linkedin size={15} />
       </a>
     </div>
@@ -366,79 +291,54 @@ function Credit() {
 }
 
 /**
- * One clear call-to-action per state:
- *  - desktop, not locked → "Click to aim & shoot" (clicking grabs pointer
- *    lock; the crosshair then appears, signalling you can fire)
- *  - touch → a brief controls hint that auto-dismisses
+ * Desktop pre-lock call-to-action. Clicking the canvas grabs pointer lock
+ * (the crosshair then appears, signalling you can fire), so this is the
+ * lock affordance: the welcome title leads, the name entry is the clear
+ * secondary action, and the controls recede to a single dim line of fine
+ * print. Socials live bottom-right in the always-on Credit. The HUD only
+ * mounts this while unlocked, so there's no in-play locked branch here.
  */
-function ControlsPrompt({ touch, locked }: { touch: boolean; locked: boolean }) {
-  const [hintGone, setHintGone] = useState(false)
-  useEffect(() => {
-    if (!touch) return
-    const t = window.setTimeout(() => setHintGone(true), 6000)
-    return () => window.clearTimeout(t)
-  }, [touch])
-
-  if (touch) {
-    if (hintGone) return null
-    return (
-      <div
-        style={{
-          ...hudFont,
-          position: 'absolute',
-          left: '50%',
-          bottom: '20%',
-          transform: 'translateX(-50%)',
-          pointerEvents: 'none',
-        }}
-      >
-        <div style={{ ...panel, fontSize: 13, whiteSpace: 'nowrap' }}>
-          Left stick to move · hold{' '}
-          <b style={{ color: '#ffb4a0' }}>FIRE</b> &amp; drag to aim
-        </div>
-      </div>
-    )
-  }
-
-  // Desktop: the prompt is the lock affordance. Hide once locked.
-  if (locked) return null
+function StartPrompt() {
   return (
-    <div
-      style={{
-        ...hudFont,
-        position: 'absolute',
-        inset: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 10,
-        pointerEvents: 'none',
-        textAlign: 'center',
-      }}
-    >
-      <div style={{ ...panel, padding: '16px 22px' }}>
-        <div style={{ fontSize: 20, fontWeight: 700 }}>🖱 Click to aim &amp; shoot</div>
-        <div style={{ fontSize: 13, opacity: 0.85, marginTop: 8 }}>
-          <Kbd>WASD</Kbd> move · <Kbd>Q</Kbd>/<Kbd>E</Kbd> turn ·{' '}
-          <Kbd>Space</Kbd> jump · <Kbd>Esc</Kbd> release
-        </div>
-        <div style={{ fontSize: 13, opacity: 0.85, marginTop: 6 }}>
-          <Kbd>1</Kbd> gun · <Kbd>2</Kbd> sword · <Kbd>Tab</Kbd>/scroll swap
-        </div>
-        <div
-          style={{
-            marginTop: 14,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-            fontSize: 13,
-          }}
-        >
-          <span style={{ opacity: 0.85 }}>playing as</span>
+    <div className="hud-text pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+      <div className="hud-panel flex flex-col items-center px-6.5 py-4.5">
+        <h1 className="text-[28px] font-bold leading-none tracking-tight">
+          Welcome to Amsterdam
+        </h1>
+        <p className="mt-2 text-base font-medium opacity-80">
+          🖱 Click to aim &amp; shoot
+        </p>
+
+        <div className="mt-4 flex items-center gap-2 text-sm">
+          <span className="opacity-80">playing as</span>
           <NameEditor />
         </div>
+
+        <div className="mt-4 text-xs opacity-50">
+          <Kbd>WASD</Kbd> move · mouse to look · <Kbd>Tab</Kbd> swap weapons ·{' '}
+          <Kbd>Esc</Kbd> pause
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Brief touch controls hint that auto-dismisses after a few seconds. */
+function TouchHint() {
+  const [gone, setGone] = useState(false)
+  useEffect(() => {
+    const t = window.setTimeout(() => setGone(true), 6000)
+    return () => window.clearTimeout(t)
+  }, [])
+
+  if (gone) return null
+  return (
+    // clear of the bottom thumb buttons; wraps instead of running off the
+    // screen edge like the old single nowrap line did
+    <div className="hud-text pointer-events-none absolute bottom-[32%] left-1/2 w-[min(76vw,260px)] -translate-x-1/2">
+      <div className="hud-panel text-center text-[13px] leading-normal">
+        Left stick to move · drag to look · hold{' '}
+        <b className="text-[#ffb4a0]">FIRE</b> to shoot
       </div>
     </div>
   )
@@ -451,18 +351,7 @@ function ControlsPrompt({ touch, locked }: { touch: boolean; locked: boolean }) 
  * inside the (100vh-tall) page container put it under Safari's toolbar. */
 function TouchControls() {
   return (
-    <div
-      style={{
-        position: 'fixed',
-        right: 'max(20px, env(safe-area-inset-right))',
-        bottom: 'max(24px, env(safe-area-inset-bottom))',
-        display: 'flex',
-        alignItems: 'flex-end',
-        gap: 14,
-        zIndex: 20,
-        pointerEvents: 'none',
-      }}
-    >
+    <div className="pointer-events-none fixed bottom-[max(24px,env(safe-area-inset-bottom))] right-[max(20px,env(safe-area-inset-right))] z-20 flex items-end gap-3.5">
       <ActionButton
         label="JUMP"
         size={64}
@@ -473,14 +362,7 @@ function TouchControls() {
           mobileInput.jumpPressed = false
         }}
       />
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 12,
-        }}
-      >
+      <div className="flex flex-col items-center gap-3">
         <WeaponSwapButton />
         <ActionButton
           label="FIRE"
@@ -523,23 +405,7 @@ function WeaponSwapButton() {
       }}
       onContextMenu={(e) => e.preventDefault()}
       aria-label={`Holding ${weapon} — tap to swap`}
-      style={{
-        pointerEvents: 'auto',
-        width: 52,
-        height: 52,
-        borderRadius: '50%',
-        border: '1px solid rgba(255,255,255,0.4)',
-        background: 'rgba(255,255,255,0.16)',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.25)',
-        fontSize: 24,
-        lineHeight: 1,
-        backdropFilter: 'blur(6px)',
-        touchAction: 'none',
-        userSelect: 'none',
-        WebkitUserSelect: 'none',
-        WebkitTouchCallout: 'none',
-        WebkitTapHighlightColor: 'transparent',
-      }}
+      className="pointer-events-auto h-13 w-13 touch-none select-none rounded-full border border-white/40 bg-white/16 text-2xl leading-none backdrop-blur-md [-webkit-tap-highlight-color:transparent] [-webkit-touch-callout:none] [box-shadow:0_2px_10px_rgba(0,0,0,0.25)]"
     >
       {weapon === 'gun' ? '🔫' : '🗡️'}
     </button>
@@ -599,29 +465,12 @@ function ActionButton({
         onUp()
       }}
       onContextMenu={(e) => e.preventDefault()}
-      style={{
-        pointerEvents: 'auto',
-        width: size,
-        height: size,
-        borderRadius: '50%',
-        border: accent
-          ? '2px solid rgba(255,255,255,0.6)'
-          : '1px solid rgba(255,255,255,0.3)',
-        background: accent ? 'rgba(226,58,58,0.62)' : 'rgba(255,255,255,0.14)',
-        boxShadow: accent
-          ? '0 0 18px rgba(226,58,58,0.45), 0 4px 14px rgba(0,0,0,0.3)'
-          : '0 2px 10px rgba(0,0,0,0.25)',
-        color: '#fff',
-        fontWeight: 800,
-        fontSize: accent ? 15 : 13,
-        letterSpacing: '0.06em',
-        backdropFilter: 'blur(6px)',
-        touchAction: 'none',
-        userSelect: 'none',
-        WebkitUserSelect: 'none',
-        WebkitTouchCallout: 'none',
-        WebkitTapHighlightColor: 'transparent',
-      }}
+      style={{ width: size, height: size }}
+      className={`pointer-events-auto touch-none select-none rounded-full font-extrabold tracking-[0.06em] text-white backdrop-blur-md [-webkit-tap-highlight-color:transparent] [-webkit-touch-callout:none] ${
+        accent
+          ? 'border-2 border-white/60 bg-[#e23a3a]/62 text-[15px] [box-shadow:0_0_18px_rgba(226,58,58,0.45),0_4px_14px_rgba(0,0,0,0.3)]'
+          : 'border border-white/30 bg-white/[0.14] text-[13px] [box-shadow:0_2px_10px_rgba(0,0,0,0.25)]'
+      }`}
     >
       {label}
     </button>
@@ -640,16 +489,8 @@ function Hitmarker() {
   }, [])
   if (!show) return null
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        pointerEvents: 'none',
-      }}
-    >
-      <span key={tick} className="ae-hit" style={{ color: '#ffe08a', fontSize: 24, fontWeight: 900 }}>
+    <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+      <span key={tick} className="ae-hit text-2xl font-black text-[#ffe08a]">
         ✕
       </span>
     </div>
@@ -669,22 +510,12 @@ function FloatingTexts() {
   }, [])
 
   return (
-    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
       {items.map((it) => (
         <div
           key={it.id}
-          className="ae-float"
-          style={{
-            position: 'absolute',
-            left: '50%',
-            top: '44%',
-            color: it.color,
-            fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-            fontWeight: 800,
-            fontSize: 20,
-            textShadow: '0 2px 4px rgba(0,0,0,0.7)',
-            whiteSpace: 'nowrap',
-          }}
+          className="ae-float absolute left-1/2 top-[44%] whitespace-nowrap text-xl font-extrabold [text-shadow:0_2px_4px_rgba(0,0,0,0.7)]"
+          style={{ color: it.color }}
         >
           {it.text}
         </div>
@@ -695,67 +526,24 @@ function FloatingTexts() {
 
 function Crosshair() {
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        width: 14,
-        height: 14,
-        transform: 'translate(-50%, -50%)',
-        pointerEvents: 'none',
-      }}
-    >
-      <div
-        style={{
-          position: 'absolute',
-          left: 6,
-          top: 0,
-          width: 2,
-          height: 14,
-          background: 'rgba(255,255,255,0.8)',
-          boxShadow: '0 0 2px rgba(0,0,0,0.7)',
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          left: 0,
-          top: 6,
-          width: 14,
-          height: 2,
-          background: 'rgba(255,255,255,0.8)',
-          boxShadow: '0 0 2px rgba(0,0,0,0.7)',
-        }}
-      />
+    <div className="pointer-events-none absolute left-1/2 top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2">
+      <div className="absolute left-1.5 top-0 h-3.5 w-0.5 bg-white/80 [box-shadow:0_0_2px_rgba(0,0,0,0.7)]" />
+      <div className="absolute left-0 top-1.5 h-0.5 w-3.5 bg-white/80 [box-shadow:0_0_2px_rgba(0,0,0,0.7)]" />
     </div>
   )
 }
 
 function KillFeed({ entries }: { entries: KillFeedEntry[] }) {
   return (
-    <div
-      style={{
-        ...hudFont,
-        position: 'absolute',
-        top: 92,
-        // clear of the minimap column on the right edge
-        right: 104,
-        fontSize: 13,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 4,
-        textAlign: 'right',
-        pointerEvents: 'none',
-      }}
-    >
+    // clear of the minimap column on the right edge
+    <div className="hud-text pointer-events-none absolute right-26 top-23 flex flex-col gap-1 text-right text-[13px]">
       {entries.map((e) => (
-        <div key={e.id} style={{ opacity: 0.85 }}>
-          <span style={{ color: e.killer === 'You' ? '#a4e8a4' : '#e8d68a' }}>
+        <div key={e.id} className="opacity-85">
+          <span className={e.killer === 'You' ? 'text-[#a4e8a4]' : 'text-[#e8d68a]'}>
             {e.killer}
           </span>
-          <span style={{ opacity: 0.6 }}> → </span>
-          <span style={{ color: e.victim === 'You' ? '#e8a4a4' : '#e8d68a' }}>
+          <span className="opacity-60"> → </span>
+          <span className={e.victim === 'You' ? 'text-[#e8a4a4]' : 'text-[#e8d68a]'}>
             {e.victim}
           </span>
         </div>
@@ -766,30 +554,11 @@ function KillFeed({ entries }: { entries: KillFeedEntry[] }) {
 
 function RespawnOverlay({ reason }: { reason: string | null }) {
   return (
-    <div
-      style={{
-        ...hudFont,
-        position: 'absolute',
-        top: '38%',
-        left: 0,
-        right: 0,
-        textAlign: 'center',
-        opacity: 0.9,
-        pointerEvents: 'none',
-      }}
-    >
-      <div style={{ fontSize: 22, fontWeight: 600, marginBottom: 8 }}>
+    <div className="hud-text pointer-events-none absolute inset-x-0 top-[38%] text-center opacity-90">
+      <div className="mb-2 text-[22px] font-semibold">
         {deathReasonText(reason)}
       </div>
-      <div
-        style={{
-          fontSize: 24,
-          fontWeight: 700,
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-          opacity: 0.85,
-        }}
-      >
+      <div className="text-2xl font-bold uppercase tracking-widest opacity-85">
         Respawning…
       </div>
     </div>
@@ -809,48 +578,22 @@ function PauseOverlay() {
 
 function Overlay({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background:
-          'radial-gradient(circle at center, rgba(0,0,0,0.25), rgba(0,0,0,0.6))',
-        color: 'white',
-        fontFamily:
-          "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif",
-        pointerEvents: 'none',
-      }}
-    >
-      <div style={{ textAlign: 'center', maxWidth: 420, padding: '0 24px' }}>
-        {children}
-      </div>
+    <div className="hud-text pointer-events-none absolute inset-0 flex items-center justify-center [background:radial-gradient(circle_at_center,rgba(0,0,0,0.25),rgba(0,0,0,0.6))]">
+      <div className="max-w-105 px-6 text-center">{children}</div>
     </div>
   )
 }
 
 function Title({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      style={{
-        fontSize: 44,
-        fontWeight: 700,
-        letterSpacing: '-0.01em',
-        marginBottom: 14,
-        lineHeight: 1,
-      }}
-    >
+    <div className="mb-3.5 text-[44px] font-bold leading-none tracking-[-0.01em]">
       {children}
     </div>
   )
 }
 
 function Subtitle({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ fontSize: 15, opacity: 0.9, lineHeight: 1.5 }}>{children}</div>
-  )
+  return <div className="text-[15px] leading-normal opacity-90">{children}</div>
 }
 
 function deathReasonText(reason: string | null): string {

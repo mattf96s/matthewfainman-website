@@ -79,7 +79,11 @@ This is well past a prototype. What works today:
 - **Mobile** — virtual joystick (move), touch-look, drag-to-aim FIRE
   button (hold to shoot, drag the same thumb to aim — the standard
   mobile-shooter scheme), tap-to-swap weapon chip above FIRE, fatter
-  touch hitboxes. (`src/game/mobileInput.ts`)
+  touch hitboxes. The phone HUD is kept deliberately sparse so a small
+  screen isn't overwhelming: no FPS readout, no social credit under the
+  thumbs, the "online" pill hidden until someone else joins, and health
+  moved out of the joystick's corner up to a slim top-left bar.
+  (`src/game/mobileInput.ts`, `src/ui/HUD.tsx`)
 - **Pickups** — Panado bottle = health. (`src/game/pickups/`)
 - **Minimap** — top-right HUD map: street layout, peers, active health drop. (`src/ui/Minimap.tsx`)
 - **Ambient NPCs** — rats, tourists, statiegeld collector. (`src/game/npcs/`)

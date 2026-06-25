@@ -259,6 +259,23 @@ a {
   }
 }
 
+/* ---- In-game HUD primitives ---- */
+
+/* Frosted dark chip shared by every HUD panel. pointer-events is left to
+ * the call site: decorative panels opt out, interactive ones stay live. */
+@utility hud-panel {
+  @apply rounded-xl border border-white/[0.12] bg-[#0f1418]/50 backdrop-blur-md;
+}
+
+/* White HUD label with the legibility shadow it needs to read over the
+ * lit 3D scene. Deliberately the native system font, not the site's
+ * Manrope, so the overlay reads as game chrome rather than page content. */
+@utility hud-text {
+  color: #fff;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+
 /* ---- In-game HUD effects ---- */
 
 /* Floating combat text ("+25", "Close call!") rising from the crosshair. */

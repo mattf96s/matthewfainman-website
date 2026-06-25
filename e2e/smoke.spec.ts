@@ -18,6 +18,25 @@ test.describe('smoke', () => {
     expect(errors).toEqual([])
   })
 
+  test('desktop start screen: play prompt, name entry, corner socials', async ({
+    page,
+  }) => {
+    await page.goto(gameUrl(randomRoom()))
+    await waitForGameReady(page)
+
+    // The lock-affordance prompt and a name field to fill before playing.
+    await expect(page.getByText(/Click to aim/)).toBeVisible()
+    await expect(page.getByPlaceholder('your name')).toBeVisible()
+
+    // GitHub + LinkedIn links sit in the bottom-right corner.
+    const github = page.getByRole('link', { name: 'GitHub' })
+    const linkedin = page.getByRole('link', { name: 'LinkedIn' })
+    await expect(github).toBeVisible()
+    await expect(linkedin).toBeVisible()
+    expect(await github.getAttribute('href')).toContain('github.com')
+    expect(await linkedin.getAttribute('href')).toContain('linkedin.com')
+  })
+
   test('player name persists across reloads via localStorage', async ({
     page,
   }) => {

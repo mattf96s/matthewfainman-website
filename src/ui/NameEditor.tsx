@@ -69,11 +69,14 @@ export function NameEditor({ compact }: NameEditorProps) {
       defaultValue={playerName}
       placeholder="your name"
       maxLength={NAME_MAX_LENGTH}
-      autoFocus={compact}
+      autoFocus
       autoComplete="off"
       autoCorrect="off"
       spellCheck={false}
       enterKeyHint="done"
+      // select the existing name on focus so the player can just start
+      // typing to replace it (the start overlay autofocuses straight here)
+      onFocus={(e) => e.currentTarget.select()}
       onKeyDown={(e) => {
         // keep WASD/Space/Enter/Esc from reaching the game while typing
         // (movement + pause keybinds listen on window). keyup still
