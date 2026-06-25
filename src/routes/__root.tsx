@@ -1,4 +1,5 @@
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
+import { Analytics } from '@vercel/analytics/react'
 
 import PostHogProvider from '../integrations/posthog/provider'
 import { SITE, siteHead } from '../lib/seo'
@@ -41,6 +42,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body className="font-sans antialiased wrap-anywhere selection:bg-[rgba(79,184,178,0.24)]">
         <PostHogProvider>{children}</PostHogProvider>
+        <Analytics />
         <Scripts />
       </body>
     </html>
