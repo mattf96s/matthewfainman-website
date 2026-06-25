@@ -70,11 +70,13 @@ const COLOR_CURTAIN_BG = '#1c0508'
 const COLOR_CURTAIN_BG_EMIT = '#4a0a16'
 const COLOR_CURTAIN_FOLD = '#33060f'
 const COLOR_CURTAIN_FOLD_EMIT = '#7a0e1c'
-const COLOR_CURTAIN_DEEP = '#11020a'
 const COLOR_FRAME = '#1a0407'
 const COLOR_FIGURE = '#0a020a'
 const COLOR_HANDLE = '#b09a78'
 const COLOR_HANDLE_EMIT = '#8c6c40'
+// the iconic red lamp mounted over the doorway
+const COLOR_LAMP = '#2a0004'
+const COLOR_LAMP_EMIT = '#ff2438'
 
 /**
  * A ground-floor cabin window styled after De Wallen: a glowing red
@@ -112,13 +114,14 @@ export function RedLightWindow({
 
   return (
     <group position={[x, y, zFront]}>
-      {/* main pane — curtain-tinted dark backdrop */}
+      {/* main pane — curtain-tinted backdrop, lit enough to read as
+        * glowing red glass rather than a dark recess */}
       <mesh position={[0, mainY, 0]}>
         <planeGeometry args={[width, mainH]} />
         <meshStandardMaterial
           color={COLOR_CURTAIN_BG}
           emissive={COLOR_CURTAIN_BG_EMIT}
-          emissiveIntensity={0.55}
+          emissiveIntensity={0.9}
           roughness={0.55}
         />
       </mesh>
@@ -137,27 +140,20 @@ export function RedLightWindow({
         </mesh>
       )}
 
-      {/* curtain folds — vertical stripes overlay the figure, alternating
-        * a slightly lit "ridge" and a deeper "valley" tone */}
-      {[-0.36, -0.18, 0.18, 0.36].map((u, i) => {
-        const ridge = i % 2 === 0
-        return (
-          <mesh
-            key={`fold-${i}`}
-            position={[u * width, mainY, 0.002]}
-          >
-            <planeGeometry
-              args={[width * (ridge ? 0.16 : 0.13), mainH * 0.92]}
-            />
-            <meshStandardMaterial
-              color={ridge ? COLOR_CURTAIN_FOLD : COLOR_CURTAIN_DEEP}
-              emissive={ridge ? COLOR_CURTAIN_FOLD_EMIT : COLOR_CURTAIN_BG_EMIT}
-              emissiveIntensity={ridge ? 0.55 : 0.3}
-              roughness={0.6}
-            />
-          </mesh>
-        )
-      })}
+      {/* curtain folds — a pair of soft side drapes framing the figure.
+        * Kept thin and dim (and only two of them) so the pane reads as an
+        * open lit doorway, not a barred cage. */}
+      {[-0.32, 0.32].map((u, i) => (
+        <mesh key={`fold-${i}`} position={[u * width, mainY, 0.002]}>
+          <planeGeometry args={[width * 0.18, mainH * 0.92]} />
+          <meshStandardMaterial
+            color={COLOR_CURTAIN_FOLD}
+            emissive={COLOR_CURTAIN_FOLD_EMIT}
+            emissiveIntensity={0.5}
+            roughness={0.6}
+          />
+        </mesh>
+      ))}
 
       {/* centre vertical mullion — splits doorway into two panes */}
       <mesh position={[0, mainY, 0.004]}>
@@ -245,6 +241,25 @@ export function RedLightWindow({
           />
         </mesh>
       ))}
+
+      {/* the red lamp — the universal De Wallen signifier: a small glowing
+        * orb on a stub bracket, mounted on the brick above the doorway */}
+      <group position={[width * 0.34, height / 2 + neonTopH + 0.22, 0.05]}>
+        {/* bracket stub holding the lamp off the wall */}
+        <mesh position={[0, -width * 0.07, -0.03]}>
+          <boxGeometry args={[width * 0.03, width * 0.16, 0.04]} />
+          <meshStandardMaterial color={COLOR_FRAME} roughness={0.8} />
+        </mesh>
+        <mesh>
+          <sphereGeometry args={[width * 0.11, 12, 8]} />
+          <meshStandardMaterial
+            color={COLOR_LAMP}
+            emissive={COLOR_LAMP_EMIT}
+            emissiveIntensity={2.4}
+            roughness={0.3}
+          />
+        </mesh>
+      </group>
 
       {/* soft red spill onto the surrounding brick — a wider, dimmer halo
         * behind everything, sitting just in front of the wall so it
