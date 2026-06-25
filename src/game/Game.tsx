@@ -29,6 +29,7 @@ import { HealthRegen } from './systems/HealthRegen'
 import { Block } from './world/Block'
 import { CanalLife } from './world/CanalLife'
 import { Rain } from './world/Rain'
+import { SkyDome } from './world/SkyDome'
 import { StraightTramTracks, TramTracks } from './world/TramTracks'
 import {
   BLOCK_LENGTH,
@@ -93,15 +94,23 @@ export function Game() {
         dpr={touch ? [1, 1.25] : [1, 1.5]}
         gl={{ antialias: !touch }}
       >
-        <color attach="background" args={['#cdd9d5']} />
-        <fog attach="fog" args={['#cdd9d5', 60, 140]} />
+        {/* fallback behind the SkyDome; matched to its horizon haze so any
+          * uncovered pixel reads as sky, and to the fog so distant buildings
+          * dissolve into the skyline rather than a hard band */}
+        <color attach="background" args={['#dfe1d8']} />
+        <fog attach="fog" args={['#dfe1d8', 60, 150]} />
         <Suspense fallback={null}>
           <Physics gravity={[0, -30, 0]}>
-            <hemisphereLight args={['#ffe6c2', '#3a3e3a', 0.45]} />
-            <ambientLight intensity={0.15} />
+            <SkyDome />
+            {/* warm key + cool fill: the directional sun stays warm while the
+              * ambient/hemisphere fill is tinted cool, so sun-facing faces go
+              * golden and shadow faces go blue-grey — the contrast that makes
+              * the low-poly gables read. Costs nothing at runtime. */}
+            <hemisphereLight args={['#fff0d5', '#4b5a64', 0.5]} />
+            <ambientLight intensity={0.16} color="#9fb6c9" />
             <directionalLight
               position={[30, 40, 20]}
-              intensity={1.7}
+              intensity={1.85}
               color="#fff4d6"
               castShadow
               shadow-mapSize={[1024, 1024]}

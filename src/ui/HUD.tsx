@@ -71,9 +71,11 @@ export function HUD() {
       {/* gameplay → sound + combat text + analytics */}
       <FeedbackSystem />
 
-      {/* FPS is dev-facing noise — desktop only, never on a phone HUD */}
+      {/* FPS is dev-facing noise — desktop only, never on a phone HUD.
+        * Monospace + tabular figures so it reads as a data readout and the
+        * width doesn't jitter as the number changes. */}
       {!touch && (
-        <div className="hud-text pointer-events-none absolute left-3.5 top-3 text-[13px] opacity-60">
+        <div className="hud-text pointer-events-none absolute left-3.5 top-3 font-mono text-[13px] tabular-nums opacity-60">
           {fps.toFixed(0)} fps
         </div>
       )}

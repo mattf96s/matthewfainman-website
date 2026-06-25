@@ -262,9 +262,11 @@ a {
 /* ---- In-game HUD primitives ---- */
 
 /* Frosted dark chip shared by every HUD panel. pointer-events is left to
- * the call site: decorative panels opt out, interactive ones stay live. */
+ * the call site: decorative panels opt out, interactive ones stay live.
+ * Fill sits at 60% so panels stay legible over the bright gradient sky
+ * (e.g. the score / "online" pill when the camera tilts up). */
 @utility hud-panel {
-  @apply rounded-xl border border-white/[0.12] bg-[#0f1418]/50 backdrop-blur-md;
+  @apply rounded-xl border border-white/[0.14] bg-[#0f1418]/60 backdrop-blur-md;
 }
 
 /* White HUD label with the legibility shadow it needs to read over the

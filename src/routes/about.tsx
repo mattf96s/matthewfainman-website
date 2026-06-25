@@ -30,14 +30,16 @@ function About() {
     <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', background: '#0a1418' }}>
       <BackdropParallaxSvg />
 
-      {/* readability scrim — darkens bottom-left where the text sits */}
+      {/* readability scrim — a shallow wash confined to the bottom-left
+        * where the text sits, so the canal houses stay visible. The text
+        * leans on its own text-shadow (below) rather than a heavy vignette. */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
           pointerEvents: 'none',
           background:
-            'linear-gradient(90deg, rgba(5,11,15,0.82) 0%, rgba(5,11,15,0.45) 34%, rgba(5,11,15,0) 62%), linear-gradient(0deg, rgba(5,11,15,0.86) 0%, rgba(5,11,15,0.22) 34%, rgba(5,11,15,0) 58%)',
+            'linear-gradient(90deg, rgba(5,11,15,0.6) 0%, rgba(5,11,15,0.26) 26%, rgba(5,11,15,0) 50%), linear-gradient(0deg, rgba(5,11,15,0.68) 0%, rgba(5,11,15,0.16) 28%, rgba(5,11,15,0) 48%)',
         }}
       />
 
@@ -77,7 +79,9 @@ function About() {
           color: '#fff',
           fontFamily:
             'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
-          textShadow: '0 2px 16px rgba(0,0,0,0.6)',
+          // crisper, stronger shadow carries legibility now the scrim is
+          // lighter — keeps the kicker + headline readable over the houses
+          textShadow: '0 2px 10px rgba(0,0,0,0.75), 0 1px 2px rgba(0,0,0,0.6)',
         }}
       >
         <motion.p
