@@ -100,9 +100,16 @@ export function Minimap({ compact }: MinimapProps) {
   useEffect(() => {
     const peerDots = new Map<string, SVGCircleElement>()
     let raf = 0
+    let lastDraw = 0
+    // The minimap doesn't need the display's full refresh rate; capping the
+    // marker tick keeps this HUD-long loop off the CPU between updates.
+    const DRAW_INTERVAL = 1000 / 30
 
     const tick = () => {
       raf = requestAnimationFrame(tick)
+      const now = performance.now()
+      if (now - lastDraw < DRAW_INTERVAL) return
+      lastDraw = now
 
       const player = playerRef.current
       if (player) {
@@ -133,7 +140,7 @@ export function Minimap({ compact }: MinimapProps) {
           const ring = pickupPulseRef.current
           if (ring) {
             // soft outward pulse so the drop draws the eye
-            const phase = (performance.now() / 950) % 1
+            const phase = (now / 950) % 1
             ring.setAttribute('r', String(3.2 + phase * 4))
             ring.setAttribute('opacity', String(0.55 * (1 - phase)))
           }
@@ -146,7 +153,10 @@ export function Minimap({ compact }: MinimapProps) {
       // nodes reconciled here rather than React children.
       const host = peersRef.current
       if (host) {
-        const peers = useGameStore.getState().peers
+        // index custom peer colours once so the per-snapshot lookup is O(1)
+        // rather than scanning the peers list for every dot
+        const peerColors = new Map<string, string>()
+        for (const p of useGameStore.getState().peers) peerColors.set(p.id, p.color)
         for (const [id, snap] of remoteSnapshots) {
           let dot = peerDots.get(id)
           if (!dot) {
@@ -157,16 +167,13 @@ export function Minimap({ compact }: MinimapProps) {
             peerDots.set(id, dot)
             host.appendChild(dot)
           }
-          dot.setAttribute(
-            'fill',
-            // fallback derives from the id too — never the hotdog colour
-            peers.find((p) => p.id === id)?.color ?? colorForId(id),
-          )
+          // fallback derives from the id too — never the hotdog colour
+          dot.setAttribute('fill', peerColors.get(id) ?? colorForId(id))
           dot.setAttribute('cx', String(mx(clampX(snap.x))))
           dot.setAttribute('cy', String(mz(clampZ(snap.z))))
           // hidden while dead or stale, matching the in-world avatar
           dot.style.display =
-            snap.dead || isSnapshotStale(snap, performance.now()) ? 'none' : ''
+            snap.dead || isSnapshotStale(snap, now) ? 'none' : ''
         }
         for (const [id, dot] of peerDots) {
           if (!remoteSnapshots.has(id)) {

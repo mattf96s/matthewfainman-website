@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import * as THREE from 'three'
 
 export type CarShape = 'tesla' | 'microcar'
@@ -114,14 +113,24 @@ const TESLA_GLASS: readonly [number, number][] = [
   [-1.95, 0.84],
 ]
 
-function TeslaBody({ color, registerTailMat }: CarBodyProps) {
-  const { bodyGeo, glassGeo } = useMemo(
-    () => ({
+// The hull + glass are identical for every car of a shape, so build each
+// once and share the buffers across all instances (parked, driving, and the
+// showroom) rather than memoising a fresh copy per component. Materials stay
+// per-instance — colour and tail-light emissive vary. Mirrors the lazy-cache
+// pattern in Shop/Bridge.
+let teslaGeo: { bodyGeo: THREE.ExtrudeGeometry; glassGeo: THREE.ExtrudeGeometry } | null = null
+function getTeslaGeo() {
+  if (!teslaGeo) {
+    teslaGeo = {
       bodyGeo: profileGeometry(TESLA_LOWER, CAR_DIMS.tesla.width),
       glassGeo: profileGeometry(TESLA_GLASS, 1.62),
-    }),
-    [],
-  )
+    }
+  }
+  return teslaGeo
+}
+
+function TeslaBody({ color, registerTailMat }: CarBodyProps) {
+  const { bodyGeo, glassGeo } = getTeslaGeo()
 
   return (
     <group>
@@ -180,14 +189,19 @@ const MICRO_GLASS: readonly [number, number][] = [
   [-1.3, 0.86],
 ]
 
-function MicrocarBody({ color, registerTailMat }: CarBodyProps) {
-  const { bodyGeo, glassGeo } = useMemo(
-    () => ({
+let microGeo: { bodyGeo: THREE.ExtrudeGeometry; glassGeo: THREE.ExtrudeGeometry } | null = null
+function getMicroGeo() {
+  if (!microGeo) {
+    microGeo = {
       bodyGeo: profileGeometry(MICRO_LOWER, CAR_DIMS.microcar.width),
       glassGeo: profileGeometry(MICRO_GLASS, CAR_DIMS.microcar.width - 0.14),
-    }),
-    [],
-  )
+    }
+  }
+  return microGeo
+}
+
+function MicrocarBody({ color, registerTailMat }: CarBodyProps) {
+  const { bodyGeo, glassGeo } = getMicroGeo()
 
   return (
     <group>

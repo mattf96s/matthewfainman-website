@@ -140,7 +140,9 @@ export const useGameStore = create<GameState>((set) => ({
     set((s) => {
       if (s.health <= 0) return s // already dead, waiting on respawn
       const next = Math.max(0, s.health - amount)
-      console.log(`[hit] ${reason} −${amount} (${next}/${MAX_HEALTH} hp)`)
+      if (import.meta.env.DEV) {
+        console.log(`[hit] ${reason} −${amount} (${next}/${MAX_HEALTH} hp)`)
+      }
       // Death is never terminal: hitting 0 flags the death reason and the
       // auto-respawn system brings the player back after a short delay.
       if (next <= 0) return { health: 0, deathReason: reason }
