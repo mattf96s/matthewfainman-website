@@ -1,10 +1,11 @@
-import { Suspense } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { KeyboardControls } from '@react-three/drei'
 import { Physics } from '@react-three/rapier'
 
 import { FollowCamera } from './FollowCamera'
 import { FpsTracker } from './FpsTracker'
+import { FrameloopGovernor } from './FrameloopGovernor'
 import { Gun } from './Gun'
 import { isTouchDevice } from './mobileInput'
 import { MobileControlsBridge } from './MobileControlsBridge'
@@ -52,6 +53,24 @@ export function Game() {
   // caster, every frame), skip MSAA, and cap the render resolution a
   // little lower. Desktop keeps the full look.
   const touch = isTouchDevice()
+
+  // Hard-stop the render loop while the tab is hidden. An "always" loop
+  // keeps rendering (shadow pass, physics, every useFrame) in a backgrounded
+  // tab and pegs a CPU core — the "laptop hot with the tab just open"
+  // symptom. Driving the `frameloop` prop (rather than calling setFrameloop
+  // imperatively) keeps it the single source of truth; otherwise any Canvas
+  // re-render re-applies the prop and silently restarts the loop. The
+  // FrameloopGovernor inside the Canvas kicks the cancelled loop back to
+  // life on resume. Mirrors the audio engine, which suspends on the same
+  // event (src/lib/sfx.ts).
+  const [hidden, setHidden] = useState(false)
+  useEffect(() => {
+    const onVisibility = () => setHidden(document.hidden)
+    document.addEventListener('visibilitychange', onVisibility)
+    onVisibility() // reconcile in case we mounted already hidden
+    return () => document.removeEventListener('visibilitychange', onVisibility)
+  }, [])
+
   return (
     <KeyboardControls map={keyMap}>
       <Canvas
@@ -60,6 +79,7 @@ export function Game() {
         // warning and falls back to PCFShadowMap anyway, so this renders
         // identically minus the console noise.
         shadows={touch ? false : 'percentage'}
+        frameloop={hidden ? 'never' : 'always'}
         camera={{ position: [0, 5, 12], fov: 60 }}
         dpr={touch ? [1, 1.25] : [1, 1.5]}
         gl={{ antialias: !touch }}
@@ -69,6 +89,10 @@ export function Game() {
           * dissolve into the skyline rather than a hard band */}
         <color attach="background" args={['#dfe1d8']} />
         <fog attach="fog" args={['#dfe1d8', 60, 150]} />
+        {/* Halt the render loop while the tab is hidden so an idle tab in the
+          * background costs ~0 CPU instead of cooking the laptop. */}
+        <FrameloopGovernor />
+
         <Suspense fallback={null}>
           <Physics gravity={[0, -30, 0]}>
             <SkyDome />
@@ -83,7 +107,12 @@ export function Game() {
               intensity={1.85}
               color="#fff4d6"
               castShadow
-              shadow-mapSize={[1024, 1024]}
+              // 512² over the ±40 shadow frustum: the whole shadow pass
+              // (a re-render of every caster) is re-rasterised every frame,
+              // so its fill cost is pure heat. At this low-poly scale 512
+              // holds up — edges soften slightly but the gable/tram shadows
+              // still read. Halving each axis is ~4× less shadow fill.
+              shadow-mapSize={[512, 512]}
               shadow-camera-left={-40}
               shadow-camera-right={40}
               shadow-camera-top={40}

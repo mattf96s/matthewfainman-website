@@ -8,6 +8,8 @@ export interface TestApiShape {
     triangles: number
     geometries: number
     textures: number
+    frame: number
+    frameCallbacks: number
   }
   playerPosition: { x: number; y: number; z: number; ready: boolean }
   cameraState: { yaw: number; pitch: number }

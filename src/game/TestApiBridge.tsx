@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useThree } from '@react-three/fiber'
+import { useStore, useThree } from '@react-three/fiber'
 
 import { colorForId } from '../lib/playerColor'
 import {
@@ -19,6 +19,15 @@ export interface TestApi {
     triangles: number
     geometries: number
     textures: number
+    /** Monotonic render counter (`gl.info.render.frame`). Only advances
+     * when a frame is actually rendered, so a flat count over time means
+     * the loop is paused — used to assert the idle-tab CPU guard. */
+    frame: number
+    /** Live `useFrame` subscriber count. A deterministic proxy for
+     * per-frame CPU work: every active callback runs once per rendered
+     * frame, so a runaway here is a CPU regression even if draw calls
+     * hold steady. */
+    frameCallbacks: number
   }
   playerPosition: typeof playerPosition
   cameraState: typeof cameraState
@@ -39,6 +48,7 @@ export interface TestApi {
  */
 export function TestApiBridge() {
   const gl = useThree((s) => s.gl)
+  const store = useStore()
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -53,6 +63,8 @@ export function TestApiBridge() {
         triangles: gl.info.render.triangles,
         geometries: gl.info.memory.geometries,
         textures: gl.info.memory.textures,
+        frame: gl.info.render.frame,
+        frameCallbacks: store.getState().internal.subscribers.length,
       }),
       playerPosition,
       cameraState,
@@ -84,7 +96,7 @@ export function TestApiBridge() {
     return () => {
       delete (window as Window & { __testApi?: TestApi }).__testApi
     }
-  }, [gl])
+  }, [gl, store])
 
   return null
 }

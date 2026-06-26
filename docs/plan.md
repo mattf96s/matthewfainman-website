@@ -92,11 +92,17 @@ This is well past a prototype. What works today:
   (`src/lib/sfx.ts`, `public/audio/`)
 - **Perf** — shadow casters limited to large/identity objects; touch
   devices skip the shadow pass and MSAA entirely and render at lower
-  dpr (phones were running hot). Budgets enforced in CI. (`src/game/Game.tsx`)
+  dpr (phones were running hot). The render loop hard-stops while the
+  tab is hidden (`frameloop="never"`, driven from Game; the audio engine
+  suspends on the same event) so a backgrounded tab costs ~0 CPU instead
+  of pinning a core. Budgets enforced in CI.
+  (`src/game/Game.tsx`, `src/game/FrameloopGovernor.tsx`)
 - **Tests** — vitest for pure logic (`src/lib/*.test.ts`); Playwright
-  E2E + perf budgets against the production build via a `?e2e` test API
-  (draw calls / triangles / geometry plateaus — deterministic metrics,
-  not fps). `?room=` isolates test rooms from real visitors.
+  E2E + perf budgets against the production build via a `?e2e` test API.
+  Deterministic metrics, not fps: draw calls / triangles / geometry
+  plateaus (GPU) plus a per-frame `useFrame`-callback cap and an
+  idle-tab render-stop assertion (CPU). `?room=` isolates test rooms
+  from real visitors.
   (`e2e/`, `src/game/TestApiBridge.tsx`, `.github/workflows/ci.yml`)
 - **Shell** — TanStack Start app, game is the homepage, HUD, PostHog wired.
 
@@ -188,6 +194,11 @@ This is well past a prototype. What works today:
 - Shadows only on player and large objects, not every prop
 - LOD on distant buildings (drei `<Detailed>`); frustum culling on (default)
 - Watch frame budget with 8 players + ambient NPCs on screen
+- Budget CPU, not just GPU: cap the number of per-frame `useFrame` loops,
+  and never let an idle/backgrounded tab keep rendering — pause the loop
+  on `visibilitychange`. The toy runs `frameloop="always"` (the world is
+  always in motion), so on-demand rendering isn't an option *while
+  visible*; the lever is stopping work when no one's looking.
 
 ---
 
