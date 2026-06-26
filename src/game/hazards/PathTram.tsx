@@ -4,11 +4,12 @@ import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
 import * as THREE from 'three'
 
 import { triggerCameraShake } from '../cameraState'
-import { PLAYER_RADIUS, TRAM_DAMAGE } from '../constants'
+import { TRAM_DAMAGE } from '../constants'
 import { triggerKnockback } from '../playerImpulse'
 import { playerPosition } from '../playerPosition'
 import { useGameStore } from '../../state/useGameStore'
 import { TramBody } from './TramBody'
+import { useHazardContact } from './useHazardContact'
 
 export interface PathSegment {
   /** "straight" — line from (x1,z1) to (x2,z2). */
@@ -47,6 +48,9 @@ const TRAM_LENGTH = 14
 const TRAM_WIDTH = 2.4
 const TRAM_HEIGHT = 3.0
 const HIT_HALF_LATERAL = 0.18
+/** Shared up-axis for the facing quaternion, so the per-frame rotation
+ * never allocates a Euler. */
+const UP = new THREE.Vector3(0, 1, 0)
 const NEAR_HALF_LATERAL = TRAM_WIDTH / 2 + 1.2
 const NEAR_HALF_LONG = TRAM_LENGTH / 2 + 1.5
 
@@ -131,15 +135,25 @@ export function PathTram({
   const u = useRef(startOffset)
   const direction = useRef<1 | -1>(startDirection)
   const dwellRemaining = useRef(0)
-  const playerInside = useRef(false)
-  const wasHit = useRef(false)
-  /** True while the player overlaps the hit box — gates damage to once
-   * per entry, with a cooldown, instead of every frame. */
-  const hitInside = useRef(false)
-  const cooldown = useRef(0)
-
   const takeDamage = useGameStore((s) => s.takeDamage)
-  const addNearMiss = useGameStore((s) => s.addNearMiss)
+  /** World-frame player offset at the current frame, read by onHit to
+   * shove the player off the tracks away from the tram centre. */
+  const hitOffset = useRef({ dx: 0, dz: 0 })
+
+  const contact = useHazardContact({
+    hitHalfX: HIT_HALF_LATERAL,
+    hitHalfZ: TRAM_LENGTH / 2,
+    nearHalfX: NEAR_HALF_LATERAL,
+    nearHalfZ: NEAR_HALF_LONG,
+    nearMissValue: 2,
+    onHit: () => {
+      triggerCameraShake(800, 0.7)
+      const { dx, dz } = hitOffset.current
+      const pushLen = Math.hypot(dx, dz) || 1
+      triggerKnockback(1000, (dx / pushLen) * 22, 7, (dz / pushLen) * 22)
+      takeDamage(TRAM_DAMAGE, 'tram')
+    },
+  })
 
   const total = totalPathLength(path)
   const quat = useRef(new THREE.Quaternion())
@@ -166,7 +180,7 @@ export function PathTram({
     // reverse facing when going backward so the tram's nose points the
     // right way
     const facingYaw = direction.current === 1 ? pose.yaw : pose.yaw + Math.PI
-    quat.current.setFromEuler(new THREE.Euler(0, facingYaw, 0))
+    quat.current.setFromAxisAngle(UP, facingYaw)
 
     body.current.setNextKinematicTranslation({
       x: pose.x,
@@ -177,51 +191,20 @@ export function PathTram({
 
     if (!playerPosition.ready) return
 
-    // Player position transformed into the tram's local frame so we can
-    // do an axis-aligned overlap check against the tram's hit / near
-    // boxes (which are oriented along the tram's long axis).
+    // Transform the player into the tram's local frame for an axis-aligned
+    // overlap check against its hit / near boxes (oriented along its
+    // length). The world-frame offset is stashed for the off-track shove.
     const dx = playerPosition.x - pose.x
     const dz = playerPosition.z - pose.z
     const cy = Math.cos(facingYaw)
     const sy = Math.sin(facingYaw)
-    const localX = dx * cy - dz * sy
-    const localZ = dx * sy + dz * cy
-    const absX = Math.abs(localX)
-    const absZ = Math.abs(localZ)
-
-    const inHit =
-      absX < HIT_HALF_LATERAL + PLAYER_RADIUS &&
-      absZ < TRAM_LENGTH / 2 + PLAYER_RADIUS
-    const now = performance.now()
-    if (inHit) {
-      if (!hitInside.current && now - cooldown.current >= 1500) {
-        hitInside.current = true
-        cooldown.current = now
-        wasHit.current = true
-        triggerCameraShake(800, 0.7)
-        // shove the player off the tracks, away from the tram centre
-        const pushLen = Math.hypot(dx, dz) || 1
-        triggerKnockback(1000, (dx / pushLen) * 22, 7, (dz / pushLen) * 22)
-        takeDamage(TRAM_DAMAGE, 'tram')
-      }
-    } else {
-      hitInside.current = false
-    }
-
-    const inNear =
-      absX < NEAR_HALF_LATERAL + PLAYER_RADIUS &&
-      absZ < NEAR_HALF_LONG + PLAYER_RADIUS
-    if (inNear && !playerInside.current) {
-      playerInside.current = true
-      wasHit.current = false
-    } else if (!inNear && playerInside.current) {
-      playerInside.current = false
-      if (!wasHit.current) {
-        addNearMiss()
-        addNearMiss()
-      }
-      wasHit.current = false
-    }
+    hitOffset.current.dx = dx
+    hitOffset.current.dz = dz
+    contact.update(
+      Math.abs(dx * cy - dz * sy),
+      Math.abs(dx * sy + dz * cy),
+      performance.now(),
+    )
   })
 
   const startPose = sampleAt(path, startOffset)

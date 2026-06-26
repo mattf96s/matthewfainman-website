@@ -1,12 +1,14 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import {
-  CuboidCollider,
-  RigidBody,
-  type IntersectionEnterPayload,
-  type RapierRigidBody,
-} from '@react-three/rapier'
+import { CuboidCollider, RigidBody } from '@react-three/rapier'
 import * as THREE from 'three'
+
+import {
+  KNOCKDOWN_HALF_Y,
+  KNOCKDOWN_ROTATION_X,
+  KNOCKDOWN_Y,
+  useCarKnockdown,
+} from './useCarKnockdown'
 
 interface TouristProps {
   position: [number, number, number]
@@ -20,7 +22,6 @@ interface TouristProps {
 }
 
 const HIT_HALF_X = 0.3
-const HIT_HALF_Y = 0.85
 const HIT_HALF_Z = 0.3
 
 /**
@@ -38,17 +39,16 @@ export function Tourist({
   phase = 0,
 }: TouristProps) {
   const visual = useRef<THREE.Group>(null)
-  const sensorBody = useRef<RapierRigidBody>(null)
-  const hit = useRef(false)
   // reusable so we don't allocate a Vector3 per frame
   const worldPos = useRef(new THREE.Vector3())
+  const { hit, sensorBody, onHit } = useCarKnockdown()
 
   useFrame((state) => {
     if (!visual.current) return
     if (hit.current) {
       // collapse: lie face-down on the sidewalk
-      visual.current.rotation.x = -Math.PI / 2
-      visual.current.position.y = 0.25
+      visual.current.rotation.x = KNOCKDOWN_ROTATION_X
+      visual.current.position.y = KNOCKDOWN_Y
     } else {
       const t = state.clock.elapsedTime * 4 + phase
       visual.current.position.y = position[1] + Math.abs(Math.sin(t)) * 0.06
@@ -59,16 +59,11 @@ export function Tourist({
       visual.current.getWorldPosition(worldPos.current)
       sensorBody.current.setNextKinematicTranslation({
         x: worldPos.current.x,
-        y: HIT_HALF_Y,
+        y: KNOCKDOWN_HALF_Y,
         z: worldPos.current.z,
       })
     }
   })
-
-  const onHit = (e: IntersectionEnterPayload) => {
-    if (hit.current) return
-    if (e.other.rigidBodyObject?.name === 'car') hit.current = true
-  }
 
   return (
     <>
@@ -79,7 +74,7 @@ export function Tourist({
         position={position}
       >
         <CuboidCollider
-          args={[HIT_HALF_X, HIT_HALF_Y, HIT_HALF_Z]}
+          args={[HIT_HALF_X, KNOCKDOWN_HALF_Y, HIT_HALF_Z]}
           sensor
           onIntersectionEnter={onHit}
         />

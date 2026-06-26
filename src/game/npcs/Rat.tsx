@@ -2,6 +2,8 @@ import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
+import { useSporadicTrip } from '../useSporadicTrip'
+
 interface RatProps {
   /** X-axis position the rat scurries along. */
   x: number
@@ -35,51 +37,30 @@ export function Rat({
 }: RatProps) {
   const group = useRef<THREE.Group>(null)
   const tail = useRef<THREE.Group>(null)
-  const z = useRef(0)
-  const direction = useRef<1 | -1>(1)
-  const tripSpeed = useRef(speed)
-  const idleUntil = useRef(performance.now() + initialDelay * 1000)
-  const active = useRef(false)
-
-  const startNewTrip = () => {
-    direction.current = Math.random() < 0.5 ? 1 : -1
-    z.current = direction.current === 1 ? -extent : extent
-    tripSpeed.current = speed + (Math.random() * 2 - 1) * 1.2
-    active.current = true
-  }
-
-  const parkAndIdle = () => {
-    active.current = false
-    const idleMs = (minIdle + Math.random() * (maxIdle - minIdle)) * 1000
-    idleUntil.current = performance.now() + idleMs
-  }
+  const { trip, advance } = useSporadicTrip({
+    extent,
+    speed,
+    speedJitter: 1.2,
+    initialDelay,
+    minIdle,
+    maxIdle,
+  })
 
   useFrame((state, delta) => {
     if (!group.current) return
-    const now = performance.now()
 
-    if (!active.current) {
+    if (!advance(delta, performance.now())) {
       group.current.position.y = PARKED_Y
-      if (now >= idleUntil.current) startNewTrip()
-      return
-    }
-
-    z.current += direction.current * tripSpeed.current * delta
-    const done =
-      (direction.current === 1 && z.current > extent) ||
-      (direction.current === -1 && z.current < -extent)
-    if (done) {
-      parkAndIdle()
       return
     }
 
     group.current.position.x = x
-    group.current.position.z = z.current
+    group.current.position.z = trip.z
     // tiny scuttle bob — rats hug the ground but their gait is jittery
     group.current.position.y =
       0.06 + Math.abs(Math.sin(state.clock.elapsedTime * 22)) * 0.025
     // face direction of travel — +Z is the rat's nose-forward
-    group.current.rotation.y = direction.current === 1 ? 0 : Math.PI
+    group.current.rotation.y = trip.direction === 1 ? 0 : Math.PI
     if (tail.current) {
       tail.current.rotation.y =
         Math.sin(state.clock.elapsedTime * 14) * 0.5

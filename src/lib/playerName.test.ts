@@ -19,4 +19,13 @@ describe('sanitizePlayerName', () => {
   it('returns empty string for whitespace-only input', () => {
     expect(sanitizePlayerName(' \t\n ')).toBe('')
   })
+
+  it('collapses whitespace before clamping, so spaces do not eat the budget', () => {
+    // 4 leading spaces + 16 letters: trim drops the spaces, all 16 survive
+    expect(sanitizePlayerName('    ' + 'a'.repeat(16))).toHaveLength(16)
+  })
+
+  it('returns a string for any input, emoji included', () => {
+    expect(typeof sanitizePlayerName('🎮'.repeat(20))).toBe('string')
+  })
 })

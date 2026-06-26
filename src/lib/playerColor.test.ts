@@ -14,11 +14,17 @@ describe('colorForId', () => {
     }
   })
 
-  it('never returns the local hotdog colour', () => {
+  it('never assigns a peer the local hotdog colour', () => {
+    // the palette excludes it, so no id can hash to it
     expect(PEER_COLORS).not.toContain(LOCAL_PLAYER_COLOR)
-    for (let i = 0; i < 200; i++) {
-      expect(colorForId(`player-${i}`)).not.toBe(LOCAL_PLAYER_COLOR)
-    }
+  })
+
+  it('returns a valid palette colour for edge-case ids', () => {
+    // empty / single-char / unicode ids must not crash the non-null
+    // assertion or fall outside the palette
+    expect(PEER_COLORS).toContain(colorForId(''))
+    expect(PEER_COLORS).toContain(colorForId('x'))
+    expect(PEER_COLORS).toContain(colorForId('日本語'))
   })
 
   it('spreads ids across more than one colour', () => {

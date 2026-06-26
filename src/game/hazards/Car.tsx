@@ -4,12 +4,13 @@ import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
 import type { MeshStandardMaterial } from 'three'
 
 import { triggerCameraShake } from '../cameraState'
-import { CAR_DAMAGE, PLAYER_RADIUS } from '../constants'
+import { CAR_DAMAGE } from '../constants'
 import { triggerKnockback } from '../playerImpulse'
 import { playerPosition } from '../playerPosition'
 import { useGameStore } from '../../state/useGameStore'
 import { BLOCK_LENGTH } from '../world/constants'
 import { CarBody, CAR_DIMS, type CarShape } from './CarBodies'
+import { useHazardContact } from './useHazardContact'
 
 interface CarProps {
   /** X position of the lane centreline. */
@@ -49,9 +50,17 @@ export function Car({
   const dims = CAR_DIMS[shape]
   const body = useRef<RapierRigidBody>(null)
   const z = useRef(startZ)
-  const cooldown = useRef(0)
-  const hitInside = useRef(false)
   const takeDamage = useGameStore((s) => s.takeDamage)
+
+  const contact = useHazardContact({
+    hitHalfX: HIT_HALF_X,
+    hitHalfZ: dims.length / 2,
+    onHit: () => {
+      triggerCameraShake(500, 0.4)
+      triggerKnockback(700, 0, 4, direction * 12)
+      takeDamage(CAR_DAMAGE, 'car')
+    },
+  })
 
   // stop-and-go state — each car drifts its own speed and occasionally
   // halts, so traffic clumps and gaps unpredictably. Randomised start
@@ -91,26 +100,11 @@ export function Car({
     for (const m of tailMats.current) if (m) m.emissiveIntensity = tail
 
     if (!playerPosition.ready) return
-
-    // Manual AABB hit detection — Rapier sensor events don't fire
-    // reliably for the kinematic-character-controlled player.
-    const dx = Math.abs(playerPosition.x - x)
-    const dz = Math.abs(playerPosition.z - z.current)
-    const inHit =
-      dx < HIT_HALF_X + PLAYER_RADIUS &&
-      dz < dims.length / 2 + PLAYER_RADIUS
-    if (inHit) {
-      const now = performance.now()
-      if (!hitInside.current && now - cooldown.current >= 1500) {
-        hitInside.current = true
-        cooldown.current = now
-        triggerCameraShake(500, 0.4)
-        triggerKnockback(700, 0, 4, direction * 12)
-        takeDamage(CAR_DAMAGE, 'car')
-      }
-    } else {
-      hitInside.current = false
-    }
+    contact.update(
+      Math.abs(playerPosition.x - x),
+      Math.abs(playerPosition.z - z.current),
+      performance.now(),
+    )
   })
 
   // body is modelled nose-forward (+Z); flip it when the lane runs -Z

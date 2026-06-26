@@ -16,38 +16,22 @@ import {
 } from '../multiplayer/shots'
 import { isInMeleeArc } from '../lib/melee'
 import * as sfx from '../lib/sfx'
+import { swingPose, SWING_STRIKE_MS } from '../lib/swing'
 import { emitHit } from '../ui/hitmarker'
 import { useGameStore } from '../state/useGameStore'
 import { cameraState, triggerCameraShake } from './cameraState'
 import { PLAYER_RADIUS } from './constants'
 import { mobileInput } from './mobileInput'
 import { playerPosition } from './playerPosition'
+import { shoulderOffset, SHOULDER_Y } from './shoulderAnchor'
 import { SwordModel } from './SwordModel'
 
 /** Targets more than this far above/below the player are out of swing
  * reach — generous on purpose, it only rules out someone on a bridge. */
 const MELEE_Y_TOLERANCE = 2
 
-/* Swing animation — an overhead vertical chop, not a stab. Pitch is
- * rotation about the local X axis: negative = blade raised, positive =
- * buried down-forward. The blade winds up past vertical, then accelerates
- * down-and-forward through the arc, lunging the whole sword toward the
- * strike so it visibly sweeps through whoever it hits. */
-const SWING_ANIM_MS = 300
-/** Fraction of the animation spent raising the blade overhead. */
-const WINDUP_END = 0.3
-const IDLE_PITCH = -0.35
-const WINDUP_PITCH = -2.1
-const FOLLOW_PITCH = 1.05
-/** How far the whole sword lifts (m) at the top of the windup. */
-const SWING_LIFT = 0.18
-/** How far the blade lunges forward (m) at the peak of the chop — this,
- * plus the blade's own length, is what reaches into the hit zone. */
-const SWING_LUNGE = 0.5
-/** Animation fraction at which the blade is mid-chop and "connects".
- * The hit is resolved here (not at input) so damage lands exactly as the
- * blade sweeps through the target — what you see is what you hit. */
-const STRIKE_AT = 0.5
+/** Reused shoulder-offset scratch to avoid per-frame allocation. */
+const SHOULDER = { x: 0, z: 0 }
 
 /**
  * Close-combat counterpart to the Gun, active while the store says
@@ -171,58 +155,24 @@ export function Sword() {
     const sinceSwing = performance.now() - swingStartedAt.current
 
     // Land the blow once the blade has swept down to the strike frame.
-    if (hitPending.current && sinceSwing >= STRIKE_AT * SWING_ANIM_MS) {
+    if (hitPending.current && sinceSwing >= SWING_STRIKE_MS) {
       resolveHit()
     }
 
     const yaw = cameraState.yaw
-    const sin = Math.sin(yaw)
-    const cos = Math.cos(yaw)
-
-    // Local-space shoulder offset (right, slightly forward) rotated by yaw.
-    const rx = 0.32
-    const fz = PLAYER_RADIUS + 0.05
-    const ox = rx * cos + fz * -sin
-    const oz = rx * -sin + fz * -cos
-
-    // Camera-forward in world space — the direction the lunge pushes the
-    // blade and the avatar's nose points.
-    const fwdX = -sin
-    const fwdZ = -cos
+    shoulderOffset(yaw, SHOULDER)
+    // Camera-forward in world space — the direction the lunge pushes the blade.
+    const fwdX = -Math.sin(yaw)
+    const fwdZ = -Math.cos(yaw)
 
     g.rotation.y = yaw + Math.PI
 
-    // Overhead chop: raise the blade past vertical, accelerate it down
-    // through the arc while lunging forward, then recover to idle across
-    // the rest of the swing cooldown.
-    let lift = 0
-    let lunge = 0
-    if (sinceSwing < SWING_ANIM_MS) {
-      const p = sinceSwing / SWING_ANIM_MS
-      if (p < WINDUP_END) {
-        const w = p / WINDUP_END
-        // ease-out raise — fast off idle, settling at the top
-        g.rotation.x = IDLE_PITCH + (WINDUP_PITCH - IDLE_PITCH) * w * (2 - w)
-        lift = SWING_LIFT * w
-      } else {
-        const s = (p - WINDUP_END) / (1 - WINDUP_END)
-        // ease-in chop — the blade accelerates as it falls
-        g.rotation.x = WINDUP_PITCH + (FOLLOW_PITCH - WINDUP_PITCH) * s * s
-        lift = SWING_LIFT * (1 - s)
-        // lunge peaks mid-chop (a stab into the strike) then pulls back
-        lunge = SWING_LUNGE * Math.sin(s * Math.PI)
-      }
-    } else if (sinceSwing < SWING_INTERVAL_MS) {
-      const r = (sinceSwing - SWING_ANIM_MS) / (SWING_INTERVAL_MS - SWING_ANIM_MS)
-      g.rotation.x = FOLLOW_PITCH + (IDLE_PITCH - FOLLOW_PITCH) * r
-    } else {
-      g.rotation.x = IDLE_PITCH
-    }
-
+    const pose = swingPose(sinceSwing, SWING_INTERVAL_MS)
+    g.rotation.x = pose.pitch
     g.position.set(
-      playerPosition.x + ox + fwdX * lunge,
-      playerPosition.y + 0.55 + lift,
-      playerPosition.z + oz + fwdZ * lunge,
+      playerPosition.x + SHOULDER.x + fwdX * pose.lunge,
+      playerPosition.y + SHOULDER_Y + pose.lift,
+      playerPosition.z + SHOULDER.z + fwdZ * pose.lunge,
     )
   })
 

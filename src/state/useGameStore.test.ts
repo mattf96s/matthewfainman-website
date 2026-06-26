@@ -9,6 +9,12 @@ beforeEach(() => {
     deathReason: null,
     weapon: 'gun',
     lastHealSource: 'pickup',
+    score: 0,
+    nearMissCount: 0,
+    kills: 0,
+    deaths: 0,
+    killFeed: [],
+    multiplayerJoined: false,
   })
 })
 
@@ -69,5 +75,52 @@ describe('weapon switching', () => {
     useGameStore.getState().takeDamage(MAX_HEALTH, 'tram')
     useGameStore.getState().respawn()
     expect(useGameStore.getState().weapon).toBe('sword')
+  })
+})
+
+describe('scoring + kill feed', () => {
+  it('addNearMiss awards the bonus and counts the pass', () => {
+    useGameStore.getState().addNearMiss()
+    expect(useGameStore.getState().score).toBe(5)
+    expect(useGameStore.getState().nearMissCount).toBe(1)
+  })
+
+  it('addKill awards score, counts the kill, and feeds it newest-first', () => {
+    useGameStore.getState().addKill('rival')
+    const s = useGameStore.getState()
+    expect(s.kills).toBe(1)
+    expect(s.score).toBe(100)
+    expect(s.killFeed[0]).toMatchObject({ killer: 'You', victim: 'rival' })
+  })
+
+  it('caps the kill feed at five, newest first', () => {
+    for (let i = 0; i < 8; i++) useGameStore.getState().addDeath(`k${i}`)
+    const feed = useGameStore.getState().killFeed
+    expect(feed).toHaveLength(5)
+    expect(feed[0]).toMatchObject({ killer: 'k7', victim: 'You' })
+  })
+})
+
+describe('reset', () => {
+  it('clears score and health but keeps the chosen weapon', () => {
+    useGameStore.getState().addNearMiss()
+    useGameStore.getState().setWeapon('sword')
+    useGameStore.getState().reset()
+    const s = useGameStore.getState()
+    expect(s.score).toBe(0)
+    expect(s.health).toBe(MAX_HEALTH)
+    expect(s.weapon).toBe('sword')
+  })
+
+  it('zeroes kills/deaths solo but preserves them in multiplayer', () => {
+    useGameStore.setState({ kills: 3, deaths: 2, multiplayerJoined: false })
+    useGameStore.getState().reset()
+    expect(useGameStore.getState().kills).toBe(0)
+    expect(useGameStore.getState().deaths).toBe(0)
+
+    useGameStore.setState({ kills: 3, deaths: 2, multiplayerJoined: true })
+    useGameStore.getState().reset()
+    expect(useGameStore.getState().kills).toBe(3)
+    expect(useGameStore.getState().deaths).toBe(2)
   })
 })

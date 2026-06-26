@@ -17,7 +17,7 @@ export const INITIAL_SPAWN: SpawnPoint = [X_NEAR_SIDEWALK + 1.0, 2, 4]
  * sidewalk centrelines, parked cars/bikes, racks, bins, canal trees)
  * so nobody respawns inside a collider.
  */
-const SPAWN_POINTS: readonly SpawnPoint[] = [
+export const SPAWN_POINTS: readonly SpawnPoint[] = [
   INITIAL_SPAWN,
   [X_NEAR_SIDEWALK + 1.0, 2, -36],
   [X_NEAR_SIDEWALK + 1.0, 2, 30],

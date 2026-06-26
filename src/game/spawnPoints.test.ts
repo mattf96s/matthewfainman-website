@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { INITIAL_SPAWN, randomSpawn } from './spawnPoints'
+import { INITIAL_SPAWN, randomSpawn, SPAWN_POINTS } from './spawnPoints'
 
 describe('randomSpawn', () => {
   it('never picks a point within 18m of the death spot when avoidable', () => {
@@ -13,23 +13,20 @@ describe('randomSpawn', () => {
     }
   })
 
-  it('still returns a spawn when everything is somehow close', () => {
-    // a fake death spot can't be near all 10 points at once, but the
-    // fallback path must hold even for the map centre
-    const [x, y, z] = randomSpawn(0, 0)
-    expect(Number.isFinite(x)).toBe(true)
-    expect(y).toBe(2)
-    expect(Number.isFinite(z)).toBe(true)
-  })
-
-  it('spawns at ground-drop height', () => {
-    for (let i = 0; i < 50; i++) {
-      const [, y] = randomSpawn(0, 0)
-      expect(y).toBe(2)
+  it('only ever returns a curated, collision-checked spawn point', () => {
+    // guards the "never respawn inside a collider" promise — and exercises
+    // the fallback path (no point can be 18m from every death spot)
+    for (let i = 0; i < 300; i++) {
+      const p = randomSpawn(Math.random() * 40 - 20, Math.random() * 110 - 50)
+      expect(SPAWN_POINTS).toContainEqual(p)
     }
   })
 
-  it('keeps the fixed initial spawn unchanged', () => {
-    expect(INITIAL_SPAWN[1]).toBe(2)
+  it('every spawn drops in from the same ground height', () => {
+    expect(SPAWN_POINTS.every(([, y]) => y === 2)).toBe(true)
+  })
+
+  it('pins the fixed first-load spawn as the head of the pool', () => {
+    expect(INITIAL_SPAWN).toEqual(SPAWN_POINTS[0])
   })
 })

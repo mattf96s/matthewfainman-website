@@ -9,10 +9,13 @@ import {
 } from '@react-three/rapier'
 import * as THREE from 'three'
 
+import { lerpAngle } from '../lib/angle'
+import { walkDirection } from '../lib/movement'
 import { LOCAL_PLAYER_COLOR } from '../lib/playerColor'
 import { useGameStore } from '../state/useGameStore'
 import { cameraState } from './cameraState'
 import { mobileInput } from './mobileInput'
+import { PlayerNose } from './PlayerNose'
 import { playerImpulse } from './playerImpulse'
 import { playerPosition } from './playerPosition'
 import {
@@ -24,18 +27,11 @@ import {
   PLAYER_SPEED,
 } from './constants'
 import { INITIAL_SPAWN, randomSpawn } from './spawnPoints'
+
 /** If the player drops below this Y, the fall-off timer starts. */
 const FALL_THRESHOLD_Y = -8
 /** How long to keep falling before respawning at the title overlay. */
 const FALL_RESET_MS = 1400
-
-/** Lerps `from` toward `to` taking the shortest arc. */
-function lerpAngle(from: number, to: number, alpha: number): number {
-  let diff = to - from
-  while (diff > Math.PI) diff -= Math.PI * 2
-  while (diff < -Math.PI) diff += Math.PI * 2
-  return from + diff * alpha
-}
 
 export function Player() {
   const body = useRef<RapierRigidBody>(null)
@@ -135,30 +131,14 @@ export function Player() {
       planar.current.set(playerImpulse.vx * t, 0, playerImpulse.vz * t)
       planar.current.multiplyScalar(delta)
     } else {
-      // axis values: +forward = into the scene (camera-forward), +right = camera-right.
-      // Keyboard contributes ±1; the on-screen joystick contributes
-      // analog [-1, 1]. The combined vector clamps to the unit disc so
-      // diagonals stay unit length and a small thumb-stick deflection
-      // produces a proportionally slow walk.
-      const fKey = Number(forward) - Number(backward)
-      const rKey = Number(right) - Number(left)
-      const fMob = frozen ? 0 : mobileInput.joystickForward
-      const rMob = frozen ? 0 : mobileInput.joystickRight
-      const fRaw = fKey + fMob
-      const rRaw = rKey + rMob
-      const len = Math.hypot(fRaw, rRaw)
-      const scale = len > 1 ? 1 / len : 1
-      const forwardAxis = fRaw * scale
-      const rightAxis = rRaw * scale
-
-      // camera-forward in world space is (-sin yaw, 0, -cos yaw); camera-right is (cos, 0, -sin)
-      const sin = Math.sin(cameraState.yaw)
-      const cos = Math.cos(cameraState.yaw)
-      planar.current.set(
-        forwardAxis * -sin + rightAxis * cos,
-        0,
-        forwardAxis * -cos + rightAxis * -sin,
-      )
+      // +forward = into the scene (camera-forward), +right = camera-right.
+      // Keyboard contributes ±1; the joystick contributes analog [-1, 1].
+      const fRaw = Number(forward) - Number(backward) +
+        (frozen ? 0 : mobileInput.joystickForward)
+      const rRaw = Number(right) - Number(left) +
+        (frozen ? 0 : mobileInput.joystickRight)
+      walkDirection(fRaw, rRaw, cameraState.yaw, planar.current)
+      planar.current.y = 0
       planar.current.multiplyScalar(PLAYER_SPEED * delta)
     }
 
@@ -166,7 +146,6 @@ export function Player() {
     // suppressed during knockback — we already set yVelocity on entry)
     const grounded = controller.computedGrounded()
     if (grounded && yVelocity.current < 0) yVelocity.current = 0
-    // jump from keyboard (Space) or the on-screen mobile JUMP button
     const jumpInput = jump || (!frozen && !knockback && mobileInput.jumpPressed)
     if (!knockback && jumpInput && !wasJumpPressed.current && grounded) {
       yVelocity.current = PLAYER_JUMP_SPEED
@@ -263,11 +242,8 @@ export function Player() {
           {/* always the terracotta hotdog — remote palettes exclude it */}
           <meshStandardMaterial color={LOCAL_PLAYER_COLOR} />
         </mesh>
-        {/* small "nose" pointing forward (+Z in local space) — helps see facing */}
-        <mesh position={[0, 0.3, PLAYER_RADIUS + 0.05]}>
-          <boxGeometry args={[0.12, 0.12, 0.12]} />
-          <meshStandardMaterial color="#3c2f29" />
-        </mesh>
+        {/* nose: facing indicator, shared with remote avatars */}
+        <PlayerNose color="#3c2f29" />
       </group>
     </RigidBody>
   )

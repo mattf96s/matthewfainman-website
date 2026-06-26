@@ -1,14 +1,15 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import {
-  CuboidCollider,
-  RigidBody,
-  type IntersectionEnterPayload,
-  type RapierRigidBody,
-} from '@react-three/rapier'
+import { CuboidCollider, RigidBody } from '@react-three/rapier'
 import * as THREE from 'three'
 
 import { BIN_POSITIONS } from '../world/Bins'
+import {
+  KNOCKDOWN_HALF_Y,
+  KNOCKDOWN_ROTATION_X,
+  KNOCKDOWN_Y,
+  useCarKnockdown,
+} from './useCarKnockdown'
 
 interface Waypoint {
   x: number
@@ -31,7 +32,6 @@ const PAUSE_MAX = 9
 const HEAD_SCAN_RANGE = 0.35 // radians the head pans while paused
 
 const HIT_HALF_X = 0.32
-const HIT_HALF_Y = 0.85
 const HIT_HALF_Z = 0.32
 
 /**
@@ -42,11 +42,10 @@ const HIT_HALF_Z = 0.32
 export function Statiegeld() {
   const group = useRef<THREE.Group>(null)
   const head = useRef<THREE.Group>(null)
-  const sensorBody = useRef<RapierRigidBody>(null)
   const pos = useRef({ x: WAYPOINTS[0]!.x, z: WAYPOINTS[0]!.z })
   const targetIdx = useRef(1)
   const pauseUntil = useRef(0)
-  const hit = useRef(false)
+  const { hit, sensorBody, onHit } = useCarKnockdown()
 
   useFrame((state, delta) => {
     if (!group.current) return
@@ -54,10 +53,10 @@ export function Statiegeld() {
 
     if (hit.current) {
       // collapsed — stop walking, lie face-down, freeze the head
-      group.current.rotation.x = -Math.PI / 2
+      group.current.rotation.x = KNOCKDOWN_ROTATION_X
       group.current.position.x = pos.current.x
       group.current.position.z = pos.current.z
-      group.current.position.y = 0.25
+      group.current.position.y = KNOCKDOWN_Y
       if (head.current) head.current.rotation.y = 0
     } else {
       const target = WAYPOINTS[targetIdx.current]!
@@ -93,16 +92,11 @@ export function Statiegeld() {
     if (sensorBody.current) {
       sensorBody.current.setNextKinematicTranslation({
         x: pos.current.x,
-        y: HIT_HALF_Y,
+        y: KNOCKDOWN_HALF_Y,
         z: pos.current.z,
       })
     }
   })
-
-  const onHit = (e: IntersectionEnterPayload) => {
-    if (hit.current) return
-    if (e.other.rigidBodyObject?.name === 'car') hit.current = true
-  }
 
   return (
     <>
@@ -110,10 +104,10 @@ export function Statiegeld() {
         ref={sensorBody}
         type="kinematicPosition"
         colliders={false}
-        position={[pos.current.x, HIT_HALF_Y, pos.current.z]}
+        position={[pos.current.x, KNOCKDOWN_HALF_Y, pos.current.z]}
       >
         <CuboidCollider
-          args={[HIT_HALF_X, HIT_HALF_Y, HIT_HALF_Z]}
+          args={[HIT_HALF_X, KNOCKDOWN_HALF_Y, HIT_HALF_Z]}
           sensor
           onIntersectionEnter={onHit}
         />

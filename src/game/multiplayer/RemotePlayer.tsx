@@ -3,12 +3,16 @@ import { useFrame } from '@react-three/fiber'
 import { Billboard, Text } from '@react-three/drei'
 import * as THREE from 'three'
 
+import { lerpAngle } from '../../lib/angle'
 import {
   isSnapshotStale,
   remoteRendered,
   remoteSnapshots,
 } from '../../multiplayer/playroomState'
 import { PLAYER_HEIGHT, PLAYER_RADIUS } from '../constants'
+import { GunModel } from '../GunModel'
+import { PlayerNose } from '../PlayerNose'
+import { SHOULDER_FWD, SHOULDER_RIGHT, SHOULDER_Y } from '../shoulderAnchor'
 import { SwordModel } from '../SwordModel'
 
 interface RemotePlayerProps {
@@ -79,9 +83,7 @@ export function RemotePlayer({ id, name, color }: RemotePlayerProps) {
       currentYaw.current = targetYaw.current
     } else {
       g.position.lerp(targetPos.current, LERP)
-      // angle lerp on shortest arc
-      const dy = wrapPi(targetYaw.current - currentYaw.current)
-      currentYaw.current += dy * LERP
+      currentYaw.current = lerpAngle(currentYaw.current, targetYaw.current, LERP)
     }
     wasHidden.current = false
     g.rotation.y = currentYaw.current
@@ -103,20 +105,18 @@ export function RemotePlayer({ id, name, color }: RemotePlayerProps) {
         <capsuleGeometry args={[PLAYER_RADIUS, PLAYER_HEIGHT, 4, 8]} />
         <meshStandardMaterial color={color} />
       </mesh>
-      {/* small "nose" — facing indicator, matches local player style */}
-      <mesh position={[0, 0.3, PLAYER_RADIUS + 0.05]}>
-        <boxGeometry args={[0.12, 0.12, 0.12]} />
-        <meshStandardMaterial color="#1a1a1a" />
-      </mesh>
+      {/* facing indicator, matches local player style */}
+      <PlayerNose color="#1a1a1a" />
       {/* gun in the right hand — extends in front of the avatar */}
-      <group ref={gunGroup} position={[0.32, 0.55, PLAYER_RADIUS + 0.05]}>
-        <mesh>
-          <boxGeometry args={[0.12, 0.14, 0.55]} />
-          <meshStandardMaterial color="#2a2a2a" roughness={0.6} metalness={0.4} />
-        </mesh>
+      <group ref={gunGroup} position={[SHOULDER_RIGHT, SHOULDER_Y, SHOULDER_FWD]}>
+        <GunModel />
       </group>
       {/* sword, same hand — visibility swapped per snapshot weapon */}
-      <group ref={swordGroup} position={[0.32, 0.55, PLAYER_RADIUS + 0.05]} visible={false}>
+      <group
+        ref={swordGroup}
+        position={[SHOULDER_RIGHT, SHOULDER_Y, SHOULDER_FWD]}
+        visible={false}
+      >
         <SwordModel />
       </group>
       {/* floating nametag */}
@@ -134,10 +134,4 @@ export function RemotePlayer({ id, name, color }: RemotePlayerProps) {
       </Billboard>
     </group>
   )
-}
-
-function wrapPi(a: number): number {
-  while (a > Math.PI) a -= Math.PI * 2
-  while (a < -Math.PI) a += Math.PI * 2
-  return a
 }

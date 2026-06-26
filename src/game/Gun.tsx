@@ -15,13 +15,17 @@ import { emitHit } from '../ui/hitmarker'
 import { useGameStore } from '../state/useGameStore'
 import { cameraState, triggerCameraShake } from './cameraState'
 import { PLAYER_HEIGHT, PLAYER_RADIUS } from './constants'
+import { GunModel } from './GunModel'
 import { isTouchDevice, mobileInput } from './mobileInput'
 import { playerPosition } from './playerPosition'
+import { shoulderOffset, SHOULDER_Y } from './shoulderAnchor'
 
 const FORWARD = new THREE.Vector3()
 const ORIGIN = new THREE.Vector3()
 const MUZZLE = new THREE.Vector3()
 const HIT = new THREE.Vector3()
+/** Reused shoulder-offset scratch to avoid per-frame allocation. */
+const SHOULDER = { x: 0, z: 0 }
 
 /** Extra hit-capsule radius beyond the visual body. This is a meme toy,
  * not a competitive shooter — err well on the side of "that counted". */
@@ -119,13 +123,11 @@ export function Gun() {
     // capsule and the beam dead-on the view axis — so both were invisible to
     // the shooter. The endpoint stays the crosshair hit point, so aim and hit
     // detection are unchanged; only where the streak is drawn from moves.
-    const yaw = cameraState.yaw
-    const sx = 0.32 * Math.cos(yaw) + (PLAYER_RADIUS + 0.05) * -Math.sin(yaw)
-    const sz = 0.32 * -Math.sin(yaw) + (PLAYER_RADIUS + 0.05) * -Math.cos(yaw)
+    shoulderOffset(cameraState.yaw, SHOULDER)
     MUZZLE.set(
-      playerPosition.x + sx + FORWARD.x * 0.4,
-      playerPosition.y + 0.55 + FORWARD.y * 0.4,
-      playerPosition.z + sz + FORWARD.z * 0.4,
+      playerPosition.x + SHOULDER.x + FORWARD.x * 0.4,
+      playerPosition.y + SHOULDER_Y + FORWARD.y * 0.4,
+      playerPosition.z + SHOULDER.z + FORWARD.z * 0.4,
     )
 
     // Broadcast to the network + local Tracers.
@@ -172,26 +174,21 @@ export function Gun() {
     if (!g.visible) return
 
     const yaw = cameraState.yaw
-    const sin = Math.sin(yaw)
-    const cos = Math.cos(yaw)
-
-    // Local space offset (right shoulder, slightly forward) rotated by yaw.
-    const rx = 0.32
-    const fz = PLAYER_RADIUS + 0.05
-    let ox = rx * cos + fz * -sin
-    let oz = rx * -sin + fz * -cos
+    shoulderOffset(yaw, SHOULDER)
+    let ox = SHOULDER.x
+    let oz = SHOULDER.z
 
     // Recoil — pull the gun back briefly.
     const now = performance.now()
     if (now < recoilUntil.current) {
       const k = (recoilUntil.current - now) / 80
-      ox -= -sin * 0.08 * k
-      oz -= -cos * 0.08 * k
+      ox -= -Math.sin(yaw) * 0.08 * k
+      oz -= -Math.cos(yaw) * 0.08 * k
     }
 
     g.position.set(
       playerPosition.x + ox,
-      playerPosition.y + 0.55,
+      playerPosition.y + SHOULDER_Y,
       playerPosition.z + oz,
     )
     g.rotation.y = yaw + Math.PI
@@ -199,10 +196,7 @@ export function Gun() {
 
   return (
     <group ref={gunMesh} visible={false}>
-      <mesh>
-        <boxGeometry args={[0.12, 0.14, 0.55]} />
-        <meshStandardMaterial color="#2a2a2a" roughness={0.6} metalness={0.4} />
-      </mesh>
+      <GunModel />
     </group>
   )
 }

@@ -3,12 +3,13 @@ import { useFrame } from '@react-three/fiber'
 import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
 
 import { triggerCameraShake } from '../cameraState'
-import { PLAYER_RADIUS, TRAM_DAMAGE } from '../constants'
+import { TRAM_DAMAGE } from '../constants'
 import { triggerKnockback } from '../playerImpulse'
 import { playerPosition } from '../playerPosition'
 import { useGameStore } from '../../state/useGameStore'
 import { BLOCK_LENGTH } from '../world/constants'
 import { TramBody } from './TramBody'
+import { useHazardContact } from './useHazardContact'
 
 const TRAM_LENGTH = 14
 const TRAM_WIDTH = 2.4
@@ -52,15 +53,21 @@ export function Tram({
   /** Guards the mid-route stop so it fires once per pass, not every frame
    * the tram sits on top of stopZ. Reset when it turns around at an end. */
   const stoppedThisPass = useRef(false)
-  const playerInside = useRef(false)
-  const wasHit = useRef(false)
-  const cooldown = useRef(0)
   const takeDamage = useGameStore((s) => s.takeDamage)
-  const addNearMiss = useGameStore((s) => s.addNearMiss)
 
-  /** True while player overlaps the on-rails hit zone — gates damage to
-   * once-per-entry instead of every frame. */
-  const hitInside = useRef(false)
+  const contact = useHazardContact({
+    hitHalfX: HIT_HALF_WIDTH,
+    hitHalfZ: TRAM_LENGTH / 2,
+    nearHalfX: NEAR_HALF_WIDTH,
+    nearHalfZ: NEAR_HALF_LENGTH,
+    // a tram near-miss is worth double — it would have been instant lose
+    nearMissValue: 2,
+    onHit: () => {
+      triggerCameraShake(800, 0.7)
+      triggerKnockback(1000, 0, 7, direction.current * 22)
+      takeDamage(TRAM_DAMAGE, 'tram')
+    },
+  })
 
   useFrame((_, delta) => {
     if (!body.current) return
@@ -99,42 +106,11 @@ export function Tram({
     })
 
     if (!playerPosition.ready) return
-
-    const dx = Math.abs(playerPosition.x - x)
-    const dz = Math.abs(playerPosition.z - z.current)
-
-    const inHit =
-      dx < HIT_HALF_WIDTH + PLAYER_RADIUS &&
-      dz < TRAM_LENGTH / 2 + PLAYER_RADIUS
-    const now = performance.now()
-    if (inHit) {
-      if (!hitInside.current && now - cooldown.current >= 1500) {
-        hitInside.current = true
-        cooldown.current = now
-        wasHit.current = true
-        triggerCameraShake(800, 0.7)
-        triggerKnockback(1000, 0, 7, direction.current * 22)
-        takeDamage(TRAM_DAMAGE, 'tram')
-      }
-    } else {
-      hitInside.current = false
-    }
-
-    const inNear =
-      dx < NEAR_HALF_WIDTH + PLAYER_RADIUS &&
-      dz < NEAR_HALF_LENGTH + PLAYER_RADIUS
-    if (inNear && !playerInside.current) {
-      playerInside.current = true
-      wasHit.current = false
-    } else if (!inNear && playerInside.current) {
-      playerInside.current = false
-      if (!wasHit.current) {
-        // tram near-miss is worth more (it would have been instant lose)
-        addNearMiss()
-        addNearMiss()
-      }
-      wasHit.current = false
-    }
+    contact.update(
+      Math.abs(playerPosition.x - x),
+      Math.abs(playerPosition.z - z.current),
+      performance.now(),
+    )
   })
 
   return (

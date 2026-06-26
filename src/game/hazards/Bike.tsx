@@ -3,10 +3,12 @@ import { useFrame } from '@react-three/fiber'
 import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
 
 import { triggerCameraShake } from '../cameraState'
-import { BIKE_DAMAGE, PLAYER_RADIUS } from '../constants'
+import { BIKE_DAMAGE } from '../constants'
 import { triggerKnockback } from '../playerImpulse'
 import { playerPosition } from '../playerPosition'
+import { useSporadicTrip } from '../useSporadicTrip'
 import { useGameStore } from '../../state/useGameStore'
+import { useHazardContact } from './useHazardContact'
 
 interface BikeProps {
   /** X-axis position (typically the fietspad centre). */
@@ -31,8 +33,7 @@ const BIKE_BODY_LENGTH = 1.6
  * on the centreline counts. */
 const HIT_HALF_X = 0.06
 
-// near-miss zone — proximity halo on the XZ plane where a clean pass
-// earns bonus
+/** Near-miss halo on the XZ plane where a clean pass earns bonus. */
 const NEAR_HALF_X = 1.2
 const NEAR_HALF_Z = 1.4
 
@@ -55,111 +56,51 @@ export function Bike({
   speedJitter = 1.5,
 }: BikeProps) {
   const body = useRef<RapierRigidBody>(null)
-  const z = useRef(0)
-  const direction = useRef<1 | -1>(1)
-  const tripSpeed = useRef(speed)
-  const idleUntil = useRef(performance.now() + initialDelay * 1000)
-  const active = useRef(false)
-
-  const cooldown = useRef(0)
-  const wasHitWhileNear = useRef(false)
-  const playerInside = useRef(false)
   const takeDamage = useGameStore((s) => s.takeDamage)
-  const addNearMiss = useGameStore((s) => s.addNearMiss)
+  const { trip, advance } = useSporadicTrip({
+    extent,
+    speed,
+    speedJitter,
+    initialDelay,
+    minIdle,
+    maxIdle,
+  })
 
-  const startNewTrip = () => {
-    direction.current = Math.random() < 0.5 ? 1 : -1
-    z.current = direction.current === 1 ? -extent : extent
-    tripSpeed.current =
-      speed + (Math.random() * 2 - 1) * speedJitter
-    active.current = true
-  }
-
-  const parkAndIdle = () => {
-    active.current = false
-    const idleMs = (minIdle + Math.random() * (maxIdle - minIdle)) * 1000
-    idleUntil.current = performance.now() + idleMs
-  }
-
-  /** True while the player capsule overlaps the bike's tight hit AABB.
-   * Tracking this lets us fire `takeDamage` once per entry rather than
-   * every frame — essentially what onIntersectionEnter would have done. */
-  const hitInside = useRef(false)
+  const contact = useHazardContact({
+    hitHalfX: HIT_HALF_X,
+    hitHalfZ: BIKE_BODY_LENGTH / 2,
+    nearHalfX: NEAR_HALF_X,
+    nearHalfZ: NEAR_HALF_Z,
+    onHit: () => {
+      triggerCameraShake(300, 0.25)
+      triggerKnockback(500, 0, 2, trip.direction * 6)
+      takeDamage(BIKE_DAMAGE, 'bike')
+    },
+  })
 
   useFrame((_, delta) => {
     if (!body.current) return
-
     const now = performance.now()
 
-    if (!active.current) {
-      // park well below ground so the bike geometry isn't visible
-      body.current.setNextKinematicTranslation({
-        x,
-        y: PARKED_Y,
-        z: 0,
-      })
-      hitInside.current = false
-      if (playerInside.current) {
-        // emit deferred near-miss if the player walks past while idle
-        playerInside.current = false
-      }
-      if (now >= idleUntil.current) startNewTrip()
-      return
-    }
-
-    z.current += direction.current * tripSpeed.current * delta
-    const done =
-      (direction.current === 1 && z.current > extent) ||
-      (direction.current === -1 && z.current < -extent)
-
-    if (done) {
-      parkAndIdle()
+    if (!advance(delta, now)) {
+      // idle (or just finished a trip) — park well below ground
+      body.current.setNextKinematicTranslation({ x, y: PARKED_Y, z: 0 })
+      contact.reset()
       return
     }
 
     body.current.setNextKinematicTranslation({
       x,
       y: BIKE_BODY_HEIGHT / 2,
-      z: z.current,
+      z: trip.z,
     })
 
     if (!playerPosition.ready) return
-
-    // Manual AABB overlap on the XZ plane between the player capsule
-    // (treated as a circle of radius PLAYER_RADIUS) and the bike's hit
-    // / near-miss zones. Sensor events from Rapier don't fire reliably
-    // for the kinematic-character-controlled player, so this is the
-    // reliable path.
-    const dx = Math.abs(playerPosition.x - x)
-    const dz = Math.abs(playerPosition.z - z.current)
-
-    const inHit =
-      dx < HIT_HALF_X + PLAYER_RADIUS &&
-      dz < BIKE_BODY_LENGTH / 2 + PLAYER_RADIUS
-    if (inHit) {
-      if (!hitInside.current && now - cooldown.current >= 1500) {
-        hitInside.current = true
-        cooldown.current = now
-        wasHitWhileNear.current = true
-        triggerCameraShake(300, 0.25)
-        triggerKnockback(500, 0, 2, direction.current * 6)
-        takeDamage(BIKE_DAMAGE, 'bike')
-      }
-    } else {
-      hitInside.current = false
-    }
-
-    const inNear =
-      dx < NEAR_HALF_X + PLAYER_RADIUS &&
-      dz < NEAR_HALF_Z + PLAYER_RADIUS
-    if (inNear && !playerInside.current) {
-      playerInside.current = true
-      wasHitWhileNear.current = false
-    } else if (!inNear && playerInside.current) {
-      playerInside.current = false
-      if (!wasHitWhileNear.current) addNearMiss()
-      wasHitWhileNear.current = false
-    }
+    contact.update(
+      Math.abs(playerPosition.x - x),
+      Math.abs(playerPosition.z - trip.z),
+      now,
+    )
   })
 
   return (
