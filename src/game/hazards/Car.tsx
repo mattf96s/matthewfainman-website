@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { RigidBody, type RapierRigidBody } from '@react-three/rapier'
+import type { MeshStandardMaterial } from 'three'
 
 import { triggerCameraShake } from '../cameraState'
 import { CAR_DAMAGE, PLAYER_RADIUS } from '../constants'
@@ -47,9 +48,34 @@ export function Car({
   const hitInside = useRef(false)
   const takeDamage = useGameStore((s) => s.takeDamage)
 
+  // stop-and-go state — each car drifts its own speed and occasionally
+  // halts, so traffic clumps and gaps unpredictably. Randomised start
+  // phase keeps the cars from pulsing in unison.
+  const curSpeed = useRef(speed * 0.6)
+  const targetSpeed = useRef(speed)
+  const phaseTime = useRef(Math.random() * 2.5)
+  const tailMats = useRef<(MeshStandardMaterial | null)[]>([null, null])
+
   useFrame((_, delta) => {
     if (!body.current) return
-    z.current += direction * speed * delta
+
+    phaseTime.current -= delta
+    if (phaseTime.current <= 0) {
+      if (Math.random() < 0.16) {
+        targetSpeed.current = 0 // brief halt: light, jam, hesitation
+        phaseTime.current = 0.7 + Math.random() * 2.2
+      } else {
+        targetSpeed.current = speed * (0.45 + Math.random() * 0.95)
+        phaseTime.current = 1.5 + Math.random() * 3.5
+      }
+    }
+    const braking = targetSpeed.current < curSpeed.current - 0.15
+    // brake harder than you accelerate
+    const rate = braking ? 6 : 2.2
+    curSpeed.current +=
+      (targetSpeed.current - curSpeed.current) * Math.min(1, delta * rate)
+
+    z.current += direction * curSpeed.current * delta
     const span = extent * 2
     if (z.current > extent) z.current -= span
     else if (z.current < -extent) z.current += span
@@ -58,6 +84,10 @@ export function Car({
       y: CAR_H / 2 + 0.05,
       z: z.current,
     })
+
+    // tail lights flare while slowing or stopped
+    const tail = braking || curSpeed.current < 0.5 ? 1.8 : 0.55
+    for (const m of tailMats.current) if (m) m.emissiveIntensity = tail
 
     if (!playerPosition.ready) return
 
@@ -162,8 +192,8 @@ export function Car({
           />
         </mesh>
       ))}
-      {/* tail lights (rear -Z) */}
-      {[-CAR_W * 0.3, CAR_W * 0.3].map((wx) => (
+      {/* tail lights (rear -Z) — emissive ramps up under braking */}
+      {[-CAR_W * 0.3, CAR_W * 0.3].map((wx, i) => (
         <mesh
           key={`tail-${wx}`}
           position={[wx, 0, -CAR_L / 2 - 0.01]}
@@ -171,6 +201,9 @@ export function Car({
         >
           <planeGeometry args={[0.35, 0.18]} />
           <meshStandardMaterial
+            ref={(m) => {
+              tailMats.current[i] = m
+            }}
             color="#d63333"
             emissive="#d63333"
             emissiveIntensity={0.6}
