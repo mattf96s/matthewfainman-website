@@ -11,6 +11,7 @@ import { isTouchDevice } from './mobileInput'
 import { MobileControlsBridge } from './MobileControlsBridge'
 import { Player } from './Player'
 import { PointerLockBridge } from './PointerLockBridge'
+import { ShadowThrottle } from './ShadowThrottle'
 import { Sword } from './Sword'
 import { Bikes } from './hazards/Bikes'
 import { Cars } from './hazards/Cars'
@@ -92,6 +93,8 @@ export function Game() {
         {/* Halt the render loop while the tab is hidden so an idle tab in the
           * background costs ~0 CPU instead of cooking the laptop. */}
         <FrameloopGovernor />
+        {/* Re-render the static-sun shadow map on a timer, not every frame. */}
+        <ShadowThrottle />
 
         <Suspense fallback={null}>
           <Physics gravity={[0, -30, 0]}>

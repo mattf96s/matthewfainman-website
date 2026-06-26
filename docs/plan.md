@@ -90,13 +90,16 @@ This is well past a prototype. What works today:
 - **Audio** — procedural sfx engine + looping Leidsestraat street ambience
   (CC0 field recording, gapless Web Audio loop), one shared mute toggle.
   (`src/lib/sfx.ts`, `public/audio/`)
-- **Perf** — shadow casters limited to large/identity objects; touch
-  devices skip the shadow pass and MSAA entirely and render at lower
-  dpr (phones were running hot). The render loop hard-stops while the
-  tab is hidden (`frameloop="never"`, driven from Game; the audio engine
-  suspends on the same event) so a backgrounded tab costs ~0 CPU instead
-  of pinning a core. Budgets enforced in CI.
-  (`src/game/Game.tsx`, `src/game/FrameloopGovernor.tsx`)
+- **Perf** — shadow casters limited to large/identity objects; the
+  directional sun is static so its 512² shadow map is re-rendered on a
+  ~30 Hz timer rather than every frame (skips the whole shadow pass on
+  most frames). Touch devices skip the shadow pass and MSAA entirely and
+  render at lower dpr (phones were running hot). The render loop
+  hard-stops while the tab is hidden (`frameloop="never"`, driven from
+  Game; the audio engine suspends on the same event) so a backgrounded
+  tab costs ~0 CPU instead of pinning a core. Budgets enforced in CI.
+  (`src/game/Game.tsx`, `src/game/FrameloopGovernor.tsx`,
+  `src/game/ShadowThrottle.tsx`)
 - **Tests** — vitest for pure logic (`src/lib/*.test.ts`); Playwright
   E2E + perf budgets against the production build via a `?e2e` test API.
   Deterministic metrics, not fps: draw calls / triangles / geometry
@@ -191,7 +194,10 @@ This is well past a prototype. What works today:
 
 **Performance principles:**
 - Instanced meshes for repeated props (lamps, bike racks, trees, bollards)
-- Shadows only on player and large objects, not every prop
+- Shadows only on player and large objects, not every prop. The sun is
+  static, so don't re-render its shadow map every frame — throttle it
+  (`autoUpdate = false` + a timed `needsUpdate`); the whole shadow pass is
+  pure heat otherwise.
 - LOD on distant buildings (drei `<Detailed>`); frustum culling on (default)
 - Watch frame budget with 8 players + ambient NPCs on screen
 - Budget CPU, not just GPU: cap the number of per-frame `useFrame` loops,
