@@ -13,7 +13,6 @@ import { PointerLockBridge } from './PointerLockBridge'
 import { Sword } from './Sword'
 import { Bikes } from './hazards/Bikes'
 import { Cars } from './hazards/Cars'
-import { PathTram, type TramPath } from './hazards/PathTram'
 import { Tram } from './hazards/Tram'
 import { PlayerStateSync } from './multiplayer/PlayerStateSync'
 import { TestApiBridge } from './TestApiBridge'
@@ -30,12 +29,12 @@ import { Block } from './world/Block'
 import { CanalLife } from './world/CanalLife'
 import { Rain } from './world/Rain'
 import { SkyDome } from './world/SkyDome'
-import { StraightTramTracks, TramTracks } from './world/TramTracks'
+import { StraightTramTracks } from './world/TramTracks'
 import {
   BLOCK_LENGTH,
+  TRAM_STOP_Z,
   X_TRAM_EAST,
   X_TRAM_WEST,
-  Z_CROSS_LANE_SOUTH,
 } from './world/constants'
 
 const keyMap = [
@@ -46,35 +45,6 @@ const keyMap = [
   { name: 'jump', keys: ['Space'] },
   { name: 'yawLeft', keys: ['KeyQ'] },
   { name: 'yawRight', keys: ['KeyE'] },
-]
-
-// Tram that takes the corner: north up the east tram lane of the main
-// road, arcs right at the intersection, continues east on the cross-
-// street's south lane. Reverses at the end for the return trip.
-const TURN_RADIUS = 8
-const L_PATH: TramPath = [
-  {
-    kind: 'straight',
-    x1: X_TRAM_EAST,
-    z1: -46,
-    x2: X_TRAM_EAST,
-    z2: Z_CROSS_LANE_SOUTH - TURN_RADIUS,
-  },
-  {
-    kind: 'arc',
-    cx: X_TRAM_EAST + TURN_RADIUS,
-    cz: Z_CROSS_LANE_SOUTH - TURN_RADIUS,
-    radius: TURN_RADIUS,
-    startAngle: Math.PI,
-    endAngle: Math.PI / 2,
-  },
-  {
-    kind: 'straight',
-    x1: X_TRAM_EAST + TURN_RADIUS,
-    z1: Z_CROSS_LANE_SOUTH,
-    x2: 18,
-    z2: Z_CROSS_LANE_SOUTH,
-  },
 ]
 
 export function Game() {
@@ -126,17 +96,24 @@ export function Game() {
             <CanalLife />
             <Bikes />
             <Cars />
-            {/* tram tracks */}
+            {/* two-way tram line — straight tracks down both lanes */}
             <StraightTramTracks
               x={X_TRAM_WEST}
               z1={-BLOCK_LENGTH / 2}
               z2={BLOCK_LENGTH / 2}
             />
-            <TramTracks path={L_PATH} />
-            {/* west tram lane: bouncing N-S */}
-            <Tram x={X_TRAM_WEST} startZ={10} startDirection={-1} />
-            {/* east tram lane: takes the corner onto the cross-street */}
-            <PathTram path={L_PATH} speed={7} endDwell={10} startOffset={5} />
+            <StraightTramTracks
+              x={X_TRAM_EAST}
+              z1={-BLOCK_LENGTH / 2}
+              z2={BLOCK_LENGTH / 2}
+            />
+            {/* a single tram that pauses at the stop on the west median */}
+            <Tram
+              x={X_TRAM_WEST}
+              startZ={10}
+              startDirection={-1}
+              stopZ={TRAM_STOP_Z}
+            />
             <Tourists />
             <Statiegeld />
             <Rats />

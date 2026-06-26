@@ -12,8 +12,10 @@ import { KlinkerPavement } from './KlinkerPavement'
 import { Lamps } from './Lamps'
 import { ParkedBikes } from './ParkedBikes'
 import { ParkedCars } from './ParkedCars'
+import { RoadMarkings } from './RoadMarkings'
 import type { ShopBrand } from './Shop'
 import { Street } from './Street'
+import { TramStop } from './TramStop'
 import { ZebraCrossing } from './ZebraCrossing'
 import {
   CROSS_STREET_WIDTH,
@@ -53,6 +55,8 @@ export function Block() {
     <group>
       <Street />
       <KlinkerPavement />
+      <RoadMarkings />
+      <TramStop />
       <Canal bridges={[CENTER_BRIDGE, NORTH_BRIDGE]} />
       <Bridge z={CENTER_BRIDGE.z} width={CENTER_BRIDGE.width} />
       <Bridge z={NORTH_BRIDGE.z} width={NORTH_BRIDGE.width} />

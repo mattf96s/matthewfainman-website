@@ -22,6 +22,9 @@ const HIT_HALF_WIDTH = 0.18
 const NEAR_HALF_WIDTH = TRAM_WIDTH / 2 + 1.5
 const NEAR_HALF_LENGTH = TRAM_LENGTH / 2 + 1.5
 
+/** How long the tram pauses at the mid-route stop, seconds. */
+const TRAM_STOP_DWELL = 6
+
 interface TramProps {
   /** X position of the tram's centreline (lane centre). */
   x: number
@@ -31,6 +34,8 @@ interface TramProps {
   startDirection?: 1 | -1
   /** Maximum Z reach before reversing. */
   extent?: number
+  /** Z of a mid-route stop the tram pauses at on each pass. */
+  stopZ?: number
 }
 
 export function Tram({
@@ -38,11 +43,15 @@ export function Tram({
   startZ = 0,
   startDirection = 1,
   extent = BLOCK_LENGTH / 2 - TRAM_LENGTH / 2 - 1,
+  stopZ,
 }: TramProps) {
   const body = useRef<RapierRigidBody>(null)
   const z = useRef(startZ)
   const direction = useRef<1 | -1>(startDirection)
   const dwellRemaining = useRef(0)
+  /** Guards the mid-route stop so it fires once per pass, not every frame
+   * the tram sits on top of stopZ. Reset when it turns around at an end. */
+  const stoppedThisPass = useRef(false)
   const playerInside = useRef(false)
   const wasHit = useRef(false)
   const cooldown = useRef(0)
@@ -59,15 +68,27 @@ export function Tram({
     if (dwellRemaining.current > 0) {
       dwellRemaining.current -= delta
     } else {
+      const prevZ = z.current
       z.current += direction.current * TRAM_SPEED * delta
-      if (z.current >= extent) {
+      // pull into the mid-route stop when this pass crosses it
+      if (
+        stopZ !== undefined &&
+        !stoppedThisPass.current &&
+        (prevZ - stopZ) * (z.current - stopZ) <= 0
+      ) {
+        z.current = stopZ
+        dwellRemaining.current = TRAM_STOP_DWELL
+        stoppedThisPass.current = true
+      } else if (z.current >= extent) {
         z.current = extent
         direction.current = -1
         dwellRemaining.current = TRAM_DWELL_SECONDS
+        stoppedThisPass.current = false
       } else if (z.current <= -extent) {
         z.current = -extent
         direction.current = 1
         dwellRemaining.current = TRAM_DWELL_SECONDS
+        stoppedThisPass.current = false
       }
     }
 

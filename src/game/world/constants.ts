@@ -76,6 +76,10 @@ export const X_HOUSE_SIDEWALK = centres[10]!
 
 /** Centre between the two tram lanes — handy for shop/zebra-crossing geometry. */
 export const X_ROAD = (X_TRAM_WEST + X_TRAM_EAST) / 2
+
+/** Z of the tram stop on the west median — the single tram pauses here and
+ * the TramStop shelter sits alongside. Shared so the two stay in sync. */
+export const TRAM_STOP_Z = -10
 /** Full width from west car lane outer edge to east car lane outer edge. */
 export const ROAD_WIDTH =
   CAR_LANE_WIDTH * 2 + MEDIAN_WIDTH * 2 + TRAM_LANE_WIDTH * 2
